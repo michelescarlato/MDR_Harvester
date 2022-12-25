@@ -2,7 +2,7 @@
 using Npgsql;
 using System.Collections.Generic;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     class ExpectedDataBuilder
     {

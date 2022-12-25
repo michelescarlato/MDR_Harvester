@@ -1,0 +1,50 @@
+﻿using PostgreSQLCopyHelper;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MDR_Harvester.Pubmed;
+
+
+public class PMSource
+{
+    public int? id { get; set; }
+    public string? default_name { get; set; }
+    public string? nlm_abbrev { get; set; }
+}
+
+
+public class PMIDBySource
+{
+    public string? sd_sid { get; set; }
+    public string? pmid { get; set; }
+}
+
+/*
+public class PMIDByBank
+{
+    public string pmid { get; set; }
+
+    public PMIDByBank( string _pmid)
+    {
+        pmid = _pmid;
+    }
+}
+*/
+
+public class CopyHelpers
+{
+    // defines the copy helpers required.
+    // see https://github.com/PostgreSQLCopyHelper/PostgreSQLCopyHelper for details
+
+    public PostgreSQLCopyHelper<PMIDBySource> source_ids_helper =
+            new PostgreSQLCopyHelper<PMIDBySource>("pp", "pmids_by_source_total")
+                .MapVarchar("sd_sid", x => x.sd_sid)
+                .MapVarchar("pmid", x => x.pmid);
+
+    // public PostgreSQLCopyHelper<PMIDByBank> bank_ids_helper =
+    //     new PostgreSQLCopyHelper<PMIDByBank>("pp", "temp_pmids_by_bank")
+    //           .MapVarchar("pmid", x => x.pmid);
+}

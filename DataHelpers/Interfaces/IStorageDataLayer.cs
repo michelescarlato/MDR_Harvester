@@ -1,7 +1,7 @@
 ﻿using PostgreSQLCopyHelper;
 using System.Collections.Generic;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public interface IStorageDataLayer
     {

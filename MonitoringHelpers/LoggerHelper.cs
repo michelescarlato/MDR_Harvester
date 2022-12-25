@@ -1,10 +1,9 @@
 ﻿using Dapper;
 using Npgsql;
-using Serilog;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class LoggerHelper //: ILoggerHelper
     {    /*

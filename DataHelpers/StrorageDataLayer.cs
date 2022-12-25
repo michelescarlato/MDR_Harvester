@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class StorageDataLayer : IStorageDataLayer
     {

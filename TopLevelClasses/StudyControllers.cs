@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Xml;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class StudyController
     {
@@ -47,9 +48,8 @@ namespace DataHarvester
                     filePath = rec.local_path;
                     if (File.Exists(filePath))
                     {
-                        XmlDocument xdoc = new XmlDocument();
-                        xdoc.Load(filePath);
-                        Study s = _processor.ProcessData(xdoc, rec.last_downloaded);
+                        string jsonString = File.ReadAllText(filePath);
+                        Study s = _processor.ProcessData(jsonString, rec.last_downloaded);
 
                         // store the data in the database			
                         _storage_repo.StoreFullStudy(s, _source);

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Xml;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public interface IStudyProcessor
     {
-        public Study ProcessData(XmlDocument d, DateTime? download_datetime);
+        public Study? ProcessData(string json_string, DateTime? download_datetime);
     }
 }

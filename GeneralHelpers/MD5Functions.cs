@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class MD5Helpers
     {

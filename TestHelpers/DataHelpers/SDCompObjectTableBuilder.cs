@@ -4,28 +4,28 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DataHarvester
+namespace MDR_Harvester;
+
+public class SDCompObjectTableBuilder
 {
-    public class SDCompObjectTableBuilder
+    string _db_conn;
+
+    public SDCompObjectTableBuilder(string db_conn)
     {
-        string _db_conn;
+        _db_conn = db_conn;
+    }
 
-        public SDCompObjectTableBuilder(string db_conn)
+    private void Execute_SQL(string sql_string)
+    {
+        using (var conn = new NpgsqlConnection(_db_conn))
         {
-            _db_conn = db_conn;
+            conn.Execute(sql_string);
         }
+    }
 
-        private void Execute_SQL(string sql_string)
-        {
-            using (var conn = new NpgsqlConnection(_db_conn))
-            {
-                conn.Execute(sql_string);
-            }
-        }
-
-        public void create_table_data_objects()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.data_objects;
+    public void create_table_data_objects()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.data_objects;
               CREATE TABLE sdcomp.data_objects(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL       
@@ -59,13 +59,13 @@ namespace DataHarvester
             CREATE INDEX data_objects_sd_oid ON sdcomp.data_objects(sd_oid);
             CREATE INDEX data_objects_sd_sid ON sdcomp.data_objects(sd_sid);";
 
-            Execute_SQL(sql_string);
-        }
-  
+        Execute_SQL(sql_string);
+    }
 
-        public void create_table_object_datasets()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_datasets;
+
+    public void create_table_object_datasets()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_datasets;
             CREATE TABLE sdcomp.object_datasets(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -93,13 +93,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_datasets_sd_oid ON sdcomp.object_datasets(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 			
 
-        public void create_table_object_dates()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_dates;
+    public void create_table_object_dates()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_dates;
             CREATE TABLE sdcomp.object_dates(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -119,13 +119,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_dates_sd_oid ON sdcomp.object_dates(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_instances()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_instances;
+    public void create_table_object_instances()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_instances;
             CREATE TABLE sdcomp.object_instances(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -146,13 +146,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_instances_sd_oid ON sdcomp.object_instances(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_contributors()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_contributors;
+    public void create_table_object_contributors()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_contributors;
             CREATE TABLE sdcomp.object_contributors(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -173,13 +173,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_contributors_sd_oid ON sdcomp.object_contributors(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
-       
-        public void create_table_object_titles()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_titles;
+   
+    public void create_table_object_titles()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_titles;
             CREATE TABLE sdcomp.object_titles(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -195,13 +195,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_titles_sd_oid ON sdcomp.object_titles(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_topics()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_topics;
+    public void create_table_object_topics()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_topics;
             CREATE TABLE sdcomp.object_topics(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -218,13 +218,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_topics_sd_oid ON sdcomp.object_topics(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_comments()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_comments;
+    public void create_table_object_comments()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_comments;
             CREATE TABLE sdcomp.object_comments(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -238,13 +238,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_comments_sd_oid ON sdcomp.object_comments(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_descriptions()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_descriptions;
+    public void create_table_object_descriptions()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_descriptions;
             CREATE TABLE sdcomp.object_descriptions(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -258,13 +258,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_descriptions_sd_oid ON sdcomp.object_descriptions(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_identifiers()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_identifiers;
+    public void create_table_object_identifiers()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_identifiers;
             CREATE TABLE sdcomp.object_identifiers(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -280,13 +280,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_identifiers_sd_oid ON sdcomp.object_identifiers(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_db_links()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_db_links;
+    public void create_table_object_db_links()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_db_links;
             CREATE TABLE sdcomp.object_db_links(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -298,13 +298,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_db_links_sd_oid ON sdcomp.object_db_links(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_publication_types()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_publication_types;
+    public void create_table_object_publication_types()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_publication_types;
             CREATE TABLE sdcomp.object_publication_types(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -314,13 +314,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_publication_types_sd_oid ON sdcomp.object_publication_types(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_relationships()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_relationships;
+    public void create_table_object_relationships()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_relationships;
             CREATE TABLE sdcomp.object_relationships(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -332,13 +332,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_relationships_sd_oid ON sdcomp.object_relationships(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_rights()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_rights;
+    public void create_table_object_rights()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_rights;
             CREATE TABLE sdcomp.object_rights(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -350,13 +350,13 @@ namespace DataHarvester
             );
             CREATE INDEX object_rights_sd_oid ON sdcomp.object_rights(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_citation_objects()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.citation_objects;
+    public void create_table_citation_objects()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.citation_objects;
             CREATE TABLE sdcomp.citation_objects(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -389,13 +389,13 @@ namespace DataHarvester
             );
             CREATE INDEX citation_objects_sd_oid ON sdcomp.citation_objects(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
+        Execute_SQL(sql_string);
+    }
 
 
-        public void create_table_object_hashes()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_hashes;
+    public void create_table_object_hashes()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sdcomp.object_hashes;
             CREATE TABLE sdcomp.object_hashes(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , source_id              INT             NOT NULL
@@ -406,8 +406,7 @@ namespace DataHarvester
             );
             CREATE INDEX object_hashes_sd_oid ON sdcomp.object_hashes(sd_oid);";
 
-            Execute_SQL(sql_string);
-        }
-
+        Execute_SQL(sql_string);
     }
+
 }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public interface ITestingDataLayer
     {

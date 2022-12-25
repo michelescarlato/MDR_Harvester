@@ -1,24 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Xml;
+﻿using System.Globalization;
+using System.Text.Json;
 using System.Xml.Linq;
 
-namespace DataHarvester.isrctn
+namespace MDR_Harvester.Isctrn;
+
+public class IsctrnProcessor : IStudyProcessor
 {
-    public class ISRCTNProcessor : IStudyProcessor
+    IMonitorDataLayer _mon_repo;
+    LoggingHelper _logger;
+
+    public IsctrnProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
     {
-        IMonitorDataLayer _mon_repo;
-        LoggingHelper _logger;
+        _mon_repo = mon_repo;
+        _logger = logger;
+    }
 
-        public ISRCTNProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
+    public Study? ProcessData(string json_string, DateTime? download_datetime)
+    {
+        // set up json reader and deserialise file to a ISCTRN_Record object.
+
+        var json_options = new JsonSerializerOptions()
         {
-            _mon_repo = mon_repo;
-            _logger = logger;
-        }
+            PropertyNameCaseInsensitive = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        };
 
-        public Study ProcessData(XmlDocument d, DateTime? download_datetime)
+        ISCTRN_Record? b = JsonSerializer.Deserialize<ISCTRN_Record?>(json_string, json_options);
+        if (b is not null)
         {
             Study s = new Study();
 
@@ -37,40 +46,30 @@ namespace DataHarvester.isrctn
             List<ObjectInstance> object_instances = new List<ObjectInstance>();
 
             MD5Helpers hh = new MD5Helpers();
-            StringHelpers sh = new StringHelpers(_logger);
             DateHelpers dh = new DateHelpers();
             TypeHelpers th = new TypeHelpers();
             IdentifierHelpers ih = new IdentifierHelpers();
 
-            SplitDate reg_date = null;
-            SplitDate last_edit = null;
-            string study_description = null;
-            string sharing_statement = null;
+            SplitDate? reg_date = null;
+            SplitDate? last_edit = null;
+            string? study_description = null;
+            string? sharing_statement = null;
 
-            // First convert the XML document to a Linq XML Document.
-
-            XDocument xDoc = XDocument.Load(new XmlNodeReader(d));
-
-            // Obtain the main top level elements of the registry entry.
-
-            XElement r = xDoc.Root;
-
-            string sid = GetElementAsString(r.Element("isctrn_id"));
-            s.sd_sid = sid;
+            string? sid = b.isctrn_id;  
+            s.sd_sid = sid!;
             s.datetime_of_data_fetch = download_datetime;
 
             // get basic study attributes
-            string study_name = GetElementAsString(r.Element("study_name"));
-            study_name = sh.ReplaceApos(study_name);
+            string? study_name = b.study_name?.ReplaceApos(); 
             s.display_title = study_name;   // = public title, default
-            s.datetime_of_data_fetch = download_datetime;
 
-            titles.Add(new StudyTitle(sid, s.display_title, 15, "Registry public title", true, "From ISRCTN"));
+            titles.Add(new StudyTitle(sid!, s.display_title, 15, "Registry public title", true, "From ISRCTN"));
 
             // study status from trial_status and recruitment_status
             // record for now and see what is available
-            string trial_status = GetElementAsString(r.Element("trial_status"));
-            string recruitment_status = GetElementAsString(r.Element("recruitment_status"));
+
+            string? trial_status = b.trial_status;
+            string? recruitment_status = b.recruitment_status; 
             s.study_status = trial_status + " :: recruitment :: " + recruitment_status;
 
             switch (trial_status)
@@ -651,7 +650,7 @@ namespace DataHarvester.isrctn
                                 {
                                     if (item_value != "Not provided at time of registration")
                                     {
-                                        item_value = sh.StringClean(item_value);
+                                        item_value = item_value?.StringClean();
                                         if (!string.IsNullOrEmpty(study_description))
                                         {
                                             study_description += "\n";
@@ -759,7 +758,7 @@ namespace DataHarvester.isrctn
                     foreach (XElement item in items)
                     {
                         string item_name = GetElementAsString(item.Element("item_name")).Trim();
-                        string item_value = GetElementAsString(item.Element("item_value")).Trim(); 
+                        string item_value = GetElementAsString(item.Element("item_value")).Trim();
 
                         switch (item_name)
                         {
@@ -902,7 +901,7 @@ namespace DataHarvester.isrctn
                         string item_value = GetElementAsString(item.Element("item_value"));
                         switch (item_name)
                         {
-                            case "Countries of recruitment": 
+                            case "Countries of recruitment":
                                 {
                                     // countries provided as a list
                                     // but some countries have a comma in them...
@@ -1117,7 +1116,7 @@ namespace DataHarvester.isrctn
                                     }
                                     break;
                                 }
-                           default:
+                            default:
                                 {
                                     // Ignore...
                                     break;
@@ -1154,7 +1153,7 @@ namespace DataHarvester.isrctn
                 }
             }
 
- 
+
             // outputs
             var outputs = r.Element("outputs");
             if (outputs != null)
@@ -1205,10 +1204,10 @@ namespace DataHarvester.isrctn
                         // or some other type of output
 
                         string output_lower = output_type.ToLower();
-                        if (output_lower == "protocol article" || output_lower == "results article" 
-                            || output_lower == "interim results article" || output_lower == "preprint results" 
-                            || output_lower == "other publications" || output_lower == "abstract results" 
-                            || output_lower == "abstract results" || output_lower == "thesis results " 
+                        if (output_lower == "protocol article" || output_lower == "results article"
+                            || output_lower == "interim results article" || output_lower == "preprint results"
+                            || output_lower == "other publications" || output_lower == "abstract results"
+                            || output_lower == "abstract results" || output_lower == "thesis results "
                             || output_lower == "thesis results" || output_lower == "protocol (preprint)"
                             || output_lower == "preprint (other)")
                         {
@@ -1282,7 +1281,7 @@ namespace DataHarvester.isrctn
                             {
                                 if ((comments == "protocol article"
                                            && details.ToLower() != "protocol" && details.ToLower() != "protocol")
-                                || (comments == "results article" 
+                                || (comments == "results article"
                                            && details.ToLower() != "results"))
                                 {
                                     comments = comments + " (" + details + ")";
@@ -1378,7 +1377,7 @@ namespace DataHarvester.isrctn
 
                             int res_type_id = 0;
                             string res_type = "Not yet known";
-                            int title_type_id = 0; 
+                            int title_type_id = 0;
                             string title_type = "Not yet known";
 
                             if (specific_object_name == "")
@@ -1439,7 +1438,7 @@ namespace DataHarvester.isrctn
                                 // probably not as most objects should have a specific name
                             }
                             else
-                            { 
+                            {
                                 if (specific_object_name.ToLower().EndsWith(".pdf"))
                                 {
                                     res_type_id = 11;
@@ -1470,7 +1469,7 @@ namespace DataHarvester.isrctn
 
                             // do a check that the sd_oid and resulting object name is not a duplicate
                             // if it is add a suffix before making the addition
-                   
+
                             int next_num = 0;
                             if (data_objects.Any())
                             {
@@ -1482,7 +1481,7 @@ namespace DataHarvester.isrctn
                                     }
                                 }
                             }
-                           
+
                             if (next_num > 0)
                             {
                                 sd_oid += "_" + next_num.ToString();
@@ -1549,28 +1548,37 @@ namespace DataHarvester.isrctn
             {
                 foreach (StudyContributor sc in contributors)
                 {
-                    if (!sc.is_individual)
+                    if (sc.is_individual is not null)
                     {
-                        // identify individuals down as organisations
-
-                        string orgname = sc.organisation_name.ToLower();
-                        if (ih.CheckIfIndividual(orgname))
+                        if ((bool)sc.is_individual)
                         {
-                            sc.person_full_name = sh.TidyPersonName(sc.organisation_name);
-                            sc.organisation_name = null;
-                            sc.is_individual = true;
+                            // check if a group inserted as an individual.
+
+                            string? fullname = sc.person_full_name?.ToLower();
+                            if (fullname is not null)
+                            {
+                                if (ih.CheckIfOrganisation(fullname))
+                                {
+                                    sc.organisation_name = sh.TidyOrgName(sid, sc.person_full_name);
+                                    sc.person_full_name = null;
+                                    sc.is_individual = false;
+                                }
+                            }
                         }
-                    }
-                    else
-                    {
-                        // check if a group inserted as an individual
-
-                        string fullname = sc.person_full_name.ToLower();
-                        if (ih.CheckIfOrganisation(fullname))
+                        else
                         {
-                            sc.organisation_name = sh.TidyOrgName(sid, sc.person_full_name);
-                            sc.person_full_name = null;
-                            sc.is_individual = false;
+                            // identify individuals down as organisations.
+
+                            string? orgname = sc.organisation_name?.ToLower();
+                            if (orgname is not null)
+                            {
+                                if (ih.CheckIfIndividual(orgname))
+                                {
+                                    sc.person_full_name = sh.TidyPersonName(sc.organisation_name);
+                                    sc.organisation_name = null;
+                                    sc.is_individual = true;
+                                }
+                            }
                         }
                     }
                 }
@@ -1598,9 +1606,13 @@ namespace DataHarvester.isrctn
             return s;
 
         }
+        else
+        {
+            return null;
+        }
 
 
-        private bool IsNewToList(List<StudyIdentifier> identifiers, string ident_value)
+        bool IsNewToList(List<StudyIdentifier> identifiers, string ident_value)
         {
             bool res = true;
             if (identifiers.Count > 0)
@@ -1619,7 +1631,7 @@ namespace DataHarvester.isrctn
 
 
         // check name...
-        private int CheckObjectName(List<ObjectTitle> titles, string object_display_title)
+        int CheckObjectName(List<ObjectTitle> titles, string object_display_title)
         {
             int num_of_this_type = 0;
             if (titles.Count > 0)
@@ -1634,86 +1646,6 @@ namespace DataHarvester.isrctn
             }
             return num_of_this_type;
         }
-
-        private string GetElementAsString(XElement e) => (e == null) ? null : (string)e;
-
-        private string GetAttributeAsString(XAttribute a) => (a == null) ? null : (string)a;
-
-
-        private int? GetElementAsInt(XElement e)
-        {
-            string evalue = GetElementAsString(e);
-            if (string.IsNullOrEmpty(evalue))
-            {
-                return null;
-            }
-            else
-            {
-                if (Int32.TryParse(evalue, out int res))
-                    return res;
-                else
-                    return null;
-            }
-        }
-
-        private int? GetAttributeAsInt(XAttribute a)
-        {
-            string avalue = GetAttributeAsString(a);
-            if (string.IsNullOrEmpty(avalue))
-            {
-                return null;
-            }
-            else
-            {
-                if (Int32.TryParse(avalue, out int res))
-                    return res;
-                else
-                    return null;
-            }
-        }
-
-
-        private bool GetElementAsBool(XElement e)
-        {
-            string evalue = GetElementAsString(e);
-            if (evalue != null)
-            {
-                return (evalue.ToLower() == "true" || evalue.ToLower()[0] == 'y') ? true : false;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        private bool GetAttributeAsBool(XAttribute a)
-        {
-            string avalue = GetAttributeAsString(a);
-            if (avalue != null)
-            {
-                return (avalue.ToLower() == "true" || avalue.ToLower()[0] == 'y') ? true : false;
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-
-    public class AdditionalFile
-    {
-        public string sd_sid { get; set; }
-        public string item_name { get; set; }
-        public string item_value { get; set; }
-
-        public AdditionalFile(string _sd_sid, string _item_name, string _item_value)
-        {
-            sd_sid = _sd_sid;
-            item_name = _item_name;
-            item_value = _item_value;
-        }
-
-
     }
 }
-
+ 

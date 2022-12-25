@@ -1,4 +1,4 @@
-﻿namespace DataHarvester
+﻿namespace MDR_Harvester
 {
     public interface ILoggerHelper
     {

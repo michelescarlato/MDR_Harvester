@@ -1,7 +1,7 @@
 ﻿using Dapper.Contrib.Extensions;
 using System;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     [Table("sf.source_parameters")]
     public class Source : ISource

@@ -2,7 +2,7 @@
 using System.IO;
 using System.Xml;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class ObjectController
     {

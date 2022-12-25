@@ -2,7 +2,7 @@
 using Npgsql;
 
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class ObjectTableBuilder
     {

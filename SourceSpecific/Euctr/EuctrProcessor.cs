@@ -1,46 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+﻿using System.Globalization;
+using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace DataHarvester.euctr
+namespace MDR_Harvester.Euctr;
+
+public class EUCTRProcessor : IStudyProcessor
 {
-    public class EUCTRProcessor : IStudyProcessor
+    IMonitorDataLayer _mon_repo;
+    LoggingHelper _logger;
+
+    public EUCTRProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
     {
-        IMonitorDataLayer _mon_repo;
-        LoggingHelper _logger;
+        _mon_repo = mon_repo;
+        _logger = logger;
+    }
 
-        public EUCTRProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
+    public Study? ProcessData(string json_string, DateTime? download_datetime)
+    {
+        // set up json reader and deserialise file to a BioLiNCC object.
+
+        var json_options = new JsonSerializerOptions()
         {
-            _mon_repo = mon_repo;
-            _logger = logger;
-        }
+            PropertyNameCaseInsensitive = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        };
 
-        public Study ProcessData(XmlDocument d, DateTime? download_datetime)
+        EUCTR_Record? b = JsonSerializer.Deserialize<EUCTR_Record?>(json_string, json_options);
+        if (b is not null)
         {
             Study s = new Study();
-            List<StudyIdentifier> identifiers = new List<StudyIdentifier>();
-            List<StudyTitle> titles = new List<StudyTitle>();
-            List<StudyContributor> contributors = new List<StudyContributor>();
-            List<StudyTopic> topics = new List<StudyTopic>();
-            List<StudyFeature> features = new List<StudyFeature>();
-            List<StudyLocation> sites = new List<StudyLocation>();
-            List<StudyCountry> countries = new List<StudyCountry>();
+            List<StudyIdentifier> identifiers = new();
+            List<StudyTitle> titles = new();
+            List<StudyContributor> contributors = new();
+            List<StudyTopic> topics = new();
+            List<StudyFeature> features = new();
+            List<StudyLocation> sites = new();
+            List<StudyCountry> countries = new();
 
-            List<DataObject> data_objects = new List<DataObject>();
-            List<ObjectTitle> object_titles = new List<ObjectTitle>();
-            List<ObjectInstance> object_instances = new List<ObjectInstance>();
-            List<ObjectDate> object_dates = new List<ObjectDate>();
+            List<DataObject> data_objects = new();
+            List<ObjectTitle> object_titles = new();
+            List<ObjectInstance> object_instances = new();
+            List<ObjectDate> object_dates = new();
 
-            List<IMP> imp_list = new List<IMP>();
+            List<IMP> imp_list = new();
 
-            MD5Helpers hh = new MD5Helpers();
-            StringHelpers sh = new StringHelpers(_logger);
-            DateHelpers dh = new DateHelpers();
-            IdentifierHelpers ih = new IdentifierHelpers();
-            TypeHelpers th = new TypeHelpers();
+            MD5Helpers hh = new();
+            DateHelpers dh = new();
+            IdentifierHelpers ih = new();
+            TypeHelpers th = new();
 
             string study_description = null;
 
@@ -61,13 +70,13 @@ namespace DataHarvester.euctr
             s.study_type = "Interventional";
             s.study_type_id = 11;
 
-            s.study_status = GetElementAsString(r.Element("trial_status")); 
+            s.study_status = GetElementAsString(r.Element("trial_status"));
             switch (s.study_status)
             {
                 case "Ongoing":
                     {
                         s.study_status = "Ongoing";
-                        s.study_status_id = 25; 
+                        s.study_status_id = 25;
                         break;
                     }
                 case "Completed":
@@ -128,7 +137,7 @@ namespace DataHarvester.euctr
             // may get funders or other supporting orgs
             var sponsors = r.Element("sponsors");
             if (sponsors != null)
-            { 
+            {
                 var detail_lines = sponsors.Elements("DetailLine");
                 if (detail_lines != null && detail_lines.Count() > 0)
                 {
@@ -177,7 +186,7 @@ namespace DataHarvester.euctr
                 }
                 else
                 {
-                    identifiers.Add(new StudyIdentifier(sid, sponsor_id, 14, "Sponsor ID", 12, "No organisation name provided in source data" , null, null));
+                    identifiers.Add(new StudyIdentifier(sid, sponsor_id, 14, "Sponsor ID", 12, "No organisation name provided in source data", null, null));
                 }
             }
 
@@ -243,7 +252,7 @@ namespace DataHarvester.euctr
                                                     string st_name = name.Trim().ToLower();
                                                     if (sh.AppearsGenuineTitle(name))
                                                     {
-                                                        name = sh.ReplaceApos(name);
+                                                        name = name.ReplaceApos();
                                                         if (!NameAlreadyPresent(name))
                                                         {
                                                             if (indiv_value_num == 1)
@@ -281,7 +290,7 @@ namespace DataHarvester.euctr
                                                     if (sh.AppearsGenuineTitle(name))
                                                     {
                                                         indiv_value_num++;
-                                                        name = sh.ReplaceApos(name);
+                                                        name = name.ReplaceApos();
                                                         if (!NameAlreadyPresent(name))
                                                         {
                                                             if (indiv_value_num == 1)
@@ -397,9 +406,9 @@ namespace DataHarvester.euctr
             bool NameAlreadyPresent(string candidate_name)
             {
                 bool res = false;
-                foreach(StudyTitle t in titles)
+                foreach (StudyTitle t in titles)
                 {
-                    if(t.title_text.ToLower() == candidate_name.ToLower() )
+                    if (t.title_text.ToLower() == candidate_name.ToLower())
                     {
                         res = true;
                         break;
@@ -412,13 +421,17 @@ namespace DataHarvester.euctr
             bool display_title_exists = false;
             for (int k = 0; k < titles.Count; k++)
             {
-                if (titles[k].is_default)
+                if (titles[k] is not null)
                 {
-                    s.display_title = titles[k].title_text;
-                    display_title_exists = true;
-                    break;
+                    if ((bool)titles[k].is_default)
+                    {
+                        s.display_title = titles[k].title_text;
+                        display_title_exists = true;
+                        break;
+                    }
                 }
             }
+
 
             if (!display_title_exists)
             {
@@ -472,7 +485,7 @@ namespace DataHarvester.euctr
                 if (detail_lines?.Any() == true)
                 {
                     foreach (XElement dline in detail_lines)
-                    { 
+                    {
                         string item_code = GetElementAsString(dline.Element("item_code"));
                         switch (item_code)
                         {
@@ -494,7 +507,7 @@ namespace DataHarvester.euctr
                                                 }
                                             }
                                         }
-                                    } 
+                                    }
                                     break;
                                 }
                             case "E.2.1":
@@ -511,17 +524,17 @@ namespace DataHarvester.euctr
 
                                             foreach (XElement v in indiv_values)
                                             {
-                                                string primary_obs = GetElementAsString(v) ?? "";
-                                                primary_obs = sh.StringClean(primary_obs);
+                                                string? primary_obs = GetElementAsString(v);
+                                                primary_obs = primary_obs?.StringClean();
                                                 indiv_value_num++;
 
-                                                if (primary_obs.Length >= 16 &&
+                                                if (primary_obs is not null && primary_obs.Length >= 16 &&
                                                     !primary_obs.ToLower().StartsWith("see ") &&
                                                     !primary_obs.ToLower().StartsWith("not "))
                                                 {
                                                     if (indiv_value_num == 1)
                                                     {
-                                                        study_objectives = !primary_obs.ToLower().StartsWith("primary") 
+                                                        study_objectives = !primary_obs.ToLower().StartsWith("primary")
                                                             ? "Primary objectives: " + primary_obs
                                                             : primary_obs;
                                                     }
@@ -551,11 +564,11 @@ namespace DataHarvester.euctr
 
                                         foreach (XElement v in values)
                                         {
-                                            string end_points = GetElementAsString(v) ?? "";
-                                            end_points = sh.StringClean(end_points);
+                                            string? end_points = GetElementAsString(v);
+                                            end_points = end_points?.StringClean();
                                             indiv_value_num++;
-                                            
-                                            if (end_points.Length >= 16 &&
+
+                                            if (end_points is not null && end_points.Length >= 16 &&
                                                 !end_points.ToLower().StartsWith("see ") &&
                                                 !end_points.ToLower().StartsWith("not "))
                                             {
@@ -576,7 +589,7 @@ namespace DataHarvester.euctr
                                         {
                                             study_description += string.IsNullOrEmpty(study_description) ? study_endpoints : "\n" + study_endpoints;
                                         }
-                                    }  
+                                    }
                                     break;
 
                                 }
@@ -823,7 +836,7 @@ namespace DataHarvester.euctr
                     foreach (XElement iline in imp_lines)
                     {
                         int imp_num = (int)GetElementAsInt(iline.Element("imp_number"));
-                        
+
                         if (imp_num > current_num)
                         {
                             // new imp class required to hold the values found below
@@ -851,7 +864,7 @@ namespace DataHarvester.euctr
                                             imp.trade_name = topic_name.Replace(((char)174).ToString(), "");    // drop reg mark
                                         }
                                     }
-                                    break;                           
+                                    break;
                                 }
                             case "D.3.1":
                                 {
@@ -899,7 +912,7 @@ namespace DataHarvester.euctr
                                 }
                         }
                     }
-                    
+
                     // add the last one 
                     if (current_num != 0) imp_list.Add(imp);
 
@@ -926,7 +939,7 @@ namespace DataHarvester.euctr
 
                             if (imp_name != "" && !IMPAlreadyThere(imp_name))
                             {
-                                 topics.Add(new StudyTopic(sid, 12, "chemical / agent", imp_name));
+                                topics.Add(new StudyTopic(sid, 12, "chemical / agent", imp_name));
                             }
                         }
                     }
@@ -937,9 +950,9 @@ namespace DataHarvester.euctr
             bool IMPAlreadyThere(string imp_name)
             {
                 bool res = false;
-                foreach(StudyTopic t in topics)
+                foreach (StudyTopic t in topics)
                 {
-                    if(imp_name.ToLower() == t.original_value.ToLower())
+                    if (imp_name.ToLower() == t.original_value.ToLower())
                     {
                         res = true;
                         break;
@@ -1003,20 +1016,20 @@ namespace DataHarvester.euctr
 
             // DATA OBJECTS and their attributes
 
-                            // ----------------------------------------------------------
-                            // initial data object is the EUCTR registry entry
-                            // ----------------------------------------------------------
+            // ----------------------------------------------------------
+            // initial data object is the EUCTR registry entry
+            // ----------------------------------------------------------
 
-                        string object_title = "EU CTR registry entry";
+            string object_title = "EU CTR registry entry";
             string object_display_title = s.display_title + " :: EU CTR registry entry";
             SplitDate entered_in_db = dh.GetDatePartsFromISOString(GetElementAsString(r.Element("entered_in_db")));
             int? registry_pub_year = (entered_in_db != null) ? entered_in_db.year : s.study_start_year;
-            
+
             // create hash Id for the data object
             string sd_oid = sid + " :: 13 :: " + object_title;
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, registry_pub_year,
-                  23, "Text", 13, "Trial Registry entry", 100123, "EU Clinical Trials Register", 
+                  23, "Text", 13, "Trial Registry entry", 100123, "EU Clinical Trials Register",
                   12, download_datetime));
 
             // data object title is the single display title...
@@ -1203,87 +1216,11 @@ namespace DataHarvester.euctr
 
 
             return s;
-        
+
         }
-
-
-        class IMP
         {
-            public int num { get; set; }
-            public string product_name { get; set; }
-            public string trade_name { get; set; }
-            public string inn { get; set; }
-
-            public IMP(int _num)
-            {
-                num = _num;
-            }
-        }
-
-
-        private string GetElementAsString(XElement e) => (e == null) ? null : (string)e;
-
-        private string GetAttributeAsString(XAttribute a) => (a == null) ? null : (string)a;
-
-
-        private int? GetElementAsInt(XElement e)
-        {
-            string evalue = GetElementAsString(e);
-            if (string.IsNullOrEmpty(evalue))
-            {
-                return null;
-            }
-            else
-            {
-                if (Int32.TryParse(evalue, out int res))
-                    return res;
-                else
-                    return null;
-            }
-        }
-
-        private int? GetAttributeAsInt(XAttribute a)
-        {
-            string avalue = GetAttributeAsString(a);
-            if (string.IsNullOrEmpty(avalue))
-            {
-                return null;
-            }
-            else
-            {
-                if (Int32.TryParse(avalue, out int res))
-                    return res;
-                else
-                    return null;
-            }
-        }
-
-
-        private bool GetElementAsBool(XElement e)
-        {
-            string evalue = GetElementAsString(e);
-            if (evalue != null)
-            {
-                return (evalue.ToLower() == "true" || evalue.ToLower()[0] == 'y') ? true : false;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        private bool GetAttributeAsBool(XAttribute a)
-        {
-            string avalue = GetAttributeAsString(a);
-            if (avalue != null)
-            {
-                return (avalue.ToLower() == "true" || avalue.ToLower()[0] == 'y') ? true : false;
-            }
-            else
-            {
-                return false;
-            }
+            return null;
         }
     }
-
 }
+

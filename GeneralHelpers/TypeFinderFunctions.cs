@@ -1,220 +1,303 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace DataHarvester
+namespace MDR_Harvester.Extensions;
+
+public static class TypeHelpers
 {
-    public class TypeHelpers
+    public static int? GetStatusId(this string? study_status)
     {
-        public int? GetStatusId(string study_status)
+        if (string.IsNullOrEmpty(study_status))
         {
-            int? type_id = null;
-            switch (study_status.ToLower())
-            {
-                case "completed": type_id = 21; break;
-                case "recruiting": type_id = 14; break;
-                case "ongoing": type_id = 25; break;                
-                case "active, not recruiting": type_id = 15; break;
-                case "not yet recruiting": type_id = 16; break;
-                case "unknown status": type_id = 0; break;
-                case "withdrawn": type_id = 11; break;
-                case "available": type_id = 12; break;
-                case "withheld": type_id = 13; break;
-                case "no longer available": type_id = 17; break;
-                case "suspended": type_id = 18; break;
-                case "terminated": type_id = 22; break;
-                case "prematurely ended": type_id = 22; break;
-                case "enrolling by invitation": type_id = 19; break;
-                case "approved for marketing": type_id = 20; break;
-                case "other": type_id = 24; break;
-                default: type_id = 0; break;
-            }
-            return type_id;
+            return null;
         }
-
-        public int? GetTypeId(string study_type)
+        else
         {
-            int? type_id = null;
-            switch (study_type.ToLower())
+            return study_status.ToLower() switch
             {
-                case "interventional": type_id = 11; break;
-                case "observational": type_id = 12; break;
-                case "observational patient registry": type_id = 13; break;
-                case "expanded access": type_id = 14; break;
-                case "funded programme": type_id = 15; break;
-                case "not yet known": type_id = 0; break;
-            }
-            return type_id;
+                "completed" => 21,
+                "recruiting" => 14,
+                "ongoing" => 25,
+                "active, not recruiting" => 15,
+                "not yet recruiting" => 16,
+                "unknown status" => 0,
+                "withdrawn" => 11,
+                "available" => 12,
+                "withheld" => 13,
+                "no longer available" => 17,
+                "suspended" => 18,
+                "terminated" => 22,
+                "prematurely ended" => 22,
+                "enrolling by invitation" => 19,
+                "approved for marketing" => 20,
+                "other" => 24,
+                _ => null,
+            };
         }
+    }
 
-        public int? GetGenderEligId(string gender_elig)
+
+    public static int? GetTypeId(this string? study_type)
+    {
+        if (string.IsNullOrEmpty(study_type))
         {
-            int? type_id = null;
-            switch (gender_elig.ToLower())
-            {
-                case "both": type_id = 900; break;
-                case "female": type_id = 905; break;
-                case "male": type_id = 910; break;
-                case "not provided": type_id = 915; break;
-            }
-            return type_id;
+            return null;
         }
-
-        public int? GetTimeUnitsId(string time_units)
+        else
         {
-            int? type_id = null;
-            switch (time_units.ToLower())
+            return study_type.ToLower() switch
             {
-                case "seconds": type_id = 11; break;
-                case "minutes": type_id = 12; break;
-                case "hours": type_id = 13; break;
-                case "days": type_id = 14; break;
-                case "weeks": type_id = 15; break;
-                case "months": type_id = 16; break;
-                case "years": type_id = 17; break;
-                case "not provided": type_id = 0; break;
-            }
-            return type_id;
+                "interventional" => 11,
+                    "observational" => 12,
+                    "observational patient registry" => 13,
+                    "expanded access" => 14,
+                    "funded programme" => 15,
+                    "not yet known" => 0,
+                    _ => null,
+            };
         }
+    }
 
-        public int? GetPhaseId(string phase)
+
+    public static int? GetGenderEligId(this string? gender_elig)
+    {
+        if (string.IsNullOrEmpty(gender_elig))
         {
-            int? type_id = null;
-            switch (phase.ToLower())
-            {
-                case "n/a": type_id = 100; break;
-                case "not applicable": type_id = 100; break;
-                case "early phase 1": type_id = 105; break;
-                case "phase 1": type_id = 110; break;
-                case "phase 1/phase 2": type_id = 115; break;
-                case "phase 2": type_id = 120; break;
-                case "phase 2/phase 3": type_id = 125; break;
-                case "phase 3": type_id = 130; break;
-                case "phase 4": type_id = 135; break;
-                case "not provided": type_id = 140; break;
-            }
-            return type_id;
+            return null;
         }
-
-        public int? GetPrimaryPurposeId(string primary_purpose)
+        else
         {
-            int? type_id = null;
-            switch (primary_purpose.ToLower())
+            return gender_elig.ToLower() switch
             {
-                case "treatment": type_id = 400; break;
-                case "prevention": type_id = 405; break;
-                case "diagnostic": type_id = 410; break;
-                case "supportive care": type_id = 415; break;
-                case "screening": type_id = 420; break;
-                case "health services research": type_id = 425; break;
-                case "basic science": type_id = 430; break;
-                case "device feasibility": type_id = 435; break;
-                case "other": type_id = 440; break;
-                case "not provided": type_id = 445; break;
-                case "educational/counseling/training": type_id = 450; break;
-            }
-            return type_id;
+                "both" => 900,
+                "female" => 905,
+                "male" => 910,
+                "not provided" => 915,
+                _ => null,
+            };
         }
+    }
 
-        public int? GetAllocationTypeId(string allocation_type)
+
+    public static int? GetTimeUnitsId(this string? time_units)
+    {
+        if (string.IsNullOrEmpty(time_units))
         {
-            int? type_id = null;
-            switch (allocation_type.ToLower())
-            {
-                case "n/a": type_id = 200; break;
-                case "randomized": type_id = 205; break;
-                case "non-randomized": type_id = 210; break;
-                case "not provided": type_id = 215; break;
-            }
-            return type_id;
+            return null;
         }
-
-        public int? GetDesignTypeId(string design_type)
+        else
         {
-            int? type_id = null;
-            switch (design_type.ToLower())
+            return time_units.ToLower() switch
             {
-                case "single group assignment": type_id = 300; break;
-                case "parallel assignment": type_id = 305; break;
-                case "crossover assignment": type_id = 310; break;
-                case "factorial assignment": type_id = 315; break;
-                case "sequential assignment": type_id = 320; break;
-                case "not provided": type_id = 325; break;
-            }
-            return type_id;
+                "seconds" => 11,
+                "minutes" => 12,
+                "hours" => 13,
+                "days" => 14,
+                "weeks" => 15,
+                "months" => 16,
+                "years" => 17,
+                "not provided" => 0,
+                _ => null,
+            };
         }
+    }
 
-        public int? GetMaskingTypeId(string masking_type)
+    public static int? GetPhaseId(this string? phase)
+    {
+        if (string.IsNullOrEmpty(phase))
         {
-            int? type_id = null;
-            switch (masking_type.ToLower())
-            {
-                case "none (open label)": type_id = 500; break;
-                case "single": type_id = 505; break;
-                case "double": type_id = 510; break;
-                case "triple": type_id = 515; break;
-                case "quadruple": type_id = 520; break;
-                case "not provided": type_id = 525; break;
-            }
-            return type_id;
+            return null;
         }
-
-        public int? GetObsModelTypeId(string obsmodel_type)
+        else
         {
-            int? type_id = null;
-            switch (obsmodel_type.ToLower())
+            return phase.ToLower() switch
             {
-                case "cohort": type_id = 600; break;
-                case "case control": type_id = 605; break;
-                case "case-control": type_id = 605; break;
-                case "case-only": type_id = 610; break;
-                case "case-crossover": type_id = 615; break;
-                case "ecologic or community": type_id = 620; break;
-                case "family-based": type_id = 625; break;
-                case "other": type_id = 630; break;
-                case "not provided": type_id = 635; break;
-                case "defined population": type_id = 640; break;
-                case "natural history": type_id = 645; break;
-            }
-            return type_id;
+                "n/a" => 100,
+                "not applicable" => 100,
+                "early phase 1" => 105,
+                "phase 1" => 110,
+                "phase 1/phase 2" => 115,
+                "phase 2" => 120,
+                "phase 2/phase 3" => 125,
+                "phase 3" => 130,
+                "phase 4" => 135,
+                "not provided" => 140,
+                _ => null,
+            };
         }
+    }
 
-        public int? GetTimePerspectiveId(string time_perspective)
+
+    public static int? GetPrimaryPurposeId(this string primary_purpose)
+    {
+        if (string.IsNullOrEmpty(primary_purpose))
         {
-            int? type_id = null;
-            switch (time_perspective.ToLower())
-            {
-                case "retrospective": type_id = 700; break;
-                case "prospective": type_id = 705; break;
-                case "cross-sectional": type_id = 710; break;
-                case "other": type_id = 715; break;
-                case "not provided": type_id = 720; break;
-                case "retrospective/prospective": type_id = 725; break;
-                case "longitudinal": type_id = 730; break;
-            }
-            return type_id;
+            return null;
         }
-
-        public int? GetSpecimentRetentionId(string specimen_retention)
+        else
         {
-            int? type_id = null;
-            switch (specimen_retention.ToLower())
+            return primary_purpose.ToLower() switch
             {
-                case "none retained": type_id = 800; break;
-                case "samples with dna": type_id = 805; break;
-                case "samples without dna": type_id = 810; break;
-                case "not provided": type_id = 815; break;
-            }
-            return type_id;
+                "treatment" => 400,
+                "prevention" => 405,
+                "diagnostic" => 410,
+                "supportive care" => 415,
+                "screening" => 420,
+                "health services research" => 425,
+                "basic science" => 430,
+                "device feasibility" => 435,
+                "other" => 440,
+                "not provided" => 445,
+                "educational/counseling/training" => 450,
+                _ => null,
+            };
         }
+    }
+
+    public static int? GetAllocationTypeId(this string allocation_type)
+    {
+        if (string.IsNullOrEmpty(allocation_type))
+        {
+            return null;
+        }
+        else
+        {
+            return allocation_type.ToLower() switch
+            {
+                "n/a" => 200,
+                "randomized" => 205,
+                "non-randomized" => 210,
+                "not provided" => 215,
+                _ => null,
+            };
+        }
+    }
+
+    public static int? GetDesignTypeId(this string design_type)
+    {
+        if (string.IsNullOrEmpty(design_type))
+        {
+            return null;
+        }
+        else
+        {
+            return design_type.ToLower() switch
+            {
+                "single group assignment" => 300,
+                "parallel assignment" => 305,
+                "crossover assignment" => 310,
+                "factorial assignment" => 315,
+                "sequential assignment" => 320,
+                "not provided" => 325,
+                _ => null,
+            };
+        }
+    }
 
 
-        public string GetTimeUnits(string time_units)
+    public static int? GetMaskingTypeId(this string masking_type)
+    {
+        if (string.IsNullOrEmpty(masking_type))
+        {
+            return null;
+        }
+        else
+        {
+            return masking_type.ToLower() switch
+            {
+                "none (open label)" => 500,
+                "single" => 505,
+                "double" => 510,
+                "triple" => 515,
+                "quadruple" => 520,
+                "not provided" => 525,
+                _ => null,
+            };
+        }
+    }
+
+
+    public static int? GetObsModelTypeId(this string obsmodel_type)
+    {
+        if (string.IsNullOrEmpty(obsmodel_type))
+        {
+            return null;
+        }
+        else
+        {
+            return obsmodel_type.ToLower() switch
+            {
+                "cohort" => 600,
+                " control" => 605,
+                "-control" => 605,
+                "-only" => 610,
+                "-crossover" => 615,
+                "ecologic or community" => 620,
+                "family-based" => 625,
+                "other" => 630,
+                "not provided" => 635,
+                "defined population" => 640,
+                "natural history" => 645,
+                _ => null,
+            };
+        }
+    }
+
+    public static int? GetTimePerspectiveId(this string time_perspective)
+    {
+        if (string.IsNullOrEmpty(time_perspective))
+        {
+            return null;
+        }
+        else
+        {
+            return time_perspective.ToLower() switch
+            {
+                "retrospective" => 700,
+                "prospective" => 705,
+                "cross-sectional" => 710,
+                "other" => 715,
+                "not provided" => 720,
+                "retrospective/prospective" => 725,
+                "longitudinal" => 730,
+                _ => null,
+            };
+        }
+    }
+
+    public static int? GetSpecimentRetentionId(this string specimen_retention)
+    {
+        if (string.IsNullOrEmpty(specimen_retention))
+        {
+            return null;
+        }
+        else
+        {
+            return specimen_retention.ToLower() switch
+            {
+                "none retained" => 800,
+                "samples with dna" => 805,
+                "samples without dna" => 810,
+                "not provided" => 815,
+                _ => null,
+            };
+        }
+    }
+
+    
+    public static string? GetTimeUnits(this string? time_units)
+    {
+
+        if (string.IsNullOrEmpty(time_units))
+        {
+            return null;
+        }
+        else
         {
             // was not classified previously...
             // starts with "Other" and has brackets around the text
             string time_string = time_units.Replace("Other", "").Trim();
             time_string = time_string.TrimStart('(').TrimEnd(')').ToLower();
 
-            // was not classified previously...
             if (Regex.Match(time_string, @"\d+y").Success)
             {
                 return "Years";
@@ -239,9 +322,7 @@ namespace DataHarvester
             else
             {
                 return null;
-
-            }
+            } 
         }
     }
-
 }

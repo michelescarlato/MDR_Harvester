@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Npgsql;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class Credentials : ICredentials
     {
@@ -11,9 +11,11 @@ namespace DataHarvester
 
         public Credentials(IConfiguration settings)
         {
-            Host = settings["host"];
-            Username = settings["user"];
-            Password = settings["password"];
+            // all asserted as non-null
+
+            Host = settings["host"]!;
+            Username = settings["user"]!;
+            Password = settings["password"]!;
         }
 
         public string GetConnectionString(string database_name, int harvest_type_id)

@@ -1,6 +1,6 @@
 ﻿using PostgreSQLCopyHelper;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class StudyCopyHelpers
     {

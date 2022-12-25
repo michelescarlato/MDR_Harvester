@@ -2,53 +2,53 @@
 using System;
 using System.Collections.Generic;
 
-namespace DataHarvester
+namespace MDR_Harvester
 {
     public class Study
     {
         public string sd_sid { get; set; }
-        public string display_title { get; set; }
-        public string title_lang_code { get; set; }
+        public string? display_title { get; set; }
+        public string? title_lang_code { get; set; }
 
-        public string brief_description { get; set; }
-        public string data_sharing_statement { get; set; }
+        public string? brief_description { get; set; }
+        public string? data_sharing_statement { get; set; }
         public int? study_start_year { get; set; }
         public int? study_start_month { get; set; }
 
         public int? study_type_id { get; set; }
-        public string study_type { get; set; }
+        public string? study_type { get; set; }
         public int? study_status_id { get; set; }
-        public string study_status { get; set; }
-        public string study_enrolment { get; set; }
+        public string? study_status { get; set; }
+        public string? study_enrolment { get; set; }
         public int? study_gender_elig_id { get; set; }
-        public string study_gender_elig { get; set; }
+        public string? study_gender_elig { get; set; }
 
         public int? min_age { get; set; }
         public int? min_age_units_id { get; set; }
-        public string min_age_units { get; set; }
+        public string? min_age_units { get; set; }
         public int? max_age { get; set; }
         public int? max_age_units_id { get; set; }
-        public string max_age_units { get; set; }
+        public string? max_age_units { get; set; }
 
         public DateTime? datetime_of_data_fetch { get; set; }
 
-        public List<StudyIdentifier> identifiers { get; set; }
-        public List<StudyTitle> titles { get; set; }
-        public List<StudyContributor> contributors { get; set; }
-        public List<StudyReference> references { get; set; }
-        public List<StudyTopic> topics { get; set; }
-        public List<StudyFeature> features { get; set; }
-        public List<StudyRelationship> relationships { get; set; }
-        public List<StudyLocation> sites { get; set; }
-        public List<StudyCountry> countries { get; set; }
-        public List<StudyLink> studylinks { get; set; }
-        public List<AvailableIPD> ipd_info { get; set; }
+        public List<StudyIdentifier>? identifiers { get; set; }
+        public List<StudyTitle>? titles { get; set; }
+        public List<StudyContributor>? contributors { get; set; }
+        public List<StudyReference>? references { get; set; }
+        public List<StudyTopic>? topics { get; set; }
+        public List<StudyFeature>? features { get; set; }
+        public List<StudyRelationship>? relationships { get; set; }
+        public List<StudyLocation>? sites { get; set; }
+        public List<StudyCountry>? countries { get; set; }
+        public List<StudyLink>? studylinks { get; set; }
+        public List<AvailableIPD>? ipd_info { get; set; }
 
-        public List<DataObject> data_objects { get; set; }
-        public List<ObjectDataset> object_datasets { get; set; }
-        public List<ObjectTitle> object_titles { get; set; }
-        public List<ObjectDate> object_dates { get; set; }
-        public List<ObjectInstance> object_instances { get; set; }
+        public List<DataObject>? data_objects { get; set; }
+        public List<ObjectDataset>? object_datasets { get; set; }
+        public List<ObjectTitle>? object_titles { get; set; }
+        public List<ObjectDate>? object_dates { get; set; }
+        public List<ObjectInstance>? object_instances { get; set; }
 
     }
 
@@ -56,28 +56,28 @@ namespace DataHarvester
     public class StudyInDB
     {
         public string sd_sid { get; set; }
-        public string display_title { get; set; }
-        public string title_lang_code { get; set; }
+        public string? display_title { get; set; }
+        public string? title_lang_code { get; set; }
 
-        public string brief_description { get; set; }
-        public string data_sharing_statement { get; set; }
+        public string? brief_description { get; set; }
+        public string? data_sharing_statement { get; set; }
         public int? study_start_year { get; set; }
         public int? study_start_month { get; set; }
 
         public int? study_type_id { get; set; }
-        public string study_type { get; set; }
+        public string? study_type { get; set; }
         public int? study_status_id { get; set; }
-        public string study_status { get; set; }
-        public string study_enrolment { get; set; }
+        public string? study_status { get; set; }
+        public string? study_enrolment { get; set; }
         public int? study_gender_elig_id { get; set; }
-        public string study_gender_elig { get; set; }
+        public string? study_gender_elig { get; set; }
 
         public int? min_age { get; set; }
         public int? min_age_units_id { get; set; }
-        public string min_age_units { get; set; }
+        public string? min_age_units { get; set; }
         public int? max_age { get; set; }
         public int? max_age_units_id { get; set; }
-        public string max_age_units { get; set; }
+        public string? max_age_units { get; set; }
 
         public DateTime? datetime_of_data_fetch { get; set; }
 
@@ -112,15 +112,15 @@ namespace DataHarvester
     public class StudyTitle
     {
         public string sd_sid { get; set; }
-        public string title_text { get; set; }
+        public string? title_text { get; set; }
         public int? title_type_id { get; set; }
-        public string title_type { get; set; }
-        public string lang_code { get; set; }
-        public int lang_usage_id  { get; set; }
-        public bool is_default { get; set; }
-        public string comments { get; set; }
+        public string? title_type { get; set; }
+        public string? lang_code { get; set; }
+        public int? lang_usage_id  { get; set; }
+        public bool? is_default { get; set; }
+        public string? comments { get; set; }
 
-        public StudyTitle(string _sd_sid, string _title_text, int? _title_type_id, string _title_type, bool _is_default)
+        public StudyTitle(string _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, bool? _is_default)
         {
             sd_sid = _sd_sid;
             title_text = _title_text;
@@ -131,7 +131,7 @@ namespace DataHarvester
             is_default = _is_default;
         }
 
-        public StudyTitle(string _sd_sid, string _title_text, int? _title_type_id, string _title_type, bool _is_default, string _comments)
+        public StudyTitle(string _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, bool? _is_default, string? _comments)
         {
             sd_sid = _sd_sid;
             title_text = _title_text;
@@ -143,8 +143,8 @@ namespace DataHarvester
             comments = _comments;
         }
 
-        public StudyTitle(string _sd_sid, string _title_text, int? _title_type_id, string _title_type, string _lang_code, 
-                               int _lang_usage_id, bool _is_default, string _comments)
+        public StudyTitle(string _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, string? _lang_code, 
+                               int? _lang_usage_id, bool? _is_default, string? _comments)
         {
             sd_sid = _sd_sid;
             title_text = _title_text;
@@ -162,21 +162,21 @@ namespace DataHarvester
     {
         public string sd_sid { get; set; }
         public int? contrib_type_id { get; set; }
-        public string contrib_type { get; set; }
-        public bool is_individual { get; set; }
+        public string? contrib_type { get; set; }
+        public bool? is_individual { get; set; }
         public int? person_id { get; set; }
-        public string person_given_name { get; set; }
-        public string person_family_name { get; set; }
-        public string person_full_name { get; set; }
-        public string orcid_id { get; set; }
-        public string person_affiliation { get; set; }
+        public string? person_given_name { get; set; }
+        public string? person_family_name { get; set; }
+        public string? person_full_name { get; set; }
+        public string? orcid_id { get; set; }
+        public string? person_affiliation { get; set; }
         public int? organisation_id { get; set; }
-        public string organisation_name { get; set; }
-        public string organisation_ror_id { get; set; }
+        public string? organisation_name { get; set; }
+        public string? organisation_ror_id { get; set; }
 
-        public StudyContributor(string _sd_sid, int? _contrib_type_id, string _contrib_type,
-                                int? _organisation_id, string _organisation_name, string _person_full_name,
-                                string _person_affiliation)
+        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+                                int? _organisation_id, string? _organisation_name, string? _person_full_name,
+                                string? _person_affiliation)
         {
             sd_sid = _sd_sid;
             contrib_type_id = _contrib_type_id;
@@ -190,9 +190,9 @@ namespace DataHarvester
 
         // adding personal contributor, usually from CTG
         
-        public StudyContributor(string _sd_sid, int? _contrib_type_id, string _contrib_type,
-                                string _person_full_name,
-                                string _person_affiliation, string _affil_organisation_name)
+        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+                                string? _person_full_name,
+                                string? _person_affiliation, string? _affil_organisation_name)
         {
             sd_sid = _sd_sid;
             contrib_type_id = _contrib_type_id;
@@ -205,8 +205,8 @@ namespace DataHarvester
 
         // adding organisational contributor
         
-        public StudyContributor(string _sd_sid, int? _contrib_type_id, string _contrib_type,
-                                int? _organisation_id, string _organisation_name)
+        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+                                int? _organisation_id, string? _organisation_name)
         {
             sd_sid = _sd_sid;
             contrib_type_id = _contrib_type_id;
@@ -221,13 +221,13 @@ namespace DataHarvester
 
     public class StudyRelationship
     {
-        public string sd_sid { get; set; }
-        public int relationship_type_id { get; set; }
-        public string relationship_type { get; set; }
-        public string target_sd_sid { get; set; }
+        public string? sd_sid { get; set; }
+        public int? relationship_type_id { get; set; }
+        public string? relationship_type { get; set; }
+        public string? target_sd_sid { get; set; }
 
-        public StudyRelationship(string _sd_sid, int _relationship_type_id, 
-                                 string _relationship_type, string _target_sd_sid)
+        public StudyRelationship(string _sd_sid, int? _relationship_type_id, 
+                                 string? _relationship_type, string? _target_sd_sid)
         {
             sd_sid = _sd_sid;
             relationship_type_id = _relationship_type_id;
@@ -240,12 +240,12 @@ namespace DataHarvester
     public class StudyReference
     {
         public string sd_sid { get; set; }
-        public string pmid { get; set; }
-        public string citation { get; set; }
-        public string doi { get; set; }
-        public string comments { get; set; }
+        public string? pmid { get; set; }
+        public string? citation { get; set; }
+        public string? doi { get; set; }
+        public string? comments { get; set; }
 
-        public StudyReference(string _sd_sid, string _pmid, string _citation, string _doi, string _comments)
+        public StudyReference(string _sd_sid, string? _pmid, string? _citation, string? _doi, string? _comments)
         {
             sd_sid = _sd_sid;
             pmid = _pmid;
@@ -260,19 +260,19 @@ namespace DataHarvester
     {
         public string sd_sid { get; set; }
         public int? identifier_type_id { get; set; }
-        public string identifier_type { get; set; }
-        public string identifier_value { get; set; }
+        public string? identifier_type { get; set; }
+        public string? identifier_value { get; set; }
         public int? identifier_org_id { get; set; }
-        public string identifier_org { get; set; }
-        public string identifier_org_ror_id { get; set; }
-        public string identifier_date { get; set; }
-        public string identifier_link { get; set; }
+        public string? identifier_org { get; set; }
+        public string? identifier_org_ror_id { get; set; }
+        public string? identifier_date { get; set; }
+        public string? identifier_link { get; set; }
 
         public StudyIdentifier() { }
 
-        public StudyIdentifier(string _sd_sid, string _identifier_value,
-            int? _identifier_type_id, string _identifier_type,
-            int? _identifier_org_id, string _identifier_org)
+        public StudyIdentifier(string _sd_sid, string? _identifier_value,
+            int? _identifier_type_id, string? _identifier_type,
+            int? _identifier_org_id, string? _identifier_org)
         {
             sd_sid = _sd_sid;
             identifier_value = _identifier_value;
@@ -282,10 +282,10 @@ namespace DataHarvester
             identifier_org = _identifier_org;
         }
         
-        public StudyIdentifier(string _sd_sid, string _identifier_value,
-            int? _identifier_type_id, string _identifier_type,
-            int? _identifier_org_id, string _identifier_org,
-            string _identifier_date, string _identifier_link)
+        public StudyIdentifier(string _sd_sid, string? _identifier_value,
+            int? _identifier_type_id, string? _identifier_type,
+            int? _identifier_org_id, string? _identifier_org,
+            string? _identifier_date, string? _identifier_link)
         {
             sd_sid = _sd_sid;
             identifier_value = _identifier_value;
@@ -302,19 +302,19 @@ namespace DataHarvester
     public class StudyTopic
     {
         public string sd_sid { get; set; }
-        public int topic_type_id { get; set; }
-        public string topic_type { get; set; }
+        public int? topic_type_id { get; set; }
+        public string? topic_type { get; set; }
         public bool? mesh_coded { get; set; }
-        public string mesh_code { get; set; }
-        public string mesh_value { get; set; }
+        public string? mesh_code { get; set; }
+        public string? mesh_value { get; set; }
         public int? original_ct_id { get; set; }
-        public string original_ct_code { get; set; }
-        public string original_value { get; set; }
+        public string? original_ct_code { get; set; }
+        public string? original_value { get; set; }
 
         // used for a mesh coded topic (no qualifiers for study topic codes)
 
-        public StudyTopic(string _sd_sid, int _topic_type_id, string _topic_type,
-                     bool _mesh_coded, string _mesh_code, string _mesh_value)
+        public StudyTopic(string _sd_sid, int? _topic_type_id, string?_topic_type,
+                     bool? _mesh_coded, string? _mesh_code, string? _mesh_value)
         {
             sd_sid = _sd_sid;
             topic_type_id = _topic_type_id;
@@ -329,8 +329,8 @@ namespace DataHarvester
 
         // non mesh coded topic - topic type and name only
 
-        public StudyTopic(string _sd_sid, int _topic_type_id, 
-                          string _topic_type, string _topic_value)
+        public StudyTopic(string _sd_sid, int? _topic_type_id, 
+                          string? _topic_type, string? _topic_value)
         {
             sd_sid = _sd_sid;
             topic_type_id = _topic_type_id;
@@ -342,9 +342,9 @@ namespace DataHarvester
 
         // non mesh coded topic - but coded using another system - comments also possible
 
-        public StudyTopic(string _sd_sid, int _topic_type_id, string _topic_type,
-                          string _topic_value, int? _original_ct_id, 
-                          string _original_ct_code)
+        public StudyTopic(string _sd_sid, int? _topic_type_id, string? _topic_type,
+                          string? _topic_value, int? _original_ct_id, 
+                          string? _original_ct_code)
         {
             sd_sid = _sd_sid;
             topic_type_id = _topic_type_id;
@@ -362,11 +362,11 @@ namespace DataHarvester
     {
         public string sd_sid { get; set; }
         public int? feature_type_id { get; set; }
-        public string feature_type { get; set; }
+        public string? feature_type { get; set; }
         public int? feature_value_id { get; set; }
-        public string feature_value { get; set; }
+        public string? feature_value { get; set; }
 
-        public StudyFeature(string _sd_sid, int? _feature_type_id, string _feature_type, int? _feature_value_id, string _feature_value)
+        public StudyFeature(string _sd_sid, int? _feature_type_id, string? _feature_type, int? _feature_value_id, string? _feature_value)
         {
             sd_sid = _sd_sid;
             feature_type_id = _feature_type_id;
@@ -380,10 +380,10 @@ namespace DataHarvester
     public class StudyLink
     {
         public string sd_sid { get; set; }
-        public string link_label { get; set; }
-        public string link_url { get; set; }
+        public string? link_label { get; set; }
+        public string? link_url { get; set; }
 
-        public StudyLink(string _sd_sid, string _link_label, string _link_url)
+        public StudyLink(string _sd_sid, string? _link_label, string? _link_url)
         {
             sd_sid = _sd_sid;
             link_label = _link_label;
@@ -394,17 +394,17 @@ namespace DataHarvester
 
     public class StudyLocation
     {
-        public string sd_sid { get; set; }
-        public string facility { get; set; }
+        public string? sd_sid { get; set; }
+        public string? facility { get; set; }
         public int? city_id { get; set; }
-        public string city_name { get; set; }
+        public string? city_name { get; set; }
         public int? country_id { get; set; }
-        public string country_name { get; set; }
+        public string? country_name { get; set; }
         public int? status_id { get; set; }
-        public string status{ get; set; }
+        public string? status{ get; set; }
 
-        public StudyLocation(string _sd_sid, string _facility, string _city_name,
-                             string _country_name, int? _status_id, string _status)
+        public StudyLocation(string _sd_sid, string? _facility, string? _city_name,
+                             string? _country_name, int? _status_id, string? _status)
         {
             sd_sid = _sd_sid;
             facility = _facility;
@@ -414,7 +414,7 @@ namespace DataHarvester
             status = _status;
         }
 
-        public StudyLocation(string _sd_sid, string _facility)
+        public StudyLocation(string _sd_sid, string? _facility)
         {
             sd_sid = _sd_sid;
             facility = _facility;
@@ -427,9 +427,9 @@ namespace DataHarvester
     {
         public string sd_sid { get; set; }
         public int country_id { get; set; }
-        public string country_name { get; set; }
+        public string? country_name { get; set; }
         public int? status_id { get; set; }
-        public string status { get; set; }
+        public string? status { get; set; }
 
         public StudyCountry(string _sd_sid, string _country_name)
         {
@@ -437,8 +437,8 @@ namespace DataHarvester
             country_name = _country_name;
         }
 
-        public StudyCountry(string _sd_sid, string _country_name,
-                             int? _status_id, string _status)
+        public StudyCountry(string _sd_sid, string? _country_name,
+                             int? _status_id, string? _status)
         {
             sd_sid = _sd_sid;
             country_name = _country_name;
@@ -452,13 +452,13 @@ namespace DataHarvester
     public class AvailableIPD
     {
         public string sd_sid { get; set; }
-        public string ipd_id { get; set; }
-        public string ipd_type { get; set; }
-        public string ipd_url { get; set; }
-        public string ipd_comment { get; set; }
+        public string? ipd_id { get; set; }
+        public string? ipd_type { get; set; }
+        public string? ipd_url { get; set; }
+        public string? ipd_comment { get; set; }
 
-        public AvailableIPD(string _sd_sid, string _ipd_id, string _ipd_type,
-                                string _ipd_url, string _ipd_comment)
+        public AvailableIPD(string _sd_sid, string? _ipd_id, string? _ipd_type,
+                                string? _ipd_url, string? _ipd_comment)
         {
             sd_sid = _sd_sid;
             ipd_id = _ipd_id;
