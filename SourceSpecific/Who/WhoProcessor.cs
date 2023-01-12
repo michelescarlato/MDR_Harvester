@@ -1135,7 +1135,7 @@ public class WHOProcessor : IStudyProcessor
 
 
             // Edit contributors - try to ensure properly categorised
-
+             
             if (study_contributors.Count > 0)
             {
                 foreach (StudyContributor sc in study_contributors)

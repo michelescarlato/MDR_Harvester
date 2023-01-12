@@ -26,6 +26,7 @@ public class IsctrnProcessor : IStudyProcessor
             AllowTrailingCommas = true
         };
 
+
         ISCTRN_Record? b = JsonSerializer.Deserialize<ISCTRN_Record?>(json_string, json_options);
         if (b is not null)
         {
