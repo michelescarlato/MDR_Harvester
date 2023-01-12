@@ -174,6 +174,9 @@ namespace MDR_Harvester
         public string? organisation_name { get; set; }
         public string? organisation_ror_id { get; set; }
 
+
+        
+
         public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
                                 int? _organisation_id, string? _organisation_name, string? _person_full_name,
                                 string? _person_affiliation)
@@ -214,6 +217,24 @@ namespace MDR_Harvester
             is_individual = false;
             organisation_id = _organisation_id;
             organisation_name = _organisation_name;
+        }
+
+        // adding contact from ISRCTN
+
+        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+                                string? _person_given_name, string? _person_family_name,
+                                string? _person_full_name, string? _orcid_id, string? _person_affiliation)
+        {
+            sd_sid = _sd_sid;
+            contrib_type_id = _contrib_type_id;
+            contrib_type = _contrib_type;
+            is_individual = true;
+            person_given_name = _person_given_name;
+            person_family_name = _person_family_name;
+            person_full_name = _person_full_name;
+            orcid_id = _orcid_id;
+            person_affiliation = _person_affiliation;
+            
         }
 
     }

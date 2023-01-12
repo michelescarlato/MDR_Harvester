@@ -1,7 +1,5 @@
 ﻿using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Xml;
-using System.Xml.Linq;
 using MDR_Harvester.Extensions;
 
 namespace MDR_Harvester.Who;

@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
+﻿using System.Data;
 using System.Xml;
 using System.Xml.Linq;
+using MDR_Harvester.Extensions;
 
 namespace MDR_Harvester.Pubmed;
 
@@ -161,7 +159,7 @@ public class PubmedProcessor : IObjectProcessor
                 }
                 else
                 {
-                    lang_2code = sh.lang_3_to_2(g);
+                    lang_2code = g.lang_3_to_2();
                     if (lang_2code == "??")
                     {
                         // need to use the database

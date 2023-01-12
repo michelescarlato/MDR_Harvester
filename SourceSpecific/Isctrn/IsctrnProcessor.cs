@@ -1,8 +1,10 @@
 ﻿using System.Globalization;
 using System.Text.Json;
 using System.Xml.Linq;
+using MDR_Harvester.Euctr;
+using MDR_Harvester.Extensions;
 
-namespace MDR_Harvester.Isctrn;
+namespace MDR_Harvester.Isrctn;
 
 public class IsctrnProcessor : IStudyProcessor
 {
@@ -27,8 +29,8 @@ public class IsctrnProcessor : IStudyProcessor
         };
 
 
-        ISCTRN_Record? b = JsonSerializer.Deserialize<ISCTRN_Record?>(json_string, json_options);
-        if (b is not null)
+        ISCTRN_Record? r = JsonSerializer.Deserialize<ISCTRN_Record?>(json_string, json_options);
+        if (r is not null)
         {
             Study s = new Study();
 
@@ -46,22 +48,17 @@ public class IsctrnProcessor : IStudyProcessor
             List<ObjectDate> object_dates = new List<ObjectDate>();
             List<ObjectInstance> object_instances = new List<ObjectInstance>();
 
-            MD5Helpers hh = new MD5Helpers();
-            DateHelpers dh = new DateHelpers();
-            TypeHelpers th = new TypeHelpers();
-            IdentifierHelpers ih = new IdentifierHelpers();
-
             SplitDate? reg_date = null;
             SplitDate? last_edit = null;
             string? study_description = null;
             string? sharing_statement = null;
 
-            string? sid = b.isctrn_id;  
+            string? sid = r.isctrn_id;  
             s.sd_sid = sid!;
             s.datetime_of_data_fetch = download_datetime;
 
             // get basic study attributes
-            string? study_name = b.study_name?.ReplaceApos(); 
+            string? study_name = r.study_name?.ReplaceApos(); 
             s.display_title = study_name;   // = public title, default
 
             titles.Add(new StudyTitle(sid!, s.display_title, 15, "Registry public title", true, "From ISRCTN"));
@@ -69,8 +66,8 @@ public class IsctrnProcessor : IStudyProcessor
             // study status from trial_status and recruitment_status
             // record for now and see what is available
 
-            string? trial_status = b.trial_status;
-            string? recruitment_status = b.recruitment_status; 
+            string? trial_status = r.trial_status;
+            string? recruitment_status = r.recruitment_status; 
             s.study_status = trial_status + " :: recruitment :: " + recruitment_status;
 
             switch (trial_status)
@@ -127,178 +124,106 @@ public class IsctrnProcessor : IStudyProcessor
             }
 
             // study registry entry dates
-            string r_date = GetElementAsString(r.Element("registration_date"));
-            if (r_date != null)
+            string? r_date = r.dateIdAssigned;
+            if (r_date is not null)
             {
-                reg_date = dh.GetDatePartsFromISOString(r_date.Substring(0, 10));
+                reg_date = r_date.Substring(0, 10).GetDatePartsFromISOString();
             }
 
-            string d_edited = GetElementAsString(r.Element("last_edited"));
-            if (d_edited != null)
+            string? d_edited = r.lastUpdated;
+            if (d_edited is not null)
             {
-                last_edit = dh.GetDatePartsFromISOString(d_edited.Substring(0, 10));
+                last_edit = d_edited.Substring(0, 10).GetDatePartsFromISOString();
             }
 
+            // Study sponsor(s).
 
-            // study sponsors
-            var sponsor = r.Element("sponsor");
-            if (sponsor != null)
+            var sponsors = r.sponsors;
+            if (sponsors?.Any() == true)
             {
-                var items = sponsor.Elements("Item");
-                if (items != null && items.Count() > 0)
-                {
-                    foreach (XElement item in items)
+                foreach (var stSponsor in sponsors)
+                 {
+                    string? org = stSponsor.organisation;
+                    if (org.AppearsGenuineOrgName())
                     {
-                        string item_name = GetElementAsString(item.Element("item_name"));
-                        string item_value = GetElementAsString(item.Element("item_value"));
-                        if (item_name == "Organisation")
-                        {
-                            if (sh.AppearsGenuineOrgName(item_value))
-                            {
-                                contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor",
-                                    null, sh.TidyOrgName(item_value, sid)));
-                            }
-                        }
+                        string? orgname = org.TidyOrgName(sid);
+                        contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, orgname));
                     }
                 }
             }
 
-            string study_sponsor = "";
+            // for comparing with funder names below
+
+            string? study_sponsor = "";   
             if (contributors.Count > 0)
             {
                 study_sponsor = contributors[0].organisation_name;
             }
 
 
-            var contacts = r.Element("contacts");
-            if (contacts != null)
+            var funders = r.funders;
+            if (funders?.Any() == true)
             {
-                var items = contacts.Elements("Item");
-                if (items != null && items.Count() > 0)
+                foreach (var funder in funders)
                 {
-                    StudyContributor c = null;
-                    foreach (XElement item in items)
+                    string? funder_name = funder.name;
+                    if (funder_name is not null && funder_name.AppearsGenuineOrgName())
                     {
-                        string item_name = GetElementAsString(item.Element("item_name")).Trim();
-                        string item_value = GetElementAsString(item.Element("item_value")).Trim();
+                        // check a funder is not simply the sponsor...
+                        // ********************* Needs improving to deal with multiple sponsors
 
-                        switch (item_name)
+                        funder_name = funder_name.TidyOrgName(sid);
+                        if (funder_name != study_sponsor)
                         {
-                            case "Type":
-                                {
-                                    // starts a new contact record...
-                                    // also need to store any pre-existing record
-                                    if (c != null)
-                                    {
-                                        if (sh.CheckPersonName(c.person_full_name))
-                                        {
-                                            c.person_full_name = sh.TidyPersonName(c.person_full_name);
-                                            if (c.person_full_name != "")
-                                            {
-                                                contributors.Add(c);
-                                            }
-                                        }
-                                    }
-
-                                    c = new StudyContributor(sid, null, null, null, null, null, null);
-                                    if (item_value == "Scientific")
-                                    {
-                                        c.contrib_type_id = 51;
-                                        c.contrib_type = "Study Lead";
-                                        c.is_individual = true;
-                                    }
-                                    else if (item_value == "Public")
-                                    {
-                                        c.contrib_type_id = 56;
-                                        c.contrib_type = "Public contact";
-                                        c.is_individual = true;
-                                    }
-                                    else
-                                    {
-                                        c.contrib_type_id = 0;
-                                        c.contrib_type = item_value;
-                                        c.is_individual = true;
-                                    }
-                                    break;
-                                }
-                            case "Primary contact":
-                                {
-                                    c.person_full_name = sh.ReplaceApos(item_value);
-                                    break;
-                                }
-                            case "Additional contact":
-                                {
-                                    c.person_full_name = sh.ReplaceApos(item_value);
-                                    break;
-                                }
-                            case "ORCID ID":
-                                {
-                                    if (item_value.Contains("/"))
-                                    {
-                                        c.orcid_id = item_value.Substring(item_value.LastIndexOf("/") + 1);
-                                    }
-                                    else
-                                    {
-                                        c.orcid_id = item_value;
-                                    }
-                                    break;
-                                }
-                            case "email_address":
-                                {
-                                    // ignore...
-                                    break;
-                                }
-
-                            default:
-                                {
-                                    // Ignore...
-                                    break;
-                                }
-                        }
-                    }
-
-                    // do not forget the last contributor
-                    if (c != null)
-                    {
-                        if (sh.CheckPersonName(c.person_full_name))
-                        {
-                            c.person_full_name = sh.TidyPersonName(c.person_full_name);
-                            if (c.person_full_name != "")
-                            {
-                                contributors.Add(c);
-                            }
+                            contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
                         }
                     }
                 }
             }
 
 
-            var funders = r.Element("funders");
-            if (funders != null)
-            {
-                var items = funders.Elements("Item");
-                if (items != null && items.Count() > 0)
-                {
-                    foreach (XElement item in items)
-                    {
-                        string item_name = GetElementAsString(item.Element("item_name")).Trim();
-                        if (item_name == "Funder name")
-                        {
-                            string item_value = GetElementAsString(item.Element("item_value")).Trim();
-                            if (sh.AppearsGenuineOrgName(item_value))
-                            {
-                                // check a funder is not simply the sponsor...
-                                string funder = sh.TidyOrgName(item_value, sid);
-                                if (funder != study_sponsor)
-                                {
-                                    contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder));
-                                }
+            // Individual contacts.
 
-                            }
-                        }
+            var contacts = r.contacts;
+            if (contacts?.Any() == true)
+            {
+                foreach (var contact in contacts)
+                {
+                    string? cType = contact.contactType;
+                    string? givenName = contact.forename.TidyPersonName(); 
+                    string? familyName = contact.surname.TidyPersonName();
+                    string? affil = contact.address;
+                    string? orcid = contact.orcid;
+                    if (orcid is not null && orcid.Contains("/"))
+                    {
+                        orcid = orcid[(orcid.LastIndexOf("/")+1)..];  // drop any url prefix
                     }
+                    string full_name = (givenName ?? "" + " " + familyName ?? "").Trim();
+
+                    int contrib_type_id;
+                    string? contrib_type;
+                    if (cType == "Scientific" || cType == "Principal Investigator")
+                    {
+                        contrib_type_id = 51;
+                        contrib_type = "Study Lead";
+                    }
+                    else if (cType == "Public")
+                    {
+                        contrib_type_id = 56;
+                        contrib_type = "Public contact";
+                    }
+                    else
+                    {
+                        contrib_type_id = 0;
+                        contrib_type = cType;
+                    }
+
+                    contributors.Add(new StudyContributor(sid, contrib_type_id, contrib_type, givenName,
+                                                          familyName, full_name, orcid, affil));
+        
                 }
             }
+
 
             // study identifiers
             // do the isrctn id first...

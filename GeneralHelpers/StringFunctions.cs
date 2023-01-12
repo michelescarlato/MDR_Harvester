@@ -711,6 +711,48 @@ public static class StringHelpers
     }
 
 
+    public static bool CheckIfIndividual(this string? orgname)
+    {
+        if (string.IsNullOrEmpty(orgname))
+        {
+            return false;
+        }
+        else
+        {
+            bool make_individual = false;
+
+            // if looks like an individual's name
+            if (orgname.EndsWith(" md") || orgname.EndsWith(" phd") ||
+                orgname.Contains(" md,") || orgname.Contains(" md ") ||
+                orgname.Contains(" phd,") || orgname.Contains(" phd ") ||
+                orgname.Contains("dr ") || orgname.Contains("dr.") ||
+                orgname.Contains("prof ") || orgname.Contains("prof.") ||
+                orgname.Contains("professor"))
+            {
+                make_individual = true;
+                // but if part of a organisation reference...
+                if (orgname.Contains("hosp") || orgname.Contains("univer") ||
+                    orgname.Contains("labor") || orgname.Contains("labat") ||
+                    orgname.Contains("institu") || orgname.Contains("istitu") ||
+                    orgname.Contains("school") || orgname.Contains("founda") ||
+                    orgname.Contains("associat"))
+
+                {
+                    make_individual = false;
+                }
+            }
+
+            // A few specific individuals...
+
+            if (orgname == "seung-jung park" || orgname == "kang yan")
+            {
+                make_individual = true;
+            }
+            return make_individual;
+        }
+    }
+
+
     public static string? ExtractOrganisation(this string affiliation, string sid)
     {
         if (string.IsNullOrEmpty(affiliation))
@@ -719,7 +761,7 @@ public static class StringHelpers
         }
         else
         {
-            string affil_organisation = "";
+            string? affil_organisation = "";
             string aff = affiliation.ToLower();
 
             if (!aff.Contains(","))

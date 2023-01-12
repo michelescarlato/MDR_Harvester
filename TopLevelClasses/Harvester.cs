@@ -1,7 +1,7 @@
 ﻿using MDR_Harvester.Biolincc;
 using MDR_Harvester.Ctg;
 using MDR_Harvester.Euctr;
-using MDR_Harvester.Isctrn;
+using MDR_Harvester.Isrctn;
 using MDR_Harvester.Pubmed;
 using MDR_Harvester.Who;
 using MDR_Harvester.Yoda;

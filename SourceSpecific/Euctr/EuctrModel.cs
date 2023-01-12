@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
-
+﻿using System.Xml.Serialization;
 namespace MDR_Harvester.Euctr;
 
-
-public class EUCTR_Record
+public class Euctr_Record
 {
-    public string? eudract_id { get; set; }
+    public string? sd_sid { get; set; }
     public string? sponsor_id { get; set; }
     public string? sponsor_name { get; set; }
     public string? start_date { get; set; }
@@ -36,26 +29,18 @@ public class EUCTR_Record
     public List<ImpLine>? imps { get; set; }
     public List<DetailLine>? features { get; set; }
     public List<DetailLine>? population { get; set; }
+    public List<Country>? countries { get; set; }
 
-    public EUCTR_Record(EUCTR_Summmary s)
+    public Euctr_Record(string? _sd_sid)
     {
-        eudract_id = s.eudract_id;
-        sponsor_id = s.sponsor_id;
-        sponsor_name = s.sponsor_name;
-        start_date = s.start_date;
-        medical_condition = s.medical_condition;
-        population_age = s.population_age;
-        gender = s.gender;
-        trial_status = s.trial_status;
-        details_url = s.details_url;
-        results_url = s.results_url;
-        meddra_terms = s.meddra_terms;
+        sd_sid = _sd_sid;
     }
 
-    public EUCTR_Record()
+    public Euctr_Record()
     { }
 }
 
+/*
 public class EUCTR_Summmary
 {
     public string? eudract_id { get; set; }
@@ -78,7 +63,7 @@ public class EUCTR_Summmary
         start_date = _start_date;
     }
 }
-
+*/
 
 public class MeddraTerm
 {
@@ -146,6 +131,22 @@ class IMP
     public IMP(int _num)
     {
         num = _num;
+    }
+}
+
+
+public class Country
+{
+    public string? name { get; set; }
+    public string? status { get; set; }
+
+    public Country()
+    { }
+
+    public Country(string? _name, string? _status)
+    {
+        name = _name;
+        status = _status;
     }
 }
 
