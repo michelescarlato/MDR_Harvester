@@ -47,12 +47,12 @@ public static class TypeHelpers
             return study_type.ToLower() switch
             {
                 "interventional" => 11,
-                    "observational" => 12,
-                    "observational patient registry" => 13,
-                    "expanded access" => 14,
-                    "funded programme" => 15,
-                    "not yet known" => 0,
-                    _ => null,
+                "observational" => 12,
+                "observational patient registry" => 13,
+                "expanded access" => 14,
+                "funded programme" => 15,
+                "not yet known" => 0,
+                _ => null
             };
         }
     }

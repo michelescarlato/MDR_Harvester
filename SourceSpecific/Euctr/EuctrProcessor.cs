@@ -13,13 +13,11 @@ namespace MDR_Harvester.Euctr;
 
 public class EUCTRProcessor : IStudyProcessor
 {
-    IMonitorDataLayer _mon_repo;
-    LoggingHelper _logger;
+    private readonly LoggingHelper _logger_helper;
 
-    public EUCTRProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
+    public EUCTRProcessor(LoggingHelper logger_helper)
     {
-        _mon_repo = mon_repo;
-        _logger = logger;
+        _logger_helper = logger_helper;
     }
 
     public Study? ProcessData(string json_string, DateTime? download_datetime)
@@ -36,17 +34,16 @@ public class EUCTRProcessor : IStudyProcessor
         Euctr_Record? r = JsonSerializer.Deserialize<Euctr_Record?>(json_string, json_options);
         if (r is null)
         {
-            // log ...
+            _logger_helper.LogError($"Unable to deserialise json file to Euctr_Record\n{json_string[..1000]}... (first 1000 characters)");
             return null;
         }
-        Study s = new Study();
+        Study s = new();
 
         List<StudyIdentifier> identifiers = new();
         List<StudyTitle> titles = new();
         List<StudyContributor> contributors = new();
         List<StudyTopic> topics = new();
         List<StudyFeature> features = new();
-        List<StudyLocation> sites = new();
         List<StudyCountry> countries = new();
 
         List<DataObject> data_objects = new();
@@ -60,7 +57,7 @@ public class EUCTRProcessor : IStudyProcessor
 
         if (string.IsNullOrEmpty(sid))
         {
-            // log...
+            _logger_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
 
@@ -285,7 +282,7 @@ public class EUCTRProcessor : IStudyProcessor
                                             && !acro_lc.StartsWith("no av"))
                                         {
                                             acronym = acronym.ReplaceApos();
-                                            if (!NameAlreadyPresent(acronym!, titles) && acronym.Length < 20)
+                                            if (!NameAlreadyPresent(acronym!, titles) && acronym!.Length < 20)
                                             {
                                                 titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, "From the EU CTR"));
                                             }
@@ -404,7 +401,7 @@ public class EUCTRProcessor : IStudyProcessor
 
         if (s.display_title!.Length > 400)
         {
-            s.display_title = s.display_title.Substring(0, 400) + "...";
+            s.display_title = s.display_title[..400] + "...";
         }
 
 
@@ -429,7 +426,7 @@ public class EUCTRProcessor : IStudyProcessor
                             foreach (var item_value in values)
                             {
                                 string? name = item_value.value;
-                                if (!string.IsNullOrEmpty(name) && !name.Contains("\r") && !name.Contains("\n") && name.Length < 100)
+                                if (!string.IsNullOrEmpty(name) && !name.Contains('\r') && !name.Contains('\n') && name.Length < 100)
                                 {
                                     topics.Add(new StudyTopic(sid, 13, "condition", name));
                                 }
@@ -531,7 +528,8 @@ public class EUCTRProcessor : IStudyProcessor
                                 string? criteria = values[0].value;
                                 if (!string.IsNullOrEmpty(criteria))
                                 {
-
+                                    // ***********************************
+                                    // ***********************************
                                 }
                             }
                         }
@@ -545,7 +543,8 @@ public class EUCTRProcessor : IStudyProcessor
                                 string? criteria = values[0].value;
                                 if (!string.IsNullOrEmpty(criteria))
                                 {
-
+                                    // ***********************************
+                                    // ***********************************
                                 }
                             }
                         }
@@ -933,10 +932,9 @@ public class EUCTRProcessor : IStudyProcessor
         }
 
         // instance url 
-        string details_url = r.details_url;
+        string? details_url = r.details_url!;      // cannot be null, else there wouyld be no data!
         object_instances.Add(new ObjectInstance(sd_oid, 100123, "EU Clinical Trials Register",
-                    details_url, true, 35, "Web text"));
-
+                        details_url, true, 35, "Web text"));
 
         // ----------------------------------------------------------
         // if there is a results url, add that in as well
@@ -994,7 +992,7 @@ public class EUCTRProcessor : IStudyProcessor
             if (!string.IsNullOrEmpty(results_summary_link))
             {
                 string? results_summary_name = r.results_summary_name;
-                int title_type_id = 0; string title_type = "";
+                int title_type_id; string title_type;
                 bool add_record = true;
 
                 if (!string.IsNullOrEmpty(results_summary_name))
@@ -1027,7 +1025,7 @@ public class EUCTRProcessor : IStudyProcessor
                 {
                     sd_oid = sid + " :: 79 :: " + object_title;
 
-                    data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_date.year,
+                    data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_date?.year,
                             23, "Text", 79, "CSR summary", null, sponsor_name, 11, download_datetime));
 
                     // data object title is the single display title...
@@ -1107,7 +1105,7 @@ public class EUCTRProcessor : IStudyProcessor
     }
 
 
-    private bool NameAlreadyPresent(string candidate_name, List<StudyTitle> titles)
+    private static bool NameAlreadyPresent(string candidate_name, List<StudyTitle> titles)
     {
         if (titles.Count == 0)
         {
@@ -1129,7 +1127,7 @@ public class EUCTRProcessor : IStudyProcessor
     }
 
 
-    private bool IMPAlreadyThere(string imp_name, List<StudyTopic> topics)
+    private static bool IMPAlreadyThere(string imp_name, List<StudyTopic> topics)
     {
         if (topics.Count == 0)
         {
@@ -1140,7 +1138,7 @@ public class EUCTRProcessor : IStudyProcessor
             bool res = false;
             foreach (StudyTopic t in topics)
             {
-                if (imp_name.ToLower() == t.original_value.ToLower())
+                if (imp_name.ToLower() == t.original_value?.ToLower())
                 {
                     res = true;
                     break;
@@ -1151,7 +1149,7 @@ public class EUCTRProcessor : IStudyProcessor
     }
 
 
-    private string? GetLanguageFromMemberState(string? member_state)
+    private static string? GetLanguageFromMemberState(string? member_state)
     {
         if (string.IsNullOrEmpty(member_state))
         {

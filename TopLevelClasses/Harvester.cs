@@ -129,7 +129,7 @@ class Harvester : IHarvester
                                 }
                             case 101901:
                                 {
-                                    study_processor = new YodaProcessor(_mon_repo, logging_helper);
+                                    study_processor = new YodaProcessor(logging_helper);
                                     break;
                                 }
                             case 100120:
@@ -139,12 +139,12 @@ class Harvester : IHarvester
                                 }
                             case 100123:
                                 {
-                                    study_processor = new EUCTRProcessor(_mon_repo, logging_helper);
+                                    study_processor = new EUCTRProcessor(logging_helper);
                                     break;
                                 }
                             case 100126:
                                 {
-                                    study_processor = new ISRCTNProcessor(_mon_repo, logging_helper);
+                                    study_processor = new IsrctnProcessor(_mon_repo, logging_helper);
                                     break;
                                 }
                         }

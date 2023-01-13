@@ -3,15 +3,17 @@ using System.Text.Json;
 using System.Xml.Linq;
 using MDR_Harvester.Euctr;
 using MDR_Harvester.Extensions;
+using MDR_Harvester.Yoda;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace MDR_Harvester.Isrctn;
 
-public class IsctrnProcessor : IStudyProcessor
+public class IsrctnProcessor : IStudyProcessor
 {
     IMonitorDataLayer _mon_repo;
     LoggingHelper _logger;
 
-    public IsctrnProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
+    public IsrctnProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
     {
         _mon_repo = mon_repo;
         _logger = logger;
@@ -53,90 +55,134 @@ public class IsctrnProcessor : IStudyProcessor
             string? study_description = null;
             string? sharing_statement = null;
 
-            string? sid = r.isctrn_id;  
-            s.sd_sid = sid!;
+            string sid = r.sd_sid!;  
+            s.sd_sid = sid;
             s.datetime_of_data_fetch = download_datetime;
 
             // get basic study attributes
-            string? study_name = r.study_name?.ReplaceApos(); 
-            s.display_title = study_name;   // = public title, default
 
-            titles.Add(new StudyTitle(sid!, s.display_title, 15, "Registry public title", true, "From ISRCTN"));
-
-            // study status from trial_status and recruitment_status
-            // record for now and see what is available
-
-            string? trial_status = r.trial_status;
-            string? recruitment_status = r.recruitment_status; 
-            s.study_status = trial_status + " :: recruitment :: " + recruitment_status;
-
-            switch (trial_status)
+            string? study_name = r.title; 
+            if (!string.IsNullOrEmpty(study_name))
             {
-                case "Completed":
-                    {
-                        s.study_status = "Completed";
-                        s.study_status_id = 21;
-                        break;
-                    }
-                case "Suspended":
-                    {
-                        s.study_status = "Suspended";
-                        s.study_status_id = 18;
-                        break;
-                    }
-                case "Stopped":
-                    {
-                        s.study_status = "Terminated";
-                        s.study_status_id = 22;
-                        break;
-                    }
-                case "Ongoing":
-                    {
-                        switch (recruitment_status)
-                        {
-                            case "Not yet recruiting":
-                                {
-                                    s.study_status = "Not yet recruiting";
-                                    s.study_status_id = 16;
-                                    break;
-                                }
-                            case "Recruiting":
-                                {
-                                    s.study_status = "Recruiting";
-                                    s.study_status_id = 14;
-                                    break;
-                                }
-                            case "No longer recruiting":
-                                {
-                                    s.study_status = "Active, not recruiting";
-                                    s.study_status_id = 15;
-                                    break;
-                                }
-                            case "Suspended":
-                                {
-                                    s.study_status = "Suspended";
-                                    s.study_status_id = 18;
-                                    break;
-                                }
-                        }
-                        break;
-                    }
+                s.display_title = study_name.ReplaceApos(); // = public title, default
+                titles.Add(new StudyTitle(sid, s.display_title, 15, "Registry public title", true, "From ISRCTN"));
             }
 
-            // study registry entry dates
+            if (!string.IsNullOrEmpty(r.scientificTitle))
+            {
+                string sci_title = r.scientificTitle.ReplaceApos()!;
+                if (s.display_title is null)
+                {
+                    s.display_title = sci_title;
+                }
+                titles.Add(new StudyTitle(sid, sci_title, 16, "Registry scientific title", s.display_title == sci_title, "From ISRCTN"));
+            }
+
+            if (!string.IsNullOrEmpty(r.acronym))
+            {
+                if (s.display_title is null)
+                {
+                    s.display_title = r.acronym;
+                }
+                titles.Add(new StudyTitle(sid, r.acronym, 14, "Acronym or Abbreviation", s.display_title == r.acronym, "From ISRCTN"));
+            }
+
+            // study start date
+
+            string? ss_date = r.overallStartDate;
+            if (ss_date is not null)
+            {
+                SplitDate? study_start_date = ss_date[..10].GetDatePartsFromISOString();
+                if (study_start_date is not null)
+                {
+                    s.study_start_year = study_start_date.year;
+                    s.study_start_year = study_start_date.month;
+                }
+            }
+
+
+            // study type
+            s.study_type = r.primaryStudyDesign;
+            s.study_type_id = s.study_type.GetTypeId();
+
+            // Study status from overall study status or more commonly from dates.
+            // 'StatusOverride' field will only have a value if status is
+            // 'Suspended' or 'Stopped'.
+            // More commonly compare dates with today to get current status.
+            // Means periodic full import or a separate mechanism to update 
+            // statuses against dates.
+            // It appears that all 4 dates are always available.
+
+            s.study_status = r.overallStatusOverride;
+            if (s.study_status == "Stopped")
+            {
+                s.study_status = "Terminated";
+            }
+
+            if (string.IsNullOrEmpty(s.study_status))
+            {
+                string? se_date = r.overallEndDate;
+                CultureInfo culture = CultureInfo.InvariantCulture;
+
+                if (se_date is not null)
+                {
+                    if (DateTime.TryParse(se_date, culture, DateTimeStyles.None, out DateTime se_date_dt))
+                    {
+                        if (se_date_dt <= DateTime.Now)
+                        {
+                            s.study_status = "Completed";
+                        }
+                        else
+                        {
+                            // study is still ongoing - recruitment dates
+                            // required for exact status.
+
+                            string? rs_date = r.recruitmentStart;
+                            string? re_date = r.recruitmentEnd;
+                            if (DateTime.TryParse(rs_date, culture, DateTimeStyles.None, out DateTime rs_date_dt))
+                            {
+                                if (rs_date_dt > DateTime.Now)
+                                {
+                                    s.study_status = "Not yet recruiting";
+                                }
+                                else
+                                {
+                                    s.study_status = "Recruiting";
+                                }
+                            }
+
+                            // But check if recruiting has now finished.
+
+                            if (s.study_status == "Recruiting"
+                                && DateTime.TryParse(re_date, culture, DateTimeStyles.None, out DateTime re_date_dt))
+                            {
+                                if (re_date_dt <= DateTime.Now)
+                                {
+                                    s.study_status = "Active, not recruiting";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            s.study_status_id = s.study_status.GetStatusId();
+
+
+            // study registry entry dates.
+
             string? r_date = r.dateIdAssigned;
             if (r_date is not null)
             {
                 reg_date = r_date.Substring(0, 10).GetDatePartsFromISOString();
             }
-
             string? d_edited = r.lastUpdated;
             if (d_edited is not null)
             {
                 last_edit = d_edited.Substring(0, 10).GetDatePartsFromISOString();
             }
 
-            // Study sponsor(s).
+
+            // Study sponsor(s) and funders.
 
             var sponsors = r.sponsors;
             if (sponsors?.Any() == true)
@@ -152,15 +198,6 @@ public class IsctrnProcessor : IStudyProcessor
                 }
             }
 
-            // for comparing with funder names below
-
-            string? study_sponsor = "";   
-            if (contributors.Count > 0)
-            {
-                study_sponsor = contributors[0].organisation_name;
-            }
-
-
             var funders = r.funders;
             if (funders?.Any() == true)
             {
@@ -169,18 +206,30 @@ public class IsctrnProcessor : IStudyProcessor
                     string? funder_name = funder.name;
                     if (funder_name is not null && funder_name.AppearsGenuineOrgName())
                     {
-                        // check a funder is not simply the sponsor...
-                        // ********************* Needs improving to deal with multiple sponsors
+                        // check a funder is not simply the sponsor...(or repeated).
 
+                        bool add_funder = true;
                         funder_name = funder_name.TidyOrgName(sid);
-                        if (funder_name != study_sponsor)
+                        if (contributors.Count > 0)
+                        {
+                            foreach(var c in contributors)
+                            {
+                                if (funder_name == c.organisation_name)
+                                {
+                                    add_funder = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (add_funder)
                         {
                             contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
                         }
                     }
                 }
             }
-
+              
 
             // Individual contacts.
 
@@ -220,7 +269,6 @@ public class IsctrnProcessor : IStudyProcessor
 
                     contributors.Add(new StudyContributor(sid, contrib_type_id, contrib_type, givenName,
                                                           familyName, full_name, orcid, affil));
-        
                 }
             }
 
@@ -229,35 +277,23 @@ public class IsctrnProcessor : IStudyProcessor
             // do the isrctn id first...
             identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", 100126, "ISRCTN", reg_date?.date_string, null));
 
-            // then any others that might be listed
-            var idents = r.Element("identifiers");
-            if (idents != null)
-            {
-                var items = idents.Elements("Item");
-                if (items != null && items.Count() > 0)
-                {
-                    foreach (XElement item in items)
-                    {
-                        string item_name = GetElementAsString(item.Element("item_name")).Trim();
-                        string item_value = GetElementAsString(item.Element("item_value")).Trim();
 
-                        switch (item_name)
-                        {
-                            case "ClinicalTrials.gov number":
-                                {
-                                    identifiers.Add(new StudyIdentifier(sid, item_value, 11, "Trial Registry ID", 100120, "Clinicaltrials.gov", null, null));
-                                    break;
-                                }
-                            case "EudraCT number":
-                                {
-                                    identifiers.Add(new StudyIdentifier(sid, item_value, 11, "Trial Registry ID", 100123, "EU Clinical Trials Register", null, null));
-                                    break;
-                                }
-                            case "IRAS number":
-                                {
-                                    identifiers.Add(new StudyIdentifier(sid, item_value, 41, "Regulatory Body ID", 101409, "Health Research Authority", null, null));
-                                    break;
-                                }
+            // then any others that might be listed
+            var idents = r.identifiers;
+            if (idents?.Any() == true)
+            {
+                foreach (var ident in idents)
+                {
+                    identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, 
+                                                        ident.identifier_type_id, ident.identifier_type, 
+                                                        ident.identifier_org_id, ident.identifier_org, null, null));
+                }
+            }
+
+
+            /*
+                    string item_name = GetElementAsString(item.Element("item_name")).Trim();
+                        string item_value = GetElementAsString(item.Element("item_value")).Trim();
 
                             case "Protocol/serial number":
                                 {
@@ -321,6 +357,7 @@ public class IsctrnProcessor : IStudyProcessor
                     }
                 }
             }
+            */
 
             // design info
 
