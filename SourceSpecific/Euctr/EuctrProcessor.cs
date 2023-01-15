@@ -37,6 +37,7 @@ public class EUCTRProcessor : IStudyProcessor
             _logger_helper.LogError($"Unable to deserialise json file to Euctr_Record\n{json_string[..1000]}... (first 1000 characters)");
             return null;
         }
+
         Study s = new();
 
         List<StudyIdentifier> identifiers = new();

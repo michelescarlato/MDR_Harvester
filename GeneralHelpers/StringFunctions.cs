@@ -340,38 +340,38 @@ public static class StringHelpers
 
     private static char ChangeToSubUnicode(this char a)
     {
-    return a switch
-    {
-        '0' => '\u2080',
-        '1' => '\u2081',
-        '2' => '\u2082',
-        '3' => '\u2083',
-        '4' => '\u2084',
-        '5' => '\u2085',
-        '6' => '\u2086',
-        '7' => '\u2087',
-        '8' => '\u2088',
-        '9' => '\u2089',
-        '+' => '\u208A',
-        '-' => '\u208B',
-        '=' => '\u208C',
-        '(' => '\u208D',
-        ')' => '\u208E',
-        'a' => '\u2090',
-        'e' => '\u2091',
-        'o' => '\u2092',
-        'x' => '\u2093',
-        'h' => '\u2095',
-        'k' => '\u2096',
-        'l' => '\u2097',
-        'm' => '\u2098',
-        'n' => '\u2099',
-        'p' => '\u209A',
-        's' => '\u209B',
-        't' => '\u209C',
-        _ => a
-    };
-       
+        return a switch
+        {
+            '0' => '\u2080',
+            '1' => '\u2081',
+            '2' => '\u2082',
+            '3' => '\u2083',
+            '4' => '\u2084',
+            '5' => '\u2085',
+            '6' => '\u2086',
+            '7' => '\u2087',
+            '8' => '\u2088',
+            '9' => '\u2089',
+            '+' => '\u208A',
+            '-' => '\u208B',
+            '=' => '\u208C',
+            '(' => '\u208D',
+            ')' => '\u208E',
+            'a' => '\u2090',
+            'e' => '\u2091',
+            'o' => '\u2092',
+            'x' => '\u2093',
+            'h' => '\u2095',
+            'k' => '\u2096',
+            'l' => '\u2097',
+            'm' => '\u2098',
+            'n' => '\u2099',
+            'p' => '\u209A',
+            's' => '\u209B',
+            't' => '\u209C',
+            _ => a
+        };
+
     }
 
 
@@ -535,7 +535,7 @@ public static class StringHelpers
         }
         else if (low_name.StartsWith("prof "))
         {
-            name = name[5..]; 
+            name = name[5..];
         }
         else if (low_name.StartsWith("dr med "))
         {
@@ -543,16 +543,16 @@ public static class StringHelpers
         }
         else if (low_name.StartsWith("dr ") || low_name.StartsWith("mr ")
             || low_name.StartsWith("ms "))
-        { 
-            name = name[3..];  
+        {
+            name = name[3..];
         }
         else if (low_name.StartsWith("dr") && low_name.Length > 2
             && name[2].ToString() == low_name[2].ToString().ToUpper())
         {
             name = name[2..];
         }
-        else if (low_name =="dr" || low_name =="mr"
-            || low_name =="ms")
+        else if (low_name == "dr" || low_name == "mr"
+            || low_name == "ms")
         {
             name = "";
         }
@@ -625,7 +625,7 @@ public static class StringHelpers
             bool result = true;
             string lower_title = in_title.ToLower().Trim();
 
-            if (lower_title == "n.a." || lower_title == "na" 
+            if (lower_title == "n.a." || lower_title == "na"
                     || lower_title == "n.a" || lower_title == "n/a")
             {
                 result = false;
@@ -641,8 +641,8 @@ public static class StringHelpers
             {
                 result = false;
             }
-            else if ( lower_title == "none" || lower_title == "not done" 
-                    || lower_title == "same as above" || lower_title == "in preparation" 
+            else if (lower_title == "none" || lower_title == "not done"
+                    || lower_title == "same as above" || lower_title == "in preparation"
                     || lower_title == "non fornito")
             {
                 result = false;
@@ -659,11 +659,11 @@ public static class StringHelpers
             return false;
         }
         else
-        {            
+        {
             bool result = true;
             string in_name = org_name.ToLower();
 
-            if (in_name.Length < 3 )
+            if (in_name.Length < 3)
             {
                 result = false;
             }
@@ -833,6 +833,31 @@ public static class StringHelpers
             }
             return org_name;
         }
+    }
+
+
+    public static List<string> GetNumberedStrings(this string input_string, string number_suffix, int max_number)
+    {
+        List<string> split_strings = new();
+        for (int i = max_number; i > 0; i--)
+        {
+            string string_number = i.ToString() + number_suffix;
+            int number_pos = input_string.LastIndexOf(string_number);
+            if (number_pos != -1)
+            {
+                string string_to_store = input_string[(number_pos + string_number.Length)..].Trim();
+                split_strings.Add(string_to_store);
+                input_string = input_string[..number_pos];
+            }
+        }
+
+        // reverse order before returning
+        List<string> reversed_strings = new();
+        for (int j = split_strings.Count - 1; j >= 0; j--)
+        {
+            reversed_strings.Add(split_strings[j]);
+        }
+        return reversed_strings;
     }
 }
 
