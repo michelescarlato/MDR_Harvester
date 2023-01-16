@@ -146,10 +146,13 @@ public class StudyOutput
     public string? createdBy { get; set; }
     public string? externalLinkURL { get; set; }
     public string? fileId { get; set; }
+    public string? localFileURL { get; set; }
+    public bool? localFilePublic { get; set; }
     public string? originalFilename { get; set; }
     public string? downloadFilename { get; set; }
     public string? version { get; set; }
     public string? mimeType { get; set; }
+
 
     public StudyOutput()
     {

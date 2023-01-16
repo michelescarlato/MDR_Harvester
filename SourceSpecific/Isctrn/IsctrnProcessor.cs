@@ -1,7 +1,5 @@
 ﻿using System.Globalization;
-using System.Linq;
 using System.Text.Json;
-using MDR_Harvester.Euctr;
 using MDR_Harvester.Extensions;
 using MDR_Harvester.Isctrn;
 
@@ -99,7 +97,7 @@ public class IsrctnProcessor : IStudyProcessor
         // study start date
 
         string? ss_date = r.overallStartDate;
-        if (ss_date is not null)
+        if (!string.IsNullOrEmpty(ss_date))
         {
             SplitDate? study_start_date = ss_date[..10].GetDatePartsFromISOString();
             if (study_start_date is not null)
@@ -128,7 +126,7 @@ public class IsrctnProcessor : IStudyProcessor
             s.study_status = "Terminated";
         }
 
-        if (string.IsNullOrEmpty(s.study_status))
+        if (!string.IsNullOrEmpty(s.study_status))
         {
             string? se_date = r.overallEndDate;
             CultureInfo culture = CultureInfo.InvariantCulture;
@@ -183,21 +181,21 @@ public class IsrctnProcessor : IStudyProcessor
         SplitDate? last_edit = null;
 
         string? r_date = r.dateIdAssigned;
-        if (r_date is not null)
+        if (!string.IsNullOrEmpty(r_date))
         {
-            reg_date = r_date.Substring(0, 10).GetDatePartsFromISOString();
+            reg_date = r_date[..10].GetDatePartsFromISOString();
         }
         string? d_edited = r.lastUpdated;
-        if (d_edited is not null)
+        if (!string.IsNullOrEmpty(d_edited))
         {
-            last_edit = d_edited.Substring(0, 10).GetDatePartsFromISOString();
+            last_edit = d_edited[..10].GetDatePartsFromISOString();
         }
 
 
         // Study sponsor(s) and funders.
 
         var sponsors = r.sponsors;
-        string? sponsor_name = null;    // For later use, adding sponsor ids
+        string? sponsor_name = null;    // For later use
         if (sponsors?.Any() == true)
         {
             foreach (var stSponsor in sponsors)
@@ -218,7 +216,7 @@ public class IsrctnProcessor : IStudyProcessor
             foreach (var funder in funders)
             {
                 string? funder_name = funder.name;
-                if (funder_name is not null && funder_name.AppearsGenuineOrgName())
+                if (!string.IsNullOrEmpty(funder_name) && funder_name.AppearsGenuineOrgName())
                 {
                     // check a funder is not simply the sponsor...(or repeated).
 
@@ -255,11 +253,7 @@ public class IsrctnProcessor : IStudyProcessor
                 string? givenName = contact.forename.TidyPersonName();
                 string? familyName = contact.surname.TidyPersonName();
                 string? affil = contact.address;
-                string? orcid = contact.orcid;
-                if (orcid is not null && orcid.Contains("/"))
-                {
-                    orcid = orcid[(orcid.LastIndexOf("/") + 1)..];  // drop any url prefix
-                }
+                string? orcid = contact.orcid.TidyORCIDId();
                 string full_name = (givenName ?? "" + " " + familyName ?? "").Trim();
 
                 int contrib_type_id;
@@ -357,7 +351,7 @@ public class IsrctnProcessor : IStudyProcessor
         // First provide phase for interventional trials.
 
         string? phase = r.phase;
-        if (phase is not null && s.study_type_id == 11)
+        if (!string.IsNullOrEmpty(phase) && s.study_type_id == 11)
         {
             Tuple<int, string, int, string> new_feature = phase switch
             {
@@ -401,12 +395,9 @@ public class IsrctnProcessor : IStudyProcessor
                     _ when st_des.Contains("randomised") => new Tuple<int, string, int, string>(22, "allocation type", 205, "Randomised"),
                     _ => new Tuple<int, string, int, string>(22, "allocation type", 215, "Not provided")
                 };
-
-                if (new_feature.Item1 != 0)
-                {
-                    features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
-                                                       new_feature.Item3, new_feature.Item4));
-                }
+                 
+                features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
+                                                       new_feature.Item3, new_feature.Item4)); 
 
                 st_des = design.Replace("cross over", "cross-over")
                          .Replace("crossover", "cross-over");
@@ -504,8 +495,8 @@ public class IsrctnProcessor : IStudyProcessor
 
         // Include listed drug or device names as topics.
 
-        string? drugNames = r.drugNames;
         List<string> topic_names = new();
+        string? drugNames = r.drugNames;
         if (!string.IsNullOrEmpty(drugNames) && drugNames != "N/A")
         {
             drugNames = drugNames.Replace("\u00AE", string.Empty); //  lose (r) Registration mark
@@ -551,7 +542,7 @@ public class IsrctnProcessor : IStudyProcessor
         // Include conditions as topics.
 
         string? listed_condition = r.conditionDescription;
-        if (listed_condition is not null)
+        if (!string.IsNullOrEmpty(listed_condition))
         {
             topics.Add(new StudyTopic(sid, 13, "condition", listed_condition));
         }
@@ -561,7 +552,7 @@ public class IsrctnProcessor : IStudyProcessor
             // Often a comma delimited list.
 
             string? disease_class = r.diseaseClass1;
-            if (disease_class is not null)
+            if (!string.IsNullOrEmpty(disease_class))
             {
                 if (disease_class.Contains(","))
                 {
@@ -585,12 +576,12 @@ public class IsrctnProcessor : IStudyProcessor
         string? final_enrolment = r.totalFinalEnrolment;
         string? target_enrolment = r.targetEnrolment?.ToString();
 
-        if (target_enrolment is not null && target_enrolment != "Not provided at time of registration")
+        if (!string.IsNullOrEmpty(target_enrolment) && target_enrolment != "Not provided at time of registration")
         {
             s.study_enrolment = target_enrolment;
         }
 
-        if (final_enrolment is not null && final_enrolment != "Not provided at time of registration")
+        if (!string.IsNullOrEmpty(final_enrolment) && final_enrolment != "Not provided at time of registration")
         {
             if (s.study_enrolment is null)
             {
@@ -604,7 +595,7 @@ public class IsrctnProcessor : IStudyProcessor
 
 
         string? gender = r.gender; 
-        if (gender is not null) 
+        if (!string.IsNullOrEmpty(gender)) 
         {
             s.study_gender_elig = gender;
             if (s.study_gender_elig == "Both")
@@ -620,7 +611,7 @@ public class IsrctnProcessor : IStudyProcessor
 
 
         string? age_group = r.ageRange;
-        if (age_group is not null && age_group != "Mixed"
+        if (!string.IsNullOrEmpty(age_group) && age_group != "Mixed"
             && age_group != "Not Specified" && age_group != "All")
         {
             Tuple<int?, string?, int?, string?> age_params = age_group switch
@@ -632,7 +623,7 @@ public class IsrctnProcessor : IStudyProcessor
                 _ => new Tuple<int?, string?, int?, string?>(null, null, null, null)
             };
 
-            if (age_params.Item1 is not null || age_params.Item3 is not null)
+            if (age_params.Item1 is not null || age_params.Item1 is not null)
             {
                 s.min_age = age_params.Item1;
                 s.min_age_units = age_params.Item2;
@@ -668,20 +659,30 @@ public class IsrctnProcessor : IStudyProcessor
 
 
         // Data Sharing.
+        // Given by the data sharing statement and any data policies.
+        // At the moment these seem to be a single string summarising
+        // the management of IPD.
 
         string? ipd_ss = r.ipdSharingStatement;
         if (ipd_ss is not null && ipd_ss != "Not provided at time of registration")
         {
             s.data_sharing_statement = ipd_ss;
         }
-
-        // *********************************
-        // add in data policies
-        // *********************************
-       
-
-        // DATA OBJECTS and their attributes
-        // initial data object is the ISRCTN registry entry
+        var data_policies = r.dataPolicies;
+        if (data_policies?.Any() == true)
+        {
+            foreach (string policy in data_policies)
+            {
+                if (policy != "Not provided at time of registration")
+                {
+                    s.data_sharing_statement += "\nIPD policy summary: " + policy;
+                }
+            }
+        }
+               
+        
+       // DATA OBJECTS and their attributes
+       // initial data object is the ISRCTN registry entry
 
         int? pub_year = null;
         if (reg_date is not null)
@@ -691,7 +692,8 @@ public class IsrctnProcessor : IStudyProcessor
         string object_title = "ISRCTN registry entry";
         string object_display_title = s.display_title + " :: ISRCTN registry entry";
 
-        // create Id for the data object
+        // create Id for the data object.
+
         string sd_oid = sid + " :: 13 :: " + object_title;
 
         DataObject dobj = new DataObject(sd_oid, sid, object_title, object_display_title, pub_year,
@@ -701,25 +703,30 @@ public class IsrctnProcessor : IStudyProcessor
         dobj.doi_status_id = 1;
         data_objects.Add(dobj);
 
-        // data object title is the single display title...
+        // Data object title is the display title...
+
         object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
                                                     22, "Study short name :: object type", true));
-        if (last_edit != null)
+        if (last_edit is not null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 18, "Updated",
                                 last_edit.year, last_edit.month, last_edit.day, last_edit.date_string));
         }
 
-        if (reg_date != null)
+        if (reg_date is not null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 15, "Created",
                                 reg_date.year, reg_date.month, reg_date.day, reg_date.date_string));
         }
 
-        // instance url can be derived from the ISRCTN number
+        // Instance url can be derived from the ISRCTN number.
+
         object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN",
                     "https://www.isrctn.com/" + sid, true, 35, "Web text"));
 
+
+        // PIS details seem to havbe been largely transferred
+        // to the 'Additional files' section.
 
         string? PIS_details = r.patientInfoSheet;
         if (PIS_details is not null && !PIS_details.StartsWith("Not available") 
@@ -762,448 +769,262 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
 
-        /*               
-                        case "Individual participant data (IPD) sharing statement":
-                            {
-                                if (!item_value.Contains("Not provided at time of registration"))
-                                {
-                                    if (!string.IsNullOrEmpty(sharing_statement))
-                                    {
-                                        sharing_statement += "\n";
-                                    }
-                                    sharing_statement += sh.StringClean("IPD sharing statement: " + item_value);
-                                }
-                                break;
-                            }
-                        case "Participant level data":
-                            {
-                                if (!item_value.Contains("Not provided at time of registration"))
-                                {
-                                    if (!string.IsNullOrEmpty(sharing_statement))
-                                    {
-                                        sharing_statement += "\n";
-                                    }
-                                    sharing_statement += sh.StringClean("IPD Management: " + item_value);
-                                }
-*/
+        // Possible trial web site
 
-
-        // possible additional files
-
-        // this source specific utility class defined immediately below this class
-        // and reset to a new collection for each study
-
-        List<AdditionalFile> additional_files = new List<AdditionalFile>();
-
-        var add_files = r.Element("additional_files");
-        if (add_files != null)
+        string? trial_website = r.trialWebsite;
+        if (!string.IsNullOrEmpty(trial_website) && trial_website.Contains("http"))
         {
-            var items = add_files.Elements("Item");
-            if (items != null && items.Count() > 0)
-            {
-                foreach (XElement item in items)
-                {
-                    string item_name = GetElementAsString(item.Element("item_name")).Trim();
-                    string item_value = GetElementAsString(item.Element("item_value")).Trim();
+            object_title = "Study web site";
+            sd_oid = sid + " :: 134 :: " + object_title;
+            object_display_title = s.display_title + " :: Study web site";
 
-                    // may need to correct an extraction error here...
-                    item_value = item_value.Replace("//editorial", "/editorial");
-
-                    additional_files.Add(new AdditionalFile(sid, item_name, item_value));
-                }
-            }
+            data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, s.study_start_year,
+                    23, "Text", 134, "Website", null, sponsor_name, 12, download_datetime));
+            
+            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
+                                                    22, "Study short name :: object type", true));
+            
+            object_instances.Add(new ObjectInstance(sd_oid, null, sponsor_name, trial_website, true, 35, "Web text"));
         }
 
 
-        // outputs
-        var outputs = r.Element("outputs");
-        if (outputs != null)
+        // Possible additional files and external links. Output list appears to be composed of both
+        // external links to published papers and local files of unpublished supplementary material.
+        // External links may be published papers - almost always referred to by pubmed ids, or links to 
+        // web sites or unpublished papers with different types of information on them.
+        // Local filers are often PIS, but may be result summaries and oher objects.
+
+        var outputs = r.outputs;
+        if(outputs?.Any() == true)
         {
-            var items = outputs.Elements("Output");
-            if (items != null && items.Count() > 0)
+            foreach (var op in outputs)
             {
-                foreach (XElement item in items)
+                string? output_type = op.outputType;
+                if (!string.IsNullOrEmpty(output_type))
                 {
-                    string output_type = GetElementAsString(item.Element("output_type")).Trim();
-                    string output_url = GetElementAsString(item.Element("output_url")).Trim();
-                    string details = GetElementAsString(item.Element("details")).Trim();
-
-                    string date_created = GetElementAsString(item.Element("date_created")).Trim();
-                    string date_added = GetElementAsString(item.Element("date_added")).Trim();
-
-                    SplitDate created = null;
-                    SplitDate added = null;
-                    int? year_published = null;
-
-                    if (!string.IsNullOrEmpty(date_created))
-                    {
-                        date_created = date_created.Substring(0, 10);
-                        created = dh.GetDatePartsFromISOString(date_created);
-                        year_published = created.year;
-                    }
-                    if (!string.IsNullOrEmpty(date_added))
-                    {
-                        date_added = date_added.Substring(0, 10);
-                        added = dh.GetDatePartsFromISOString(date_added);
-                    }
-
-                    // correct a common past url error in download process
-                    // and remove any trailing full stop, semi-colon or slash
-
-                    if (output_url.StartsWith("https://www.isrctn.com/http"))
-                    {
-                        output_url = output_url.Substring(23);
-                    }
-
-                    if (output_url.EndsWith(";") || output_url.EndsWith(".")
-                            || output_url.EndsWith("/"))
-                    {
-                        output_url = output_url.Substring(0, output_url.Length - 1);
-                    }
-
-                    // depends if they are an article, usually with a pubmed reference,
-                    // or some other type of output
-
                     string output_lower = output_type.ToLower();
-                    if (output_lower == "protocol article" || output_lower == "results article"
-                        || output_lower == "interim results article" || output_lower == "preprint results"
-                        || output_lower == "other publications" || output_lower == "abstract results"
-                        || output_lower == "abstract results" || output_lower == "thesis results "
-                        || output_lower == "thesis results" || output_lower == "protocol (preprint)"
-                        || output_lower == "preprint (other)")
+                    Tuple<int, string, int, string> object_details = output_lower switch
                     {
+                        "resultsarticle" => new Tuple<int, string, int, string>(23, "Text", 202, "Published article - study results"),
+                        "protocolarticle" => new Tuple<int, string, int, string>(23, "Text", 201, "Published article - study protocol"),
+                        "patient information sheet" => new Tuple<int, string, int, string>(23, "Text", 19, "Patient information sheets"),
+                        "pis" or
+                        "participant information sheet" or
+                        "patient information sheet" => new Tuple<int, string, int, string>(23, "Text", 19, "Patient information sheets"),
+                        "basicresults" or "funderreportresults" or "thesisresults" or
+                        "posterresults" or "otherunpublishedresults" or
+                        "bookresults" => new Tuple<int, string, int, string>(23, "Text", 79, "Results or CSR summary"),
+                        "protocolfile" or
+                        "protocol(other)" => new Tuple<int, string, int, string>(23, "Text", 11, "Study Protocol"),
+                        "dataset" => new Tuple<int, string, int, string>(14, "Dataset", 80, "Individual participant data"),
+                        "plainenglishresults" => new Tuple<int, string, int, string>(23, "Text", 88, "Summary of results for public"),
+                        _ when output_lower.Contains("analysis") => new Tuple<int, string, int, string>(23, "Text", 22, "Statistical analysis plan"),
+                        _ when output_lower.Contains("consent") => new Tuple<int, string, int, string>(23, "Text", 18, "Informed consent forms"),
+                        "otherfiles" => new Tuple<int, string, int, string>(23, "Text", 37, "Other text based object"),
+                        "trialwebsite" => new Tuple<int, string, int, string>(23, "Text", 134, "Website"),
+                        _ => new Tuple<int, string, int, string>(0, "Text", 0, output_lower),
+                    };
 
-                        string doi = "", citation = "", pmid_string = "";
-                        int pmid = 0;
-                        bool pmid_found = false;
+                    int object_class_id = object_details.Item1;
+                    string object_class = object_details.Item2;
+                    int object_type_id = object_details.Item3;
+                    string object_type = object_details.Item4;
 
-                        // try and get a pmid
+                    string? artefact_type = op.artefactType;
+                    string? external_url = op.externalLinkURL;
+                    string? local_url = op.localFileURL;
 
-                        if (output_url.Contains("pubmed"))
+                    if (artefact_type == "ExternalLink" && !string.IsNullOrEmpty(external_url))
+                    {
+                        string citation = external_url;   // for storage 'as is' for later inspection
+                        if (external_url.ToLower().Contains("pubmed"))
                         {
-                            if (output_url.Contains("list_uids="))
+                            // Some sort of reference to a published article
+                            // Tidy up url and try and get a pmid
+
+                            int pmid = 0;
+                            bool pmid_found = false;
+                            char[] endcharsToTrim = new char[] { ';', '.', '/' };
+                            external_url = external_url.TrimEnd(endcharsToTrim);
+
+                            if (external_url.Contains("list_uids="))
                             {
-                                string poss_pmid = output_url.Substring(output_url.IndexOf("list_uids=") + 10);
-                                if (Int32.TryParse(poss_pmid, out pmid))
+                                string poss_pmid = external_url[(external_url.IndexOf("list_uids=") + 10)..];
+                                if (int.TryParse(poss_pmid, out pmid))
                                 {
                                     pmid_found = true;
                                 }
                             }
-                            else if (output_url.Contains("termtosearch="))
+                            else if (external_url.Contains("termtosearch="))
                             {
-                                string poss_pmid = output_url.Substring(output_url.IndexOf("termtosearch=") + 13);
-                                if (Int32.TryParse(poss_pmid, out pmid))
+                                string poss_pmid = external_url[(external_url.IndexOf("termtosearch=") + 13)..];
+                                if (int.TryParse(poss_pmid, out pmid))
                                 {
                                     pmid_found = true;
                                 }
                             }
-                            else if (output_url.Contains("term="))
+                            else if (external_url.Contains("term="))
                             {
-                                string poss_pmid = output_url.Substring(output_url.IndexOf("term=") + 5);
-                                if (Int32.TryParse(poss_pmid, out pmid))
+                                string poss_pmid = external_url[(external_url.IndexOf("term=") + 5)..];
+                                if (int.TryParse(poss_pmid, out pmid))
                                 {
                                     pmid_found = true;
                                 }
                             }
                             else
                             {
-                                // 'just' /puibmed_id at the end ...
-                                string poss_pmid = output_url.Substring(output_url.LastIndexOf("/") + 1);
-                                if (Int32.TryParse(poss_pmid, out pmid))
+                                // 'just' /<pubmed_id> at the end ...
+                                string poss_pmid = external_url[(external_url.LastIndexOf("/") + 1)..];
+                                if (int.TryParse(poss_pmid, out pmid))
                                 {
                                     pmid_found = true;
                                 }
                             }
 
+                            string? pmid_string = null;
                             if (pmid_found && pmid > 0)
                             {
                                 pmid_string = pmid.ToString();
                             }
+                            references.Add(new StudyReference(sid, pmid_string, citation, null, output_type));
+                        }
+                        else
+                        {
+                            // A reference to an unpublished article, or an
+                            // article in an non pubmed journmal, or a web-page
+
+                            // Is the url a doi? Implies it is a published article
+                            // but without a PubMed id. Add a reference.
+
+                            if (external_url.Contains("doi"))
+                            {
+                                string doi = external_url[(external_url.IndexOf("doi.org/") + 8)..];
+                                references.Add(new StudyReference(sid, null, citation, doi, output_type));
+                            }
                             else
                             {
-                                citation = output_url;
-                            }
-                        }
-                        else
-                        {
-                            // include the url in the citation field
-                            citation = output_url;
-                        }
+                                // Almost certainly an object / resource within a web page or as an
+                                // unpublished web document. Create a data object record of this type.
 
-                        // is there a doi?
-                        if (output_url.Contains("doi"))
-                        {
-                            doi = output_url.Substring(output_url.IndexOf("doi.org/") + 8);
-                        }
-
-                        string comments = output_type.ToLower();
-
-                        if (!string.IsNullOrEmpty(details.Trim()))
-                        {
-                            if ((comments == "protocol article"
-                                        && details.ToLower() != "protocol" && details.ToLower() != "protocol")
-                            || (comments == "results article"
-                                        && details.ToLower() != "results"))
-                            {
-                                comments = comments + " (" + details + ")";
-                            }
-                        }
-
-                        // add the details to the study references
-
-                        references.Add(new StudyReference(sid, pmid_string, citation, doi, comments));
-                    }
-                    else
-                    {
-                        // need to correct a possible past extraction error here...
-                        output_url = output_url.Replace("//editorial", "/editorial");
-
-                        // create object details
-                        string object_type = "";
-                        int object_type_id;
-                        string object_class = "Text";
-                        int object_class_id = 23;
-
-                        // One of several data object types - usually as stored by ISRCTN
-                        if (output_lower == "basic results" || output_lower == "funder report results"
-                            || output_lower == "thesis results" || output_lower == "poster results"
-                            || output_lower == "other unpublished results" || output_lower == "book results")
-                        {
-                            object_type_id = 79;
-                            object_type = "Results or CSR summary";
-                        }
-                        else if (output_lower == "protocol file" || output_lower == "protocol (other)")
-                        {
-                            object_type_id = 11;
-                            object_type = "Study Protocol";
-                        }
-                        else if (output_lower == "participant information sheet")
-                        {
-                            object_type_id = 19;
-                            object_type = "Patient information sheets";
-                        }
-                        else if (output_lower == "dataset")
-                        {
-                            object_type_id = 80;
-                            object_type = "Individual participant data";
-                            object_class_id = 14;
-                            object_class = "Dataset";
-                        }
-                        else if (output_lower == "plain english results")
-                        {
-                            object_type_id = 88;
-                            object_type = "Summary of results for public";
-                        }
-                        else if (output_lower.Contains("analysis"))
-                        {
-                            object_type_id = 22;
-                            object_type = "Statistical analysis plan";
-                        }
-                        else if (output_lower.Contains("consent"))
-                        {
-                            object_type_id = 18;
-                            object_type = "Informed consent forms";
-                        }
-                        else if (output_lower == "other files")
-                        {
-                            object_type_id = 37;
-                            object_type = "Other text based object";
-                        }
-                        else if (output_lower == "trial website")
-                        {
-                            object_type_id = 134;
-                            object_type = "Website";
-                        }
-                        else
-                        {
-                            object_type_id = 37;
-                            object_type = "Other text based object";
-                        }
-
-                        // does this object exist in the additional files list - it should do...
-                        // but may not be the case. If it does get the name
-
-                        string specific_object_name = "";
-                        if (additional_files.Count > 0)
-                        {
-                            foreach (AdditionalFile af in additional_files)
-                            {
-                                if (output_url == af.item_value)
+                                string object_name = object_type;
+                                if (!string.IsNullOrEmpty(op.version))
                                 {
-                                    specific_object_name = af.item_name;
-                                    break;
+                                    object_name += op.version;
+                                }
+
+                                object_display_title = s.display_title + " :: " + object_name;
+                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_type;
+
+                                int next_num = checkOID(sd_oid, data_objects);
+                                if (next_num > 0)
+                                {
+                                    sd_oid += "_" + next_num.ToString();
+                                    object_display_title += "_" + next_num.ToString();
+                                }
+
+                                SplitDate? dt_created = null;
+                                if (!string.IsNullOrEmpty(op.dateCreated)) 
+                                {
+                                    dt_created = op.dateCreated?[..10].GetDatePartsFromISOString();
+                                }
+                                                   
+                                DataObject d_obj = new (sd_oid, sid, object_type, object_display_title, dt_created?.year,
+                                        object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime);
+                                d_obj.version = op.version;
+                                data_objects.Add(d_obj);
+
+                                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
+                                            22, "Study short name :: object type", true));
+
+                                object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN", 
+                                        external_url, true, 35, "Web text"));
+
+                                if (dt_created is not null)
+                                {
+                                    object_dates.Add(new ObjectDate(sd_oid, 15, "Created", dt_created.year, dt_created.month,
+                                                                             dt_created.day, dt_created.date_string));
                                 }
                             }
                         }
 
-                        int res_type_id = 0;
-                        string res_type = "Not yet known";
-                        int title_type_id = 0;
-                        string title_type = "Not yet known";
 
-                        if (specific_object_name == "")
+                        if (artefact_type == "LocalFile" && !string.IsNullOrEmpty(local_url))
                         {
-                            // may be able to derive a document title from the url
-                            string url_lower = output_url.ToLower();
-                            if (url_lower.Contains(".pdf"))
-                            {
-                                int file_suffix_pos = url_lower.IndexOf(".pdf");
-                                int name_start_pos = output_url.LastIndexOf('/', file_suffix_pos);
-                                specific_object_name = output_url.Substring(name_start_pos + 1, file_suffix_pos + 3 - name_start_pos);
-                            }
-                            else if (url_lower.Contains(".docx"))
-                            {
-                                int file_suffix_pos = url_lower.IndexOf(".docx");
-                                int name_start_pos = output_url.LastIndexOf("/", file_suffix_pos);
-                                specific_object_name = output_url.Substring(name_start_pos + 1, file_suffix_pos + 4 - name_start_pos);
-                            }
-                            else if (url_lower.Contains(".doc"))
-                            {
-                                int file_suffix_pos = url_lower.IndexOf(".doc");
-                                int name_start_pos = output_url.LastIndexOf("/", file_suffix_pos);
-                                specific_object_name = output_url.Substring(name_start_pos + 1, file_suffix_pos + 3 - name_start_pos);
-                            }
-                            else if (url_lower.Contains(".pptx"))
-                            {
-                                int file_suffix_pos = url_lower.IndexOf(".pptx");
-                                int name_start_pos = output_url.LastIndexOf("/", file_suffix_pos);
-                                specific_object_name = output_url.Substring(name_start_pos + 1, file_suffix_pos + 4 - name_start_pos);
-                            }
-                            else if (url_lower.Contains(".ppt"))
-                            {
-                                int file_suffix_pos = url_lower.IndexOf(".ppt");
-                                int name_start_pos = output_url.LastIndexOf("/", file_suffix_pos);
-                                specific_object_name = output_url.Substring(name_start_pos + 1, file_suffix_pos + 3 - name_start_pos);
-                            }
-                        }
+                            // some form of local file, stored on the ISRCTN web site
 
-
-                        if (specific_object_name == "")
-                        {
-                            object_title = object_type;
-                            object_display_title = s.display_title + " :: " + object_type;
-                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_type;
-                            title_type_id = 22;
-                            title_type = "Study short name :: object type";
-
-                            // in almost all cases the lack of a matching document or embedded document
-                            // is because the material is provided as a web page
-
-                            if (output_url.StartsWith("http"))
+                            string? localfile_name = op.downloadFilename;
+                            if (!string.IsNullOrEmpty(localfile_name))
                             {
-                                res_type_id = 35;
-                                res_type = "Web text";
-                            }
-
-                            // need to check if the sd_oid a duplicate?
-                            // probably not as most objects should have a specific name
-                        }
-                        else
-                        {
-                            if (specific_object_name.ToLower().EndsWith(".pdf"))
-                            {
-                                res_type_id = 11;
-                                res_type = "PDF";
-                                specific_object_name = specific_object_name.Substring(0, specific_object_name.LastIndexOf("."));
-                            }
-                            else if (specific_object_name.ToLower().EndsWith(".docx") || specific_object_name.ToLower().EndsWith(".doc"))
-                            {
-                                res_type_id = 16;
-                                res_type = "Word doc";
-                                specific_object_name = specific_object_name.Substring(0, specific_object_name.LastIndexOf("."));
-
-                            }
-                            else if (specific_object_name.ToLower().EndsWith(".pptx") || specific_object_name.ToLower().EndsWith(".ppt"))
-                            {
-                                res_type_id = 20;
-                                res_type = "PowerPoint";
-                                specific_object_name = specific_object_name.Substring(0, specific_object_name.LastIndexOf("."));
-                            }
-
-                            object_title = specific_object_name;
-                            object_display_title = s.display_title + " :: " + specific_object_name;
-                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + specific_object_name;
-                            title_type_id = 21;
-                            title_type = "Study short name :: object name";
-                        }
-
-
-                        // do a check that the sd_oid and resulting object name is not a duplicate
-                        // if it is add a suffix before making the addition
-
-                        int next_num = 0;
-                        if (data_objects.Any())
-                        {
-                            foreach (DataObject d_o in data_objects)
-                            {
-                                if (d_o.sd_oid.StartsWith(sd_oid))
+                                string lower_name = localfile_name.ToLower();
+                                int res_type_id = 0;
+                                string res_type = "Not yet known";
+                                if (lower_name.EndsWith(".pdf"))
                                 {
-                                    next_num++;
+                                    res_type_id = 11;
+                                    res_type = "PDF";
+                                }
+                                else if (lower_name.EndsWith(".docx") || lower_name.EndsWith(".doc"))
+                                {
+                                    res_type_id = 16;
+                                    res_type = "Word doc";
+                                }
+                                else if (lower_name.EndsWith(".pptx") || lower_name.EndsWith(".ppt"))
+                                {
+                                    res_type_id = 20;
+                                    res_type = "PowerPoint";
+                                }
+
+                                object_display_title = s.display_title + " :: " + localfile_name;
+                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + localfile_name;
+                                int title_type_id = 21;
+                                string title_type = "Study short name :: object name";
+
+                                int next_num = checkOID(sd_oid, data_objects);
+                                if (next_num > 0)
+                                {
+                                    sd_oid += "_" + next_num.ToString();
+                                    object_display_title += "_" + next_num.ToString();
+                                }
+
+                                SplitDate? dt_created = null;
+                                if (!string.IsNullOrEmpty(op.dateCreated))
+                                {
+                                    dt_created = op.dateCreated?[..10].GetDatePartsFromISOString();
+                                }
+
+                                SplitDate? dt_available = null;
+                                if (!string.IsNullOrEmpty(op.dateUploaded))
+                                {
+                                    dt_available = op.dateUploaded?[..10].GetDatePartsFromISOString();
+                                }
+
+                                DataObject d_obj = new(sd_oid, sid, localfile_name, object_display_title, dt_created?.year,
+                                        object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime);
+                                d_obj.version = op.version;
+                                data_objects.Add(d_obj);
+
+                                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
+                                        title_type_id, title_type, true));
+
+                                object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN",
+                                        local_url, true, res_type_id, res_type));
+
+                                if (dt_created is not null)
+                                {
+                                    object_dates.Add(new ObjectDate(sd_oid, 15, "Created", dt_created.year, dt_created.month,
+                                                                             dt_created.day, dt_created.date_string));
+                                }
+                                if (dt_available is not null)
+                                {
+                                    object_dates.Add(new ObjectDate(sd_oid, 12, "Available", dt_available.year, dt_available.month,
+                                                                            dt_available.day, dt_available.date_string));
                                 }
                             }
-                        }
-
-                        if (next_num > 0)
-                        {
-                            sd_oid += "_" + next_num.ToString();
-                            object_display_title += "_" + next_num.ToString();
-                        }
-
-                        DataObject new_dobj = new DataObject(sd_oid, sid, object_title, object_display_title, year_published,
-                                    object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime);
-
-                        if (details.ToLower().StartsWith("version"))
-                        {
-                            new_dobj.version = details;
-                        }
-
-                        data_objects.Add(new_dobj);
-
-                        object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                    title_type_id, title_type, true));
-                        object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN",
-                                output_url, true, res_type_id, res_type));
-
-                        if (created != null)
-                        {
-                            object_dates.Add(new ObjectDate(sd_oid, 15, "Created", created.year, created.month, created.day, created.date_string));
-                        }
-                        if (added != null)
-                        {
-                            object_dates.Add(new ObjectDate(sd_oid, 11, "Accepted", added.year, added.month, added.day, added.date_string));
                         }
                     }
                 }
             }
         }
-
-
-        // possible object of a trial web site if one exists for this study
-
-        string trial_website = GetElementAsString(r.Element("trial_website"));
-        if (!string.IsNullOrEmpty(trial_website))
-        {
-            // first check website link does not provide a 404
-            if (true) //await HtmlHelpers.CheckURLAsync(fs.trial_website))
-            {
-                object_title = "Study web site";
-                object_display_title = s.display_title + " :: Study web site";
-                sd_oid = sid + " :: 134 :: " + object_title;
-
-                data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, s.study_start_year,
-                        23, "Text", 134, "Website", null, sponsor_name, 12, download_datetime));
-                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                                        22, "Study short name :: object type", true));
-                ObjectInstance instance = new ObjectInstance(sd_oid, null, study_sponsor,
-                        trial_website, true, 35, "Web text");
-                instance.url_last_checked = DateTime.Today;
-                object_instances.Add(instance);
-            }
-        }
-
-
-        s.brief_description = study_description;
-        s.data_sharing_statement = sharing_statement;
 
         s.identifiers = identifiers;
         s.titles = titles;
@@ -1221,6 +1042,22 @@ public class IsrctnProcessor : IStudyProcessor
 
         return s;
 
+    }
+   
+    private int checkOID(string sd_oid, List<DataObject> data_objects)
+    {
+        int next_num = 0;
+        if (data_objects.Any())
+        {
+            foreach (DataObject d_o in data_objects)
+            {
+                if (d_o.sd_oid.StartsWith(sd_oid))
+                {
+                    next_num++;
+                }
+            }
+        }
+        return next_num;
     }
 }
 

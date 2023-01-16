@@ -1,6 +1,4 @@
 ﻿using System.Data;
-using System.Xml;
-using System.Xml.Linq;
 using MDR_Harvester.Extensions;
 
 namespace MDR_Harvester.Pubmed;
@@ -19,9 +17,9 @@ public class PubmedProcessor : IObjectProcessor
    
     public FullDataObject ProcessData(XmlDocument d, DateTime? download_datetime)
     {
-        DateHelpers dh = new DateHelpers();
-        TypeHelpers th = new TypeHelpers();
-        IdentifierHelpers ih = new IdentifierHelpers();
+        //DateHelpers dh = new DateHelpers();
+        //TypeHelpers th = new TypeHelpers();
+        PubMedHelpers ih = new();
 
         // First convert the XML document to a Linq XML Document.
 

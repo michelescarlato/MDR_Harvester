@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MDR_Harvester.Who;
 
-public class WHORecord
+public class Who_Record
 {
     public int source_id { get; set; }
     public string? record_date { get; set; }
@@ -62,7 +62,7 @@ public class WHORecord
 
     public List<string>? country_list { get; set; }
     public List<Secondary_Id>? secondary_ids { get; set; }
-    public List<StudyFeature>? study_features { get; set; }
+    public List<WhoStudyFeature>? study_features { get; set; }
     public List<StudyCondition>? condition_list { get; set; }
 }
 
@@ -108,14 +108,14 @@ public class SecIdBase
 }
 
 
-public class StudyFeature
+public class WhoStudyFeature
 {
     public int? ftype_id { get; set; }
     public string? ftype { get; set; }
     public int? fvalue_id { get; set; }
     public string? fvalue { get; set; }
 
-    public StudyFeature(int? _ftype_id, string? _ftype,
+    public WhoStudyFeature(int? _ftype_id, string? _ftype,
                         int? _fvalue_id, string? _fvalue)
     {
         ftype_id = _ftype_id;
@@ -124,7 +124,7 @@ public class StudyFeature
         fvalue = _fvalue;
     }
 
-    public StudyFeature()
+    public WhoStudyFeature()
     { }
 }
 

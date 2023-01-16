@@ -51,9 +51,9 @@ public class CTGProcessor : IStudyProcessor
             List<ObjectDate> object_dates = new();
             List<ObjectInstance> object_instances = new();
 
-            DateHelpers dh = new DateHelpers();
-            MD5Helpers hh = new MD5Helpers();
-            IdentifierHelpers ih = new IdentifierHelpers();
+            DateHelpers dh = new();
+            MD5Helpers hh = new();
+            CTGHelpers ih = new();
 
             Protocolsection? p = b.ProtocolSection;
 
@@ -226,7 +226,7 @@ public class CTGProcessor : IStudyProcessor
 
                                 // Deduce as much as possible about the secondary id, using its value, type and org.
 
-                                IdentifierDetails idd = ih.GetIdentifierProps(identifier_type, identifier_org, id_value);
+                                IdentifierDetails idd = ih.GetCTGIdentifierProps(identifier_type, identifier_org, id_value);
 
                                 // Add the secondary identifier
                                 identifiers.Add(new StudyIdentifier(sid, idd.id_value, idd.id_type_id, idd.id_type,
@@ -1526,17 +1526,20 @@ public class CTGProcessor : IStudyProcessor
                                                 0, "Not known", null));
                                     }
 
-                                    string? repo_org_name;
-                                    if (ipd_url.Contains("immport")) repo_org_name = "Immport";
-                                    if (ipd_url.Contains("itntrialshare")) repo_org_name = "Immune Tolerance Network";
-                                    if (ipd_url.Contains("drive.google")) repo_org_name = "Google Drive";
-                                    if (ipd_url.Contains("dataverse")) repo_org_name = "Dataverse";
-                                    if (ipd_url.Contains("datadryad")) repo_org_name = "Datadryad";
-                                    if (ipd_url.Contains("github")) repo_org_name = "GitHub";
-                                    if (ipd_url.Contains("osf.io")) repo_org_name = "Open Science Foundation";
-                                    if (ipd_url.Contains("scribd")) repo_org_name = "Scribd";
-                                    if (ipd_url.Contains("researchgate")) repo_org_name = "Research Gate";
-                                    if (ipd_url.Contains("zenodo")) repo_org_name = "Zenodo";
+                                    string? repo_org_name = ipd_url switch
+                                    {
+                                        _ when ipd_url.Contains("immport") => "Immport",
+                                        _ when ipd_url.Contains("itntrialshare") => "Immune Tolerance Network",
+                                        _ when ipd_url.Contains("drive.google") => "Google Drive",
+                                        _ when ipd_url.Contains("dataverse") => "Dataverse",
+                                        _ when ipd_url.Contains("datadryad") => "Datadryad",
+                                        _ when ipd_url.Contains("github") => "GitHub",
+                                        _ when ipd_url.Contains("osf.io") => "Open Science Foundation",
+                                        _ when ipd_url.Contains("scribd") => "Scribd",
+                                        _ when ipd_url.Contains("researchgate") => "Research Gate",
+                                        _ when ipd_url.Contains("zenodo") => "Zenodo",
+                                        _ => null
+                                    };
 
                                     // add in instance
                                     object_instances.Add(new ObjectInstance(sd_oid, null, repo_org_name, ipd_url, true,

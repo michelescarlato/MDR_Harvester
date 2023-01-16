@@ -6,7 +6,7 @@ public class IdentifierHelpers
 {
     // Two check routines that scan previously extracted Identifiers or Dates, to 
     // indicate if the input Id / Date type has already beenm extracted.
-
+    /*
     public bool IdNotPresent(List<ObjectIdentifier> ids, int id_type, string id_value)
     {
         bool to_add = true;
@@ -41,13 +41,14 @@ public class IdentifierHelpers
         }
         return to_add;
     }
-    
+    */
 
+    /*
     // A helper function called from the loop that goes through the CTG secondary Id data
     // It tries to make the data as complete as possible, depending on the typem of 
     // secondary id that is being processed.
 
-    public IdentifierDetails GetIdentifierProps(string? id_type, string? id_org, string id_value)
+    public IdentifierDetails GetCTGIdentifierProps(string? id_type, string? id_org, string id_value)
     {
         // Use initial values to create id details object
         // then examine id_org and (mostly) id_type to provide
@@ -487,12 +488,12 @@ public class IdentifierHelpers
 
         return make_org;
     }
-        
-
+        */
+    /*
     // A helper function called from the WHO processor. Returns the source name
     // from the source id
 
-    public string? get_source_name(int? source_id)
+    public string? GetSourceName(int? source_id)
     {
         if (source_id.HasValue)
         {
@@ -526,7 +527,7 @@ public class IdentifierHelpers
     }
 
 
-    public string? get_registry_prefix(int? source_id)
+    public string? GetRegistryRrefix(int? source_id)
     {
         // Used for WHO registries only
 
@@ -557,7 +558,8 @@ public class IdentifierHelpers
         {
             return null;
         }
-    }
+    }*/
+
 }
 
 
