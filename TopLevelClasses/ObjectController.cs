@@ -47,18 +47,20 @@ namespace MDR_Harvester
                     filePath = rec.local_path;
                     if (File.Exists(filePath))
                     {
-                        XmlDocument xdoc = new XmlDocument();
-                        xdoc.Load(filePath);
-                        FullDataObject b = _processor.ProcessData(xdoc, rec.last_downloaded);
+                        string jsonString = File.ReadAllText(filePath);
+                        FullDataObject? s = _processor.ProcessData(jsonString, rec.last_downloaded);
 
-                        // store the data in the database			
-                        _storage_repo.StoreFullObject(b, _source);
-
-                        // update file record with last processed datetime
-                        // (if not in test mode)
-                        if (harvest_type_id != 3)
+                        if (s is not null)
                         {
-                            _mon_repo.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvest_id);
+                            // store the data in the database			
+                            _storage_repo.StoreFullObject(s, _source);
+
+                            // update file record with last processed datetime
+                            // (if not in test mode)
+                            if (harvest_type_id != 3)
+                            {
+                                _mon_repo.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvest_id);
+                            }
                         }
                     }
 

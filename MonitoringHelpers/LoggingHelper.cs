@@ -294,7 +294,7 @@ public class LoggingHelper
 
     private void Transmit(string message)
     {
-        sw.WriteLine(message);
+        sw?.WriteLine(message);
         Console.WriteLine(message);
     }
 

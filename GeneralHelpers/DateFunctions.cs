@@ -323,6 +323,60 @@ public class DateHelpers
     // parts, and returns an ObjectDate classs, which also indicates if the date was partial, and which includes
     // a standardised string repreesentation as well as Y, M, D integer components.
 
+
+    public SplitDate? GetSplitDateFromNumericDate(int? year, int? month, int? day)
+    {
+        string? monthas3 = null;
+        if (month.HasValue)
+        {
+            monthas3 = ((Months3)month).ToString();
+        }
+
+        string? date_as_string = null;        
+        if (year.HasValue && month.HasValue && day.HasValue)
+        {
+            date_as_string = $"{year} {monthas3} {day}";
+        }
+        else if (year.HasValue && month.HasValue && day is null)
+        {
+            date_as_string = $"{year} {monthas3}";
+        }
+        else if (year.HasValue && monthas3 is null && day is null)
+        {
+            date_as_string = $"{year}";
+        }
+
+        return new SplitDate(year, month, day, date_as_string);
+    }
+
+
+    public SplitDate? GetSplitDateFromPubDate(int? year, string? monthas3, int? day)
+    {
+        int? month = null;
+        if (!string.IsNullOrEmpty(monthas3))
+        {
+            month = GetMonth3AsInt(monthas3);
+        }
+
+        string? date_as_string = null;
+        if (year.HasValue && !string.IsNullOrEmpty(monthas3) && day.HasValue)
+        {
+            date_as_string = $"{year} {monthas3} {day}";
+        }
+        else if (year.HasValue && !string.IsNullOrEmpty(monthas3) && day is null)
+        {
+            date_as_string = $"{year} {monthas3}";
+        }
+        else if (year.HasValue && string.IsNullOrEmpty(monthas3) && day is null)
+        {
+            date_as_string = $"{year}";
+        }
+
+        return new SplitDate(year, month, day, date_as_string);
+    }
+
+
+    /*
     public ObjectDate ProcessDate(string sd_oid, XElement composite_date, int date_type_id, string date_type)
     {
         //composite_date should normnally have year, month and day entries but these may not all be present
@@ -377,7 +431,7 @@ public class DateHelpers
 
         return dt;
     }
-
+    */
 
     // ProcessMedlineDate tries to extractr as much information as possible from 
     // a non-standard 'Medline' date entry. 
@@ -544,9 +598,9 @@ public class SplitDate
     public int? year;
     public int? month;
     public int? day;
-    public string date_string;
+    public string? date_string;
 
-    public SplitDate(int? _year, int? _month, int? _day, string _date_string)
+    public SplitDate(int? _year, int? _month, int? _day, string? _date_string)
     {
         year = _year;
         month = _month;

@@ -8,7 +8,6 @@ namespace MDR_Harvester.Ctg
 {
     internal class CTGHelpers
     {
-
         public IdentifierDetails GetCTGIdentifierProps(string? id_type, string? id_org, string id_value)
         {
             // Use initial values to create id details object
@@ -265,6 +264,73 @@ namespace MDR_Harvester.Ctg
             }
 
             return id;
+        }
+    }
+
+    internal static class IsrctnExtensions
+    {
+        internal static bool IsAnIndividual(this string? orgname)
+        {
+            if (string.IsNullOrEmpty(orgname))
+            {
+                return false;
+            }
+            else
+            {
+                bool is_individual = false;
+
+                // If looks like an individual's name...
+
+                if (orgname.EndsWith(" md") || orgname.EndsWith(" phd") ||
+                    orgname.Contains(" md,") || orgname.Contains(" md ") ||
+                    orgname.Contains(" phd,") || orgname.Contains(" phd ") ||
+                    orgname.Contains("dr ") || orgname.Contains("dr.") ||
+                    orgname.Contains("prof ") || orgname.Contains("prof.") ||
+                    orgname.Contains("professor"))
+                {
+                    is_individual = true;
+
+                    // Unless part of a organisation reference...
+
+                    if (orgname.Contains("hosp") || orgname.Contains("univer") ||
+                        orgname.Contains("labor") || orgname.Contains("labat") ||
+                        orgname.Contains("institu") || orgname.Contains("istitu") ||
+                        orgname.Contains("school") || orgname.Contains("founda") ||
+                        orgname.Contains("associat"))
+                    {
+                        is_individual = false;
+                    }
+                }
+
+                // some specific individuals...
+                if (orgname == "seung-jung park" || orgname == "kang yan")
+                {
+                    is_individual = true;
+                }
+                return is_individual;
+            }
+        }
+
+
+        internal static bool IsAnOrganisation(this string? fullname)
+        {
+            if (string.IsNullOrEmpty(fullname))
+            {
+                return false;
+            }
+            else
+            {
+                bool is_org = false;
+                string fname = fullname.ToLower();
+                if (fname.Contains(" group") || fname.StartsWith("group") ||
+                    fname.Contains(" assoc") || fname.Contains(" team") ||
+                    fname.Contains("collab") || fname.Contains("network"))
+                {
+                    is_org = true;
+                }
+
+                return is_org;
+            }
         }
     }
 }

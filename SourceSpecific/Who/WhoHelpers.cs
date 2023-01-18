@@ -381,7 +381,7 @@ internal class WhoHelpers
         else if (processed_id.StartsWith("National Clinical Trials Registry"))
         {
             processed_id = processed_id.Replace("National Clinical Trials Registry:", "").Trim();
-            return Add(new StudyIdentifier(sid, processed_id, 11, "Trial registry ID", 104548, "National Clinical Trials Registry (Australia)");
+            return new StudyIdentifier(sid, processed_id, 11, "Trial registry ID", 104548, "National Clinical Trials Registry (Australia)");
         }
         else if (processed_id.StartsWith("Perinatal Trials Registry:"))
         {
@@ -408,7 +408,7 @@ internal class WhoHelpers
     }
 
 
-    internal StudyIdentifier GetChineseIdentifier(string sid, string processed_id, bool? sponsor_is_org, string sponsor_name)
+    internal StudyIdentifier? GetChineseIdentifier(string sid, string processed_id, bool? sponsor_is_org, string sponsor_name)
     {
         if (!processed_id.EndsWith("#32"))    // first ignore these (small sub group)
         {
@@ -435,6 +435,10 @@ internal class WhoHelpers
                     return new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, "No organisation name provided in source data");
                 }
             }
+        }
+        else
+        {
+            return null;
         }
     }
 

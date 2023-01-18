@@ -6,18 +6,18 @@ namespace MDR_Harvester.Who;
 
 public class WHOProcessor : IStudyProcessor
 {
-    IMonitorDataLayer _mon_repo;
+    //IMonitorDataLayer _mon_repo;
     LoggingHelper _logger_helper;
 
-    public WHOProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger_helper)
+    public WHOProcessor(LoggingHelper logger_helper)
     {
-        _mon_repo = mon_repo;
+       // _mon_repo = mon_repo;
         _logger_helper = logger_helper;
     }
 
     public Study? ProcessData(string json_string, DateTime? download_datetime)
     {
-        // set up json reader and deserialise file to a BioLiNCC object.
+        // set up json reader and deserialise file to a WHO record object.
 
         var json_options = new JsonSerializerOptions()
         {
@@ -237,7 +237,8 @@ public class WHOProcessor : IStudyProcessor
         }
 
 
-        // study type and status 
+        // Study type and status. 
+
         string? study_type = r.study_type;
         string? study_status = r.study_status;
 
@@ -368,19 +369,22 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(primary_sponsor))
         {
             sponsor_name = primary_sponsor.TidyOrgName(sid);
-            if (sponsor_name.AppearsGenuineOrgName())
+            if (sponsor_name is not null && sponsor_name.AppearsGenuineOrgName())
             {
-                 sponsor_is_org = true;
-                 study_contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, sponsor_name));
-            }
-            else if (sponsor_name.ToLower().StartsWith("dr ") || sponsor_name.ToLower().StartsWith("prof ")
-                        || sponsor_name.ToLower().StartsWith("professor "))
-            {
-                sponsor_is_org = false;
-                study_contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", sponsor_name, null, null));
+                if ((sponsor_name.ToLower().StartsWith("dr ") || sponsor_name.ToLower().StartsWith("prof ")
+                  || sponsor_name.ToLower().StartsWith("professor ")))
+                {
+                    sponsor_is_org = false;
+                    study_contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", sponsor_name, null, null));
+                }
+                else
+                {
+                    sponsor_is_org = true;
+                    study_contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, sponsor_name));
+                }
             }
         }
-
+        
         string? funders = r.source_support;
         if (!string.IsNullOrEmpty(funders))
         {
@@ -521,7 +525,11 @@ public class WHOProcessor : IStudyProcessor
                     }
                     else if (source_id == 100118)
                     {
-                        study_identifiers.Add(wh.GetChineseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
+                        StudyIdentifier? si = wh.GetChineseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name);
+                        if (si is not null)
+                        {
+                            study_identifiers.Add(si);
+                        }
                     }
                     else if (source_id == 100127)
                     {

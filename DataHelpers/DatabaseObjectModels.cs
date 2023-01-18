@@ -1,12 +1,11 @@
 ﻿using Dapper.Contrib.Extensions;
-using System;
-using System.Collections.Generic;
+
 
 namespace MDR_Harvester
 {
     public class FullDataObject
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public string? sd_sid { get; set; }
         public string? title { get; set; }
         public string? version { get; set; }
@@ -31,8 +30,8 @@ namespace MDR_Harvester
         public bool? add_study_contribs { get; set; }
         public bool? add_study_topics { get; set; }
         public DateTime? datetime_of_data_fetch { get; set; }
-
         public JournalDetails? journal_details { get; set; }
+
         public List<ObjectDate>? object_dates { get; set; }
         public List<ObjectTitle>? object_titles { get; set; }
         public List<ObjectIdentifier>? object_identifiers { get; set; }
@@ -45,16 +44,8 @@ namespace MDR_Harvester
         public List<ObjectRelationship>? object_relationships { get; set; }
         public List<ObjectRight>? object_rights { get; set; }
         public List<ObjectDBLink>? object_db_ids { get; set; }
-
-        // only used from the pubmed processing
-
-        public FullDataObject(string _sd_oid, DateTime? _datetime_of_data_fetch)
-        {
-            sd_oid = _sd_oid;
-            datetime_of_data_fetch = _datetime_of_data_fetch;
-        }
-
     }
+
 
     [Table("sd.data_objects")]
     public class DataObject
@@ -338,8 +329,6 @@ namespace MDR_Harvester
     public class ObjectInstance
     {
         public string? sd_oid { get; set; }
-        public int? instance_type_id { get; set; }
-        public string? instance_type { get; set; }
         public int? repository_org_id { get; set; }
         public string? repository_org { get; set; }
         public string? url { get; set; }
@@ -351,13 +340,11 @@ namespace MDR_Harvester
         public string? resource_size_units { get; set; }
         public string? resource_comments { get; set; }
 
-        public ObjectInstance(string _sd_oid, int? _repository_org_id,
-                    string? _repository_org, string? _url, bool? _url_accessible,
+        public ObjectInstance(string _sd_oid, int? _repository_org_id, string? _repository_org, 
+                    string? _url, bool? _url_accessible,
                     int? _resource_type_id, string? _resource_type)
         {
             sd_oid = _sd_oid;
-            instance_type_id = 1;
-            instance_type = "Full Resource";
             repository_org_id = _repository_org_id;
             repository_org = _repository_org;
             url = _url;
@@ -367,14 +354,12 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectInstance(string _sd_oid, int? _repository_org_id,
-                    string? _repository_org, string? _url, bool? _url_accessible,
+        public ObjectInstance(string _sd_oid, int? _repository_org_id, string? _repository_org, 
+                    string? _url, bool? _url_accessible,
                     int? _resource_type_id, string? _resource_type,
                     string? _resource_size, string? _resource_size_units)
         {
             sd_oid = _sd_oid;
-            instance_type_id = 1;
-            instance_type = "Full Resource";
             repository_org_id = _repository_org_id;
             repository_org = _repository_org;
             url = _url;
@@ -386,14 +371,12 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectInstance(string _sd_oid, int? _repository_org_id,
-                    string? _repository_org, string? _url, bool? _url_accessible,
+        public ObjectInstance(string _sd_oid, int? _repository_org_id, string? _repository_org, 
+                    string? _url, bool? _url_accessible,
                     int? _resource_type_id, string? _resource_type,
                     string? _resource_size, string? _resource_size_units, string? _resource_comments)
         {
             sd_oid = _sd_oid;
-            instance_type_id = 1;
-            instance_type = "Full Resource";
             repository_org_id = _repository_org_id;
             repository_org = _repository_org;
             url = _url;
@@ -403,39 +386,6 @@ namespace MDR_Harvester
             resource_size = _resource_size;
             resource_size_units = _resource_size_units;
             resource_comments = _resource_comments;
-        }
-
-
-        public ObjectInstance(string _sd_oid, int? _instance_type_id, string? _instance_type,
-                    int? _repository_org_id, string? _repository_org, string _url, bool? _url_accessible,
-                    int? _resource_type_id, string? _resource_type, string? _resource_size, string? _resource_size_units)
-        {
-            sd_oid = _sd_oid;
-            instance_type_id = _instance_type_id;
-            instance_type = _instance_type;
-            repository_org_id = _repository_org_id;
-            repository_org = _repository_org;
-            url = _url;
-            url_accessible = _url_accessible;
-            resource_type_id = _resource_type_id;
-            resource_type = _resource_type;
-            resource_size = _resource_size;
-            resource_size_units = _resource_size_units;
-        }
-
-        public ObjectInstance(string _sd_oid, int? _instance_type_id, string? _instance_type,
-                    int? _repository_org_id, string? _repository_org, string? _url, bool? _url_accessible,
-                    int? _resource_type_id, string? _resource_type)
-        {
-            sd_oid = _sd_oid;
-            instance_type_id = _instance_type_id;
-            instance_type = _instance_type;
-            repository_org_id = _repository_org_id;
-            repository_org = _repository_org;
-            url = _url;
-            url_accessible = _url_accessible;
-            resource_type_id = _resource_type_id;
-            resource_type = _resource_type;
         }
 
         public ObjectInstance()
@@ -524,12 +474,87 @@ namespace MDR_Harvester
             end_day = _end_day;
             details = _details;
         }
+
+
+        public ObjectDate(string _sd_oid, int? _date_type_id, string? _date_type,
+                                    SplitDate sd)
+        {
+            sd_oid = _sd_oid;
+            date_type_id = _date_type_id;
+            date_type = _date_type;
+            start_year = sd.year;
+            start_month = sd.month;
+            start_day = sd.day;
+            date_as_string = sd.date_string;
+        }
+
+
+        public ObjectDate(string _sd_oid, int? _date_type_id, string? _date_type,
+                                    SplitDateRange sdr)
+        {
+            sd_oid = _sd_oid;
+            date_type_id = _date_type_id;
+            date_type = _date_type;
+            date_as_string = sdr.date_string;
+            date_is_range = sdr.date_is_range;
+            start_year = sdr.syear;
+            start_month = sdr.smonth;
+            start_day = sdr.sday;
+            end_year = sdr.eyear;
+            end_month = sdr.emonth;
+            end_day = sdr.eday;
+        }
+
+    }
+
+
+
+    public class SplitDate
+    {
+        public int? year;
+        public int? month;
+        public int? day;
+        public string? date_string;
+
+        public SplitDate(int? _year, int? _month, int? _day, string? _date_string)
+        {
+            year = _year;
+            month = _month;
+            day = _day;
+            date_string = _date_string;
+        }
+    }
+
+
+    public class SplitDateRange
+    {
+        public int? syear;
+        public int? smonth;
+        public int? sday;
+        public int? eyear;
+        public int? emonth;
+        public int? eday;
+        public bool? date_is_range;
+        public string? date_string;
+
+        public SplitDateRange(int? _syear, int? _smonth, int? _sday,
+                         int? _eyear, int? _emonth, int? _eday, bool? _date_is_range, string? _date_string)
+        {
+            syear = _syear;
+            smonth = _smonth;
+            sday = _sday;
+            eyear = _eyear;
+            emonth = _emonth;
+            eday = _eday;
+            date_is_range = _date_is_range;
+            date_string = _date_string;
+        }
     }
 
 
     public class ObjectPublicationType
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public string? type_name { get; set; }
 
         public ObjectPublicationType(string _sd_oid, string? _type_name)
@@ -542,7 +567,7 @@ namespace MDR_Harvester
 
     public class ObjectDescription
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? description_type_id { get; set; }
         public string? description_type { get; set; }
         public string? label { get; set; }
@@ -555,29 +580,49 @@ namespace MDR_Harvester
 
     public class ObjectDBLink
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? db_sequence { get; set; }
         public string? db_name { get; set; }
         public string? id_in_db { get; set; }
+
+        public ObjectDBLink(string? _sd_oid, int? _db_sequence, 
+                           string? _db_name, string? _id_in_db)
+        {
+            sd_oid = sd_oid;
+            db_sequence = db_sequence;
+            db_name = db_name;
+            id_in_db = id_in_db;
+        }
     }
 
     // (Object) Comment Correction class, a Data Object component
 
     public class ObjectComment
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public string? ref_type { get; set; }
         public string? ref_source { get; set; }
         public string? pmid { get; set; }
         public string? pmid_version { get; set; }
         public string? notes { get; set; }
+
+        public ObjectComment(string? _sd_oid, string? _ref_type, string? _ref_source, 
+                             string? _pmid, string? _pmid_version, string? _notes)
+        {
+            sd_oid = _sd_oid;
+            ref_type = _ref_type;
+            ref_source = _ref_source;
+            pmid = _pmid;
+            pmid_version = _pmid_version;
+            notes = _notes;
+        }
     }
 
 
     [Table("sd.object_topics")]
     public class ObjectTopic
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? topic_type_id { get; set; }
         public string? topic_type { get; set; }
         public bool? mesh_coded { get; set; }
@@ -635,7 +680,7 @@ namespace MDR_Harvester
       
     public class ObjectContributor
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? contrib_type_id { get; set; }
         public string? contrib_type { get; set; }
         public bool? is_individual { get; set; }
@@ -707,7 +752,7 @@ namespace MDR_Harvester
 
     public class ObjectRight
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public string? right_name { get; set; }
         public string? right_uri { get; set; }
         public string? notes { get; set; }
@@ -726,7 +771,7 @@ namespace MDR_Harvester
 
     public class ObjectRelationship
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? relationship_type_id { get; set; }
         public string? relationship_type { get; set; }
         public string? target_sd_oid { get; set; }
@@ -745,16 +790,17 @@ namespace MDR_Harvester
     [Table("sd.journal_details")]
     public class JournalDetails
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? publisher_id { get; set; }
         public string? publisher { get; set; }
         public string? journal_title { get; set; }
         public string? pissn { get; set; }
         public string? eissn { get; set; }
 
-        public JournalDetails(string _sd_oid)
+        public JournalDetails(string _sd_oid, string _journal_title)
         {
             sd_oid = _sd_oid;
+            journal_title = _journal_title;
         }
     }
 

@@ -1,7 +1,7 @@
 ﻿
 namespace MDR_Harvester.Ctg;
 
-public class CTG_Study
+public class CTG_Record
 {
     public Protocolsection? ProtocolSection { get; set; }
     public Derivedsection? DerivedSection { get; set; }

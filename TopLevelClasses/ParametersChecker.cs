@@ -144,7 +144,7 @@ public class Options
     // Lists the command line arguments and options
 
     [Option('s', "source_ids", Required = false, Separator = ',', HelpText = "Comma separated list of Integer ids of data sources.")]
-    public IEnumerable<int> source_ids { get; set; }
+    public IEnumerable<int>? source_ids { get; set; }
 
     [Option('t', "harvest_type_id", Required = false, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 3 = test data only.")]
     public int harvest_type_id { get; set; }

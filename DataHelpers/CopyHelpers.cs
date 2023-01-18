@@ -191,8 +191,6 @@ namespace MDR_Harvester
         public PostgreSQLCopyHelper<ObjectInstance> object_instances_helper =
             new PostgreSQLCopyHelper<ObjectInstance>("sd", "object_instances")
                 .MapVarchar("sd_oid", x => x.sd_oid)
-                .MapInteger("instance_type_id", x => x.instance_type_id)
-                .MapVarchar("instance_type", x => x.instance_type)
                 .MapInteger("repository_org_id", x => x.repository_org_id)
                 .MapVarchar("repository_org", x => x.repository_org)
                 .MapVarchar("url", x => x.url)

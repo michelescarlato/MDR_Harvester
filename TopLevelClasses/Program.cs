@@ -42,7 +42,7 @@ if (!string.IsNullOrWhiteSpace(BasePath))
 
     LoggingHelper _logging_helper = new();      
     
-    // N.B. logging helper created without explicit source at this stage.
+    // N.r. logging helper created without explicit source at this stage.
     // If needed in initial phase will open as a 'no source' log file.
     // Otherwise separate file opened per source, later, as required.
 

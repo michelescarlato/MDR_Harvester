@@ -196,124 +196,124 @@ namespace MDR_Harvester
                 conn.Insert<DataObject>(d);
             }
 
-            if (b.object_instances.Count > 0)
+            if (r.object_instances.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
                     conn.Open();
-                    och.object_instances_helper.SaveAll(conn, b.object_instances);
+                    och.object_instances_helper.SaveAll(conn, r.object_instances);
                 }
             }
 
-            if (b.object_titles.Count > 0)
+            if (r.object_titles.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
                     conn.Open();
-                    och.object_titles_helper.SaveAll(conn, b.object_titles);
+                    och.object_titles_helper.SaveAll(conn, r.object_titles);
                 }
             }
 
             // these are database dependent		
 
-            if (source.has_object_dates && b.object_dates.Count > 0)
+            if (source.has_object_dates && r.object_dates.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
                     conn.Open();
-                    och.object_dates_helper.SaveAll(conn, b.object_dates);
+                    och.object_dates_helper.SaveAll(conn, r.object_dates);
                 }
             }
 
-            if (source.has_object_relationships && b.object_relationships.Count > 0)
+            if (source.has_object_relationships && r.object_relationships.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
                     conn.Open();
-                    och.object_relationships_helper.SaveAll(conn, b.object_relationships);
+                    och.object_relationships_helper.SaveAll(conn, r.object_relationships);
                 }
             }
 
-            if (source.has_object_rights && b.object_rights?.Any() == true)
+            if (source.has_object_rights && r.object_rights?.Any() == true)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
                     conn.Open();
-                    och.object_rights_helper.SaveAll(conn, b.object_rights);
+                    och.object_rights_helper.SaveAll(conn, r.object_rights);
                 }
             }
 
             if (source.has_object_pubmed_set)
             {
-                if (b.object_contributors?.Any() == true)
+                if (r.object_contributors?.Any() == true)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
                         conn.Open();
-                        och.object_contributors_helper.SaveAll(conn, b.object_contributors);
+                        och.object_contributors_helper.SaveAll(conn, r.object_contributors);
                     }
                 }
 
-                if (b.object_topics?.Any() == true)
+                if (r.object_topics?.Any() == true)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
                         conn.Open();
-                        och.object_topics_helper.SaveAll(conn, b.object_topics);
+                        och.object_topics_helper.SaveAll(conn, r.object_topics);
                     }
                 }
 
-                if (b.object_comments?.Any() == true)
+                if (r.object_comments?.Any() == true)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
                         conn.Open();
-                        och.object_comments_helper.SaveAll(conn, b.object_comments);
+                        och.object_comments_helper.SaveAll(conn, r.object_comments);
                     }
                 }
 
-                if (b.object_descriptions?.Any() == true)
+                if (r.object_descriptions?.Any() == true)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
                         conn.Open();
-                        och.object_descriptions_helper.SaveAll(conn, b.object_descriptions);
+                        och.object_descriptions_helper.SaveAll(conn, r.object_descriptions);
                     }
                 }
 
-                if (b.object_identifiers?.Any() == true)
+                if (r.object_identifiers?.Any() == true)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
                         conn.Open();
-                        och.object_identifiers_helper.SaveAll(conn, b.object_identifiers);
+                        och.object_identifiers_helper.SaveAll(conn, r.object_identifiers);
                     }
                 }
 
-                if (b.object_db_ids?.Any() == true)
+                if (r.object_db_ids?.Any() == true)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
                         conn.Open();
-                        och.object_db_links_helper.SaveAll(conn, b.object_db_ids);
+                        och.object_db_links_helper.SaveAll(conn, r.object_db_ids);
                     }
                 }
 
-                if (b.object_pubtypes?.Any() == true)
+                if (r.object_pubtypes?.Any() == true)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
                         conn.Open();
-                        och.publication_types_helper.SaveAll(conn, b.object_pubtypes);
+                        och.publication_types_helper.SaveAll(conn, r.object_pubtypes);
                     }
                 }
 
 
-                if (b.journal_details != null)
+                if (r.journal_details != null)
                 {
                     using (var conn = new NpgsqlConnection(db_conn))
                     {
-                        conn.Insert<JournalDetails>(b.journal_details);
+                        conn.Insert<JournalDetails>(r.journal_details);
                     }
                 }
 

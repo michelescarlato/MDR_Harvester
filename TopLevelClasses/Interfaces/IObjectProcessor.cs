@@ -7,7 +7,7 @@ namespace MDR_Harvester
 {
     public interface IObjectProcessor
     {
-        public FullDataObject ProcessData(XmlDocument d, DateTime? download_datetime);
+        public FullDataObject ProcessData(string json_string, DateTime? download_datetime);
 
     }
 }

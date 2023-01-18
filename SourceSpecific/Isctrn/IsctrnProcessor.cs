@@ -7,12 +7,12 @@ namespace MDR_Harvester.Isrctn;
 
 public class IsrctnProcessor : IStudyProcessor
 {
-    IMonitorDataLayer _mon_repo;
+    //IMonitorDataLayer _mon_repo;
     LoggingHelper _logger_helper;
 
-    public IsrctnProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger_helper)
+    public IsrctnProcessor(LoggingHelper logger_helper)
     {
-        _mon_repo = mon_repo;
+        //_mon_repo = mon_repo;
         _logger_helper = logger_helper;
     }
 

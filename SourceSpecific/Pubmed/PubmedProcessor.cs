@@ -1,38 +1,51 @@
-﻿using System.Data;
+﻿using System.Collections.Generic;
+using System.Data;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using MDR_Harvester.Biolincc;
+using MDR_Harvester.Ctg;
 using MDR_Harvester.Extensions;
 
 namespace MDR_Harvester.Pubmed;
 
 public class PubmedProcessor : IObjectProcessor
 {
-    IMonitorDataLayer _mon_repo;
-    LoggingHelper _logger;
+    //IMonitorDataLayer _mon_repo;
+    LoggingHelper _logger_helper;
 
-    public PubmedProcessor(IMonitorDataLayer mon_repo, LoggingHelper logger)
+    public PubmedProcessor(LoggingHelper logger_helper)
     {
-        _mon_repo = mon_repo;
-        _logger = logger;
+        //_mon_repo = mon_repo;
+        _logger_helper = logger_helper;
     }
-
-   
-    public FullDataObject ProcessData(XmlDocument d, DateTime? download_datetime)
+       
+    public FullDataObject? ProcessData(string json_string, DateTime? download_datetime)
     {
-        //DateHelpers dh = new DateHelpers();
-        //TypeHelpers th = new TypeHelpers();
-        PubMedHelpers ih = new();
+        var json_options = new JsonSerializerOptions()
+        {
+            PropertyNameCaseInsensitive = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        };
 
-        // First convert the XML document to a Linq XML Document.
+        Pubmed_Record? r = JsonSerializer.Deserialize<Pubmed_Record?>(json_string, json_options);
+        if (r is null)
+        {
+            _logger_helper.LogError($"Unable to deserialise json file to Pubmed_Record\n{json_string[..1000]}... (first 1000 characters)");
+            return null;
+        }
 
-        XDocument xDoc = XDocument.Load(new XmlNodeReader(d));
+        FullDataObject fob = new FullDataObject();
+        string? sdoid = r.sd_oid;
+        if (string.IsNullOrEmpty(sdoid))
+        {
+            _logger_helper.LogError($"No valid object identifier found in Pubmed_Record\n{json_string[..1000]}... (first 1000 characters of json string");
+            return null;
+        }
 
-        // Obtain the main top level elements of the citation.
-
-        XElement pubmedArticle = xDoc.Root;
-        XElement citation = pubmedArticle.Element("MedlineCitation");
-        XElement pubmed = pubmedArticle.Element("PubmedData");
-        XElement article = citation.Element("Article");
-        XElement journal = article.Element("Journal");
-        XElement JournalInfo = citation.Element("MedlineJournalInfo");
+        fob.sd_oid = sdoid;
+        fob.datetime_of_data_fetch = download_datetime;
+        PubMedHelpers ph = new();
 
         // Establish main citation object
         // and list structures to receive data
@@ -48,24 +61,20 @@ public class PubmedProcessor : IObjectProcessor
         List<ObjectComment> comments = new List<ObjectComment>();
         List<ObjectDBLink> db_ids = new List<ObjectDBLink>();
 
-        List<string> language_list = new List<string>();
         string author_string = "";
-        string art_title = "";
-        string journal_title = "";
         string journal_source = "";
-
-
-        #region Header
 
         // Identify the PMID as the source data object Id (sd_oid), and also construct and add 
         // this to the 'other identifiers' list ('other' because it is not a doi).
         // The date applied may or may not be available later.
 
-        string sdoid = GetElementAsString(citation.Element("PMID"));
+        // Add in the defaults for pubmed articles
+        // ******************************************************************************************
+        // Need to be careful about different typoes of articles - this may need an additional 
+        // field and mechanisms to include it when collecting references... implications for the pubmed 
+        // download process as well...
+        // *******************************************************************************************
 
-        FullDataObject fob = new FullDataObject(sdoid, download_datetime);
-
-        // add in the defaults for pubmed articles
         fob.object_class_id = 23;
         fob.object_class = "Text";
         fob.object_type_id = 12;
@@ -77,270 +86,127 @@ public class PubmedProcessor : IObjectProcessor
         identifiers.Add(new ObjectIdentifier(sdoid, 16, "PMID", sdoid, 100133, "National Library of Medicine"));
 
         // Set the PMID entry as an object instance 
-        // (type id 3 = abstract, resource 40 = Web text journal abstract), add to the instances list.
+        // (resource 40 = Web text journal abstract), add to the instances list.
        
-        instances.Add(new ObjectInstance(sdoid, 3, "Article abstract", 100133, "National Library of Medicine",
-               "https://www.ncbi.nlm.nih.gov/pubmed/" + sdoid, true,
-                40, "Web text journal abstract"));
+        instances.Add(new ObjectInstance(sdoid, 100133, "National Library of Medicine",
+                                  "https://www.ncbi.nlm.nih.gov/pubmed/" + sdoid, true, 
+                                  40, "Web text journal abstract"));
 
-
-        // Can assume there is always a PMID element ... (if not the 
-        // original data search for this citation would not have worked).
-        // Get the associated version and note if it is not present or 
-        // not in the right format - 
-        // these exceptions appear to be very rare if they occur at all.
-
-
-        var p = citation.Element("PMID");
-        string pmidVersion = GetAttributeAsString(p.Attribute("Version"));
-        if (pmidVersion != null)
+        int? pmidVersion = r.pmid_version;
+        if (pmidVersion.HasValue)
         {
-            if (Int32.TryParse(pmidVersion, out int res))
-            {
-                fob.version = res.ToString();
-            }
-            else
-            {
-                fob.version = pmidVersion;
-                _logger.LogLine("PMID version for {sdoid} not an integer", sdoid);
-            }
+            fob.version = pmidVersion.ToString();
         }
         else
         {
-            _logger.LogLine("No PMID version attribute found for {sdoid}", sdoid);
+            _logger_helper.LogLine($"No PMID version attribute found for {sdoid}");
         }
 
-
-        // Obtain and store the citation status.
-
-        string abstract_status = GetAttributeAsString(citation.Attribute("Status"));
-
-        // Version and version_date hardly ever present
-        // if they do occur log them.
-
-        string version_id = GetAttributeAsString(citation.Attribute("VersionID"));
-        string version_date = GetAttributeAsString(citation.Attribute("VersionDate"));
-        if (version_id != null)
-        {
-            string qText = "A version attribute (" + version_id + ") found for pmid {sdoid}";
-            _logger.LogLine(qText, sdoid);
-        }
-        if (version_date != null)
-        {
-            string qText = "A version date attribute (" + version_date + ") found for pmid {sdoid}";
-            _logger.LogLine(qText, sdoid);
-        }
-
-        #endregion
-
-
-
-        #region Basic Properties
-
-        // Obtain and store the article publication model
-
-        string pub_model = GetAttributeAsString(article.Attribute("PubModel"));
 
         // Obtain and store (in the languages list) the article's language(s) - 
-        // get these early as may be needed by title extraction code below.
+        // get these now as may be needed by title extraction code below.
 
-        var languages = article.Elements("Language");
-        if (languages.Count() > 0)
+        List<string> language_list = new List<string>();
+        var languages = r.ArticleLangs;
+        if (languages?.Any() == true)
         {
             string lang_list = "";
-            foreach (string g in languages)
+            foreach (string lang in languages)
             {
-                string lang_2code;
-                if (g == "eng")
-                {
-                    lang_2code = "en";
-                }
-                else
-                {
-                    lang_2code = g.lang_3_to_2();
-                    if (lang_2code == "??")
-                    {
-                        // need to use the database
-                        lang_2code = _mon_repo.lang_3_to_2(g);
-                    }
-                }
-                language_list.Add(lang_2code);
-                lang_list += ", " + lang_2code;
+                language_list.Add(lang);
+                lang_list += ", " + lang;
             }
-            fob.lang_code = lang_list.Substring(2);
+            fob.lang_code = lang_list[2..];
         }
 
 
         // Obtain article title(s).
         // Usually just a single title present in English, but may be an additional
-        // title in the 'vernacular', with a translation in English.
-        // Translated titles are in square brackets and may be followed by a comment
-        // in parantheses. 
+        // title in the 'vernacular', with a translation in English. Translated titles
+        // are in square brackets and may be followed by a comment in parantheses. 
         // First set up the set of required variables.
 
-        bool article_title_present = true;
-        bool vernacular_title_present = false;
-        string atitle = "";
-        string vtitle = "";
+        string? atitle = r.articleTitle;
+        if (!string.IsNullOrEmpty(atitle))
+        {
+            atitle = atitle.ReplaceTags().ReplaceApos();
+        }
+        else
+        {
+            string qText = $"The {sdoid} citation does not have an article title";
+            _logger_helper.LogLine(qText, sdoid);
+        }
+        string? vtitle = r.vernacularTitle;
+        if (!string.IsNullOrEmpty(vtitle))
+        {
+            vtitle = vtitle.ReplaceTags().ReplaceApos();
+        }
+
+        // Check the vernaculat title is not the same as the article title - can happen 
+        // very rarely and if it is the case the vernacular title should be ignored.
+
+        if (atitle is not null && vtitle is not null && vtitle == atitle)
+        {
+            vtitle = null;
+            string qText = $"The article and vernacular titles seem identical, for pmid {sdoid}";
+            _logger_helper.LogLine(qText, sdoid);
+        }
+
+        // If a vernacular title try and find its language if possible - it is not given explicitly.
+        // All methods imperfect but seem to work in most situations so far. First try to use a
+        // listed non English language, then try the country of the journal, then see if it is
+        // a Canadian journal (which may be published in ther USA).
+
         string vlang_code = "";
+        string? journal_title = r.journalTitle;
 
-        // get some basic journal information, as this is useful for helping to 
-        // determine the country of origin, and for identifying the publisher,
-        // as well as later (in creating citation string). The journal name
-        // and issn numbers for electronic and / or paper versions are obtained.
-
-        if (journal != null)
+        if (!string.IsNullOrEmpty(vtitle))
         {
-            JournalDetails jd = new JournalDetails(sdoid);
-            jd.journal_title = GetElementAsString(journal.Element("Title"));
-
-            IEnumerable<XElement> ISSNs = journal.Elements("ISSN");
-            if (ISSNs.Count() > 0)
+            foreach (string s in language_list)
             {
-                foreach (XElement issn_id in ISSNs)
+                if (s != "en")
                 {
-                    // Note the need to clean pissn / eissn numbers to a standard format.
-
-                    string ISSN_type = GetAttributeAsString(issn_id.Attribute("IssnType"));
-                    if (ISSN_type == "Print")
-                    {
-                        string pissn = GetElementAsString(issn_id);
-                        if (pissn.Length == 9 && pissn[4] == '-')
-                        {
-                            pissn = pissn.Substring(0, 4) + pissn.Substring(5, 4);
-                        }
-                        jd.pissn = pissn;
-                    }
-                    if (ISSN_type == "Electronic")
-                    {
-                        string eissn = GetElementAsString(issn_id);
-                        if (eissn.Length == 9 && eissn[4] == '-')
-                        {
-                            eissn = eissn.Substring(0, 4) + eissn.Substring(5, 4);
-                        }
-                        jd.eissn = eissn;
-                    }
+                    vlang_code = s;
+                    break;
                 }
             }
 
-            fob.journal_details = jd;
-        }
-
-
-        // Get the main article title and check for any html. Log any exception conditions.
-        // Can't use the standard helper methods here as these strip out contained html,
-        // therefore use an XML reader to obtain the InnerXML of the Title element.
-
-        XElement article_title = article.Element("ArticleTitle");
-        if (article_title != null)
-        {
-            var areader = article_title.CreateReader();
-            areader.MoveToContent();
-            atitle = areader.ReadInnerXml().Trim();
-            if (atitle != "")
+            if (vlang_code == "")
             {
-               atitle = sh.ReplaceTags(atitle);
-               atitle = sh.ReplaceApos(atitle);
+                string? journalCountry = r.journalCountry;
+                if (journalCountry is not null)
+                {
+                    vlang_code = journalCountry switch
+                    {
+                        "France" => "fr",
+                        "Canada" => "fr",
+                        "Germany" => "de",
+                        "Spain" => "es",
+                        "Mexico" => "es",
+                        "Argentina" => "es",
+                        "Chile" => "es",
+                        "Peru" => "es",
+                        "Portugal" => "pt",
+                        "Brazil" => "pt",
+                        "Italy" => "it",
+                        "Russia" => "ru",
+                        "Turkey" => "tr",
+                        "Hungary" => "hu",
+                        "Poland" => "pl",
+                        "Sweden" => "sv",
+                        "Norway" => "no",
+                        "Denmark" => "da",
+                        "Finland" => "fi",
+                        _ => ""
+                    };
+                }
             }
-            else
+
+            if (vlang_code == "" && journal_title is not null)
             {
-                article_title_present = false;
-                string qText = "The citation has an empty article title element, pmid {sdoid}";
-                _logger.LogLine(qText, sdoid);
-            }
-       }
-       else
-       {
-           article_title_present = false;
-           string qText = "The citation does not have an article title element, pmid {sdoid}";
-            _logger.LogLine(qText, sdoid);
-        }
-
-
-        // Get the vernacular title if there is one and characterise it
-        // in a similar way, noting any html.
-
-        XElement vernacular_title = article.Element("VernacularTitle");
-
-        if (vernacular_title != null)
-        {
-            vernacular_title_present = true;
-            var vreader = vernacular_title.CreateReader();
-            vreader.MoveToContent();
-            vtitle = vreader.ReadInnerXml().Trim();
-
-            if (vtitle != "")
-            {
-                vtitle = sh.ReplaceTags(vtitle);
-                vtitle = sh.ReplaceApos(vtitle);
-
-                // Try and get vernacular code language - not explicitly given so
-                // all methods imperfect but seem to work in most situations so far.
-
-                // Find first, if any, of non english in language list
-
-                foreach (string s in language_list)
+                if (journal_title.Contains("Canada") || journal_title.Contains("Canadian"))
                 {
-                    if (s != "en")
-                    {
-                        vlang_code = s;
-                        break;
-                    }
-                }
-
-                if (vlang_code == "")
-                {
-                    // Check journal country of publication - suggests a reasonable guess!
-
-                    if (JournalInfo != null)
-                    {
-                        string country = GetElementAsString(JournalInfo.Element("Country"));
-                        switch (country)
-                        {
-                            case "Canada": vlang_code = "fr"; break;
-                            case "France": vlang_code = "fr"; break;
-                            case "Germany": vlang_code = "de"; break;
-                            case "Spain": vlang_code = "es"; break;
-                            case "Mexico": vlang_code = "es"; break;
-                            case "Argentina": vlang_code = "es"; break;
-                            case "Chile": vlang_code = "es"; break;
-                            case "Peru": vlang_code = "es"; break;
-                            case "Portugal": vlang_code = "pt"; break;
-                            case "Brazil": vlang_code = "pt"; break;
-                            case "Italy": vlang_code = "it"; break;
-                            case "Russia": vlang_code = "ru"; break;
-                            case "Turkey": vlang_code = "tr"; break;
-                            case "Hungary": vlang_code = "hu"; break;
-                            case "Poland": vlang_code = "pl"; break;
-                            case "Sweden": vlang_code = "sv"; break;
-                            case "Norway": vlang_code = "no"; break;
-                            case "Denmark": vlang_code = "da"; break;
-                            case "Finland": vlang_code = "fi"; break;
-                            // may need to add more...
-                        }
-                    }
-                }
-
-                if (vlang_code == "")
-                {
-                    // If still blank, some Canadian journals are published in the US
-                    // and often have a French alternate title.
-
-                    if (journal_title.Contains("Canada") || journal_title.Contains("Canadian"))
-                    {
-                        vlang_code = "fr";
-                    }
-
-                }
-
-                // But check the vernaculat title is not the same as the article title - can happen 
-                // very rarely and if it is the case the vernacular title should be ignored.
-
-                if (vtitle == atitle)
-                {
-                    vernacular_title_present = false;
-                    string qText = "The article and vernacular titles seem identical, for pmid {sdoid}";
-                    _logger.LogLine(qText, sdoid);
+                    vlang_code = "fr";
                 }
             }
         }
@@ -350,37 +216,34 @@ public class PubmedProcessor : IObjectProcessor
         // not of a vernaculat title in a particular language, this section examines
         // the possible relationship between the two.
 
-        if (article_title_present)
+        if (atitle is not null)
         {
-            // First check if it starts with a square bracket.
-            // This indicates a translation of a title originally not in English.
-            // There should therefore be a vernacular title also.
+            // First check if it starts with a square bracket. This indicates a translation
+            // of a title originally not in English. There should therefore be a vernacular title also.
             // Get the English title and any comments in brackets following the square brackets.
+            // Begin by stripping any final full stops from brackets, parenthesis, to make testing below easier.
 
             if (atitle.StartsWith("["))
             {
-                string poss_comment = null;
-
-                // Strip off any final full stops from brackets, parenthesis, to make testing below easier.
-
                 if (atitle.EndsWith("].") || atitle.EndsWith(")."))
                 {
-                    atitle = atitle.Substring(0, atitle.Length - 1);
+                    atitle = atitle[..^1];
                 }
 
+                string? poss_comment = null;
                 if (atitle.EndsWith("]"))
                 {
                     // No supplementary comment (This is almost always the case).
                     // Get the article title without brackets and expect a vernacular title.
 
-                    atitle = atitle.Substring(1, atitle.Length - 2);  // remove the square brackets at each end
+                    atitle = atitle[1..^1];  // remove the square brackets at each end
                 }
                 else if (atitle.EndsWith(")"))
                 {
                     // Work back from the end to get the matching left parenthesis.
                     // Because the comment may itself contain parantheses necessary to
-                    // match the correct left bracket.
-                    // Obtain comment, and article title, and log if this seems impossible to do.
+                    // match the matching left bracket. Obtain comment, and article title,
+                    // and log if this seems impossible to do.
 
                     int bracket_count = 1;
                     for (int i = atitle.Length - 2; i >= 0; i--)
@@ -389,16 +252,16 @@ public class PubmedProcessor : IObjectProcessor
                         if (atitle[i] == ')') bracket_count++;
                         if (bracket_count == 0)
                         {
-                            poss_comment = atitle.Substring(i + 1, atitle.Length - i - 2);
-                            atitle = atitle.Substring(1, i - 2);
+                            poss_comment = atitle[(i + 1)..^1];
+                            atitle = atitle[1..(i- 1)];
                             break;
                         }
                     }
+
                     if (bracket_count > 0)
                     {
-                        string qText = "The title starts with '[', end with ')', but unable to match parentheses. Title = " 
-                                       + atitle + ", for pmid {sdoid}";
-                        _logger.LogLine(qText, sdoid);
+                        string qText = $"Title '{atitle}' starts with '[', ends with ')', but unable to match parentheses, for pmid {sdoid}";
+                        _logger_helper.LogLine(qText, sdoid);
                     }
                 }
                 else
@@ -407,12 +270,12 @@ public class PubmedProcessor : IObjectProcessor
 
                     string qText = "The title starts with a '[' but there is no matching ']' or ')' at the end of the title. Title = "
                                        + atitle + ", for pmid {sdoid}";
-                    _logger.LogLine(qText, sdoid);
+                    _logger_helper.LogLine(qText, sdoid);
                 }
 
                 // Store the title(s) - square brackets being present.
 
-                if (!vernacular_title_present)
+                if (string.IsNullOrEmpty(vtitle))
                 {
                     // Add the article title, without the brackets and with any comments - as the only title present it becomes the default.
 
@@ -425,14 +288,13 @@ public class PubmedProcessor : IObjectProcessor
                     titles.Add(new ObjectTitle(sdoid, atitle, 19, "Journal article title", "en", 12, false, poss_comment));
                     titles.Add(new ObjectTitle(sdoid, vtitle, 19, "Journal article title", vlang_code, 21, true, null));
                 }
-
             }
             else
             {
                 // No square brackets - should be a single article title, but sometimes not the case...
                 // for example Canadian journals may have both English and French titles even if everything else is in English.
 
-                if (vernacular_title_present)
+                if (!string.IsNullOrEmpty(vtitle))
                 {
                     // Possibly something odd, vernacular title but no indication of translation in article title.
                     // Add the vernacular title, will not be the default in this case.
@@ -449,7 +311,7 @@ public class PubmedProcessor : IObjectProcessor
         {
             // No article title at all, if there is a vernacular title use that as the default.
 
-            if (vernacular_title_present)
+            if (!string.IsNullOrEmpty(vtitle))
             {
                 titles.Add(new ObjectTitle(sdoid, vtitle, 19, "Journal article title", vlang_code, 21, true, null));
             }
@@ -457,320 +319,316 @@ public class PubmedProcessor : IObjectProcessor
 
         // Make the art_title variable (will be used within the display title) the default title.
 
+        string? default_title = "";
         if (titles.Count > 0)
         {
             foreach (ObjectTitle t in titles)
             {
-                if ((bool)t.is_default)
+                if (t.is_default == true)
                 {
-                    art_title = t.title_text;
+                    default_title = t.title_text;
                     break;
                 }
             }
         }
 
 
-        // Obtain and store publication status.
-        //string publication_status = GetElementAsString(pubmed.Element("PublicationStatus"));
+        // get some basic journal information, as this is useful for helping to 
+        // determine the country of origin, and for identifying the publisher,
+        // as well as later (in creating citation string). The journal name
+        // and issn numbers for electronic and / or paper versions are obtained.
+
+        JournalDetails jd = new JournalDetails(sdoid, journal_title);
+        var issns = r.ISSNList;
+        if (issns?.Any() == true)
+        {
+            foreach (var i in issns)
+            {
+                // Note the need to clean pissn / eissn numbers to a standard format.
+
+                string? ISSN_type = i.IssnType;
+                if (ISSN_type == "Print")
+                {
+                    string? pissn = i.Value;
+                    if (pissn is not null && pissn.Length == 9 && pissn[4] == '-')
+                    {
+                        pissn = pissn.Substring(0, 4) + pissn.Substring(5, 4);
+                    }
+                    jd.pissn = pissn;
+                }
+                if (ISSN_type == "Electronic")
+                {
+                    string? eissn = i.Value;
+                    if (eissn is not null && eissn.Length == 9 && eissn[4] == '-')
+                    {
+                        eissn = eissn.Substring(0, 4) + eissn.Substring(5, 4);
+                    }
+                    jd.eissn = eissn;
+                }
+
+            }
+        }
+        fob.journal_details = jd;
+
 
         // Obtain any article databank list - to identify links to
         // registries and / or gene or protein databases. Each distinct bank
         // is given an integer number (n) which is used within the 
         // DB_Accession_Number records.
 
-        XElement databanklist = article.Element("DataBankList");
-        if (databanklist != null)
+        var databanklist =  r.DatabaseList;
+        if (databanklist?.Any() == true)
         {
             int n = 0;
-            foreach (XElement db in databanklist.Elements("DataBank"))
+            foreach (var db in databanklist)
             {
-                string bnkname = GetElementAsString(db.Element("DataBankName"));
+                string? bankname = db.DataBankName;
                 n++;
-
-                if (db.Element("AccessionNumberList") != null)
+                if (db.AccessionNumberList?.Any() == true)
                 {
-                    XElement accList = db.Element("AccessionNumberList");
-
-                    // Get the accession numbers for this list, for this databank.
-                    // Add each to the DB_Acession_Number list.
-
-                    db_ids = accList.Elements("AccessionNumber")
-                            .Select(a => new ObjectDBLink
-                            {
-                                sd_oid = sdoid,
-                                db_sequence = n,
-                                db_name = bnkname,
-                                id_in_db = GetElementAsString(a)
-                            }).ToList();
+                    foreach (string str in db.AccessionNumberList)
+                    {
+                        db_ids.Add(new ObjectDBLink(sdoid, n, bankname, str));
+                    }
                 }
             }
         }
 
-        #endregion
+        // Get the journal publication date.
 
-
-
-        #region Dates
-
-        string publication_date_string = null;    // Used to summarise the date(s) in the display title.
-
-        // Get the publication date.
-        // If non standard transfer direct to the date as a string,
-        // If standard process to a standard date format.
-
-        var pub_date = article.Element("Journal")?
-                            .Element("JournalIssue")?
-                            .Element("PubDate");
-
-        if (pub_date != null)
+        string publication_date_string = "";    // Used to summarise the date(s) in the display title.
+        if (!string.IsNullOrEmpty(r.medlineDate))
         {
-            ObjectDate publication_date = null;
-            if (pub_date.Element("MedlineDate") != null)
-            {
-                // A string 'Medline' date, a range or a non-standard date.
-                // ProcessMedlineDate is a helper function that tries to 
-                // split any range.
+            // A string 'Medline' date, a range or a non-standard date. ProcessMedlineDate
+            // is a helper function that tries to split any range.
 
-                string date_string = pub_date.Element("MedlineDate").Value;
-                publication_date = dh.ProcessMedlineDate(sdoid, date_string, 12, "Available");
-            }
-            else
+            SplitDateRange? ml_date = ph.ProcessMedlineDate(r.medlineDate);
+            if (ml_date is not null)
             {
-                // An 'ordinary' composite Y, M, D date.
-                // ProcessDate is a helper function that splits the date components, 
-                // identifies partial dates, and creates the date as a string.
-
-                publication_date = dh.ProcessDate(sdoid, pub_date, 12, "Available");
+                dates.Add(new ObjectDate(sdoid, 12, "Available", ml_date));
             }
-            dates.Add(publication_date);
-            fob.publication_year = publication_date.start_year;
-            publication_date_string = publication_date.date_as_string;
+            publication_date_string = r.medlineDate;
+        }
+        else
+        {
+            if (r.pubYear.HasValue)
+            {
+                // A composite Y, M, D date - though in this case the month is a string 
+
+                SplitDate? pub_date = ph.GetSplitDateFromPubDate(r.pubYear, r.pubMonth, r.pubDay);
+                if (pub_date is not null)
+                {
+                    dates.Add(new ObjectDate(sdoid, 12, "Available", pub_date));
+                    fob.publication_year = pub_date.year;
+                    publication_date_string = pub_date.date_string ?? "";
+                }
+            }
         }
 
+         
         // The dates of the citation itself (not the article).
 
-        var date_citation_created = citation.Element("DateCreated");
-        if (date_citation_created != null)
+        if (r.dateCitationCompleted is not null)
         {
-            dates.Add(dh.ProcessDate(sdoid, date_citation_created, 52, "Pubmed citation created"));
+            NumericDate numdt = r.dateCitationCompleted;
+            SplitDate? citation_date = ph.GetSplitDateFromNumericDate(numdt.Year, numdt.Month, numdt.Day);
+            if (citation_date is not null)
+            {
+                dates.Add(new ObjectDate(sdoid, 54, "Pubmed citation completed", citation_date));
+            }
         }
 
-        var date_citation_revised = citation.Element("DateRevised");
-        if (date_citation_revised != null)
+        if (r.dateCitationRevised is not null)
         {
-            dates.Add(dh.ProcessDate(sdoid, date_citation_revised, 53, "Pubmed citation revised"));
+            NumericDate numdt = r.dateCitationRevised;
+            SplitDate? citation_date = ph.GetSplitDateFromNumericDate(numdt.Year, numdt.Month, numdt.Day);
+            if (citation_date is not null)
+            {
+                dates.Add(new ObjectDate(sdoid, 53, "Pubmed citation revised", citation_date));
+            }
         }
 
-        var date_citation_completed = citation.Element("DateCompleted");
-        if (date_citation_completed != null)
-        {
-            dates.Add(dh.ProcessDate(sdoid, date_citation_completed, 54, "Pubmed citation completed"));
-        }
-
-
+         
         // Article date - should be used only for electronic publication.
 
-        string electronic_date_string = null;
-        var artdates = article.Elements("ArticleDate");
-        if (artdates.Count() > 0)
+        string electronic_date_string = "";
+        var artedates = r.ArticleEDates;
+        if (artedates?.Any() == true)
         {
-            string date_type = null;
-            IEnumerable<XElement> article_dates = article.Elements("ArticleDate");
-            foreach (XElement e in article_dates)
+            foreach (var ad in artedates)
             {
-                date_type = GetAttributeAsString(e.Attribute("DateType"));
-
-                if (date_type != null)
+                string? date_type = ad.DateType;
+                if (!string.IsNullOrEmpty(date_type))
                 {
                     if (date_type.ToLower() == "electronic")
                     {
                         // = epublish, type id 55
-                        ObjectDate electronic_date = dh.ProcessDate(sdoid, e, 55, "Epublish");
-                        dates.Add(electronic_date);
-                        electronic_date_string = electronic_date.date_as_string;
+                        SplitDate? edate = ph.GetSplitDateFromNumericDate(ad.Year, ad.Month, ad.Day);
+                        if (edate is not null)
+                        {
+                            dates.Add(new ObjectDate(sdoid, 55, "Epublish", edate));
+                            electronic_date_string = edate.date_string ?? "";
+                        }
                     }
                     else
                     {
-                        string qText = "Unexpected date type (" + date_type + ") found in an article date element, pmid {sdoid}"; 
-                        _logger.LogLine(qText, sdoid);
+                        string qText = $"Unexpected date type ({date_type}) found in an article date element, pmid {sdoid}"; 
+                        _logger_helper.LogLine(qText, sdoid);
                     }
                 }
             }
         }
 
 
-        // Process History element with possible list of Pubmed dates.
+       // Process History element with possible list of Pubmed dates.
 
-        XElement history = pubmed.Element("History");
-        if (history != null)
+        var history_dates = r.History;
+        if (history_dates?.Any() == true)
         {
-            IEnumerable<XElement> pubmed_dates = history.Elements("PubMedPubDate");
-            if (pubmed_dates.Count() > 0)
+            string? pub_status = null;
+            int date_type = 0;
+            string? date_type_name = null;
+            foreach (HistoryDate hd in history_dates)
             {
-                string pub_status = null;
-                int date_type = 0;
-                string date_type_name = null;
-                foreach (XElement e in pubmed_dates)
+                pub_status = hd.PubStatus;
+                if (!string.IsNullOrEmpty(pub_status))
                 {
-                    pub_status = GetAttributeAsString(e.Attribute("PubStatus"));
-                    if (pub_status != null)
+                    // get date_type
+                    switch (pub_status.ToLower())
                     {
-                        // get date_type
-                        switch (pub_status.ToLower())
-                        {
-                            case "received": date_type = 17; date_type_name = "Submitted"; break;
-                            case "accepted": date_type = 11; date_type_name = "Accepted"; break;
-                            case "epublish":
-                                {
-                                    // an epublish date may already be in from article date
-                                    // DateNotPresent is a helper function that indicates if a date 
-                                    // of a particular type has already been provided or not.
+                        case "received": date_type = 17; date_type_name = "Submitted"; break;
+                        case "accepted": date_type = 11; date_type_name = "Accepted"; break;
+                        case "epublish":
+                            {
+                                // an epublish date may already be in from article date
+                                // DateNotPresent is a helper function that indicates if a date 
+                                // of a particular type has already been provided or not.
 
-                                    int? year = GetElementAsInt(e.Element("Year"));
-                                    int? month = GetElementAsInt(e.Element("Month"));
-                                    int? day = GetElementAsInt(e.Element("Day"));
-                                    if (ih.DateNotPresent(dates, 55, year, month, day))
-                                    {
-                                        date_type = 55;
-                                        date_type_name = "Epublish";
-                                    }
-                                    break;
-                                }
-                            case "ppublish": date_type = 56; date_type_name = "Ppublish"; break;
-                            case "revised": date_type = 57; date_type_name = "Revised"; break;
-                            case "aheadofprint": date_type = 58; date_type_name = "Ahead of print publication"; break;
-                            case "retracted": date_type = 59; date_type_name = "Retracted"; break;
-                            case "ecollection": date_type = 60; date_type_name = "Added to eCollection"; break;
-                            case "pmc": date_type = 61; date_type_name = "Added to PMC"; break;
-                            case "pubmed": date_type = 62; date_type_name = "Added to Pubmed"; break;
-                            case "medline": date_type = 63; date_type_name = "Added to Medline"; break;
-                            case "entrez": date_type = 65; date_type_name = "Added to entrez"; break;
-                            case "pmc-release": date_type = 64; date_type_name = "PMC embargo release"; break;
-                            default:
+                                int? year = hd.Year;
+                                int? month = hd.Month;
+                                int? day = hd.Day;
+                                if (ph.DateNotPresent(dates, 55, year, month, day))
                                 {
-                                    date_type = 0;
-                                    string qText = "An unexpexted status (" + pub_status + ") found a date in the history section, pmid {sdoid}";
-                                    _logger.LogLine(qText, sdoid);
-                                    break;
+                                    date_type = 55;
+                                    date_type_name = "Epublish";
                                 }
-                        }
+                                break;
+                            }
+                        case "ppublish": date_type = 56; date_type_name = "Ppublish"; break;
+                        case "revised": date_type = 57; date_type_name = "Revised"; break;
+                        case "aheadofprint": date_type = 58; date_type_name = "Ahead of print publication"; break;
+                        case "retracted": date_type = 59; date_type_name = "Retracted"; break;
+                        case "ecollection": date_type = 60; date_type_name = "Added to eCollection"; break;
+                        case "pmc": date_type = 61; date_type_name = "Added to PMC"; break;
+                        case "pubmed": date_type = 62; date_type_name = "Added to Pubmed"; break;
+                        case "medline": date_type = 63; date_type_name = "Added to Medline"; break;
+                        case "entrez": date_type = 65; date_type_name = "Added to entrez"; break;
+                        case "pmc-release": date_type = 64; date_type_name = "PMC embargo release"; break;
+                        default:
+                            {
+                                date_type = 0;
+                                string qText = "An unexpexted status (" + pub_status + ") found a date in the history section, pmid {sdoid}";
+                                _logger_helper.LogLine(qText, sdoid);
+                                break;
+                            }
+                    }
 
-                        if (date_type != 0)
-                        {
-                            dates.Add(dh.ProcessDate(sdoid, e, date_type, date_type_name));
-                        }
+                    if (date_type != 0)
+                    {
+                        dates.Add(dh.ProcessDate(sdoid, e, date_type, date_type_name));
                     }
                 }
             }
         }
 
-        #endregion
-
-
-
-        #region keywords
 
         // Chemicals list - do these first as Mesh list often duplicates them.
 
-        XElement chemicals_list = citation.Element("ChemicalList");
-        if (chemicals_list != null)
+        var chemicals_list = r.SubstanceList;
+        if (chemicals_list?.Any() == true)
         {
-            IEnumerable<XElement> chemicals = chemicals_list.Elements("Chemical");
-            if (chemicals.Count() > 0)
+            foreach (var ch in chemicals_list)
             {
-                foreach (XElement ch in chemicals)
+                string? chemName = ch.Name;
+                string? topic_ct_code = null;
+                if (chemName is not null)
                 {
-                    XElement chemName = ch.Element("NameOfSubstance");
-                    string topic_ct_code = null;
-                    if (chemName != null)
-                    {
-                        topic_ct_code = GetAttributeAsString(chemName.Attribute("UI"));
-                    }
-
-                    topics.Add(new ObjectTopic(sdoid, 12, "chemical / agent", true, 
-                             topic_ct_code, GetElementAsString(chemName)));
+                    topic_ct_code = ch.UI;
                 }
+
+                topics.Add(new ObjectTopic(sdoid, 12, "chemical / agent", true, topic_ct_code, chemName));
             }
         }
 
-        // Mesh headings list.
 
-        XElement mesh_headings_list = citation.Element("MeshHeadingList");
-        if (mesh_headings_list != null)
+        // Mesh headings list. N.B. MeSH Qualifiers are not collected.
+
+        var mesh_headings_list = r.MeshList;
+        if (mesh_headings_list?.Any() == true)
         {
-            IEnumerable<XElement> mesh_headings = mesh_headings_list.Elements("MeshHeading");
-            foreach (XElement e in mesh_headings)
+            foreach (var mh in mesh_headings_list)
             {
-                XElement desc = e.Element("DescriptorName");
+                // Create a mesh heading record.
+                // Then check does not already exist (if it does,
+                // usually because it was in the chemicals list)
+                // before adding it to the topics list.
 
-                // Create a simple mesh heading record.
-
-                string topic_ct_code = null, topic_orig_value = null, topic_type = null;
-                if (desc != null)
+                string? desc = mh.Value;
+                if (!string.IsNullOrEmpty(desc))
                 {
-                    topic_orig_value = GetElementAsString(desc);
-                    topic_ct_code = GetAttributeAsString(desc.Attribute("UI"));
-                    topic_type = GetAttributeAsString(desc.Attribute("Type"))?.ToLower();
-                }
+                    string? topic_ct_code = mh.UI;
+                    string? topic_type = mh.Type;
 
-                // Check does not already exist (if it does, usually because it was in the chemicals list)
-
-                bool new_topic = true;
-                foreach (ObjectTopic t in topics)
-                {
-                    if (t.original_value.ToLower() == topic_orig_value.ToLower()
-                        && (t.topic_type == topic_type || (t.topic_type == "chemical / agent" && topic_type == null)))
+                    bool new_topic = true;
+                    foreach (ObjectTopic t in topics)
                     {
-                        new_topic = false;
-                        break;
+                        if (t.original_value?.ToLower() == desc.ToLower())
+                        {
+                            new_topic = false;
+                            break;
+                        }
+                    }
+
+                    if (new_topic)
+                    {
+                        topics.Add(new ObjectTopic(sdoid, 0, topic_type, true, topic_ct_code, desc));
                     }
                 }
-
-                if (new_topic)
-                {
-                    topics.Add(new ObjectTopic(sdoid, 0, topic_type, true,
-                             topic_ct_code, topic_orig_value));
-                }
-
-
-                /*
-                 * DON'T COLLECT Qualifiers - at least for the moment
-                 * 
-                // if there are qualifiers, use these as the term type (or scope / context) 
-                // in further copies of the keyword
-
-                IEnumerable<XElement> qualifiers = e.Elements("QualifierName");
-                if (qualifiers.Count() > 0)
-                {
-                    string qualcode = null, qualvalue = null;
-                    foreach (XElement em in qualifiers)
-                    {
-                        qualcode = GetAttributeAsString(em.Attribute("UI"));
-                        qualvalue = GetElementAsString(em);
-
-                        topics.Add(new ObjectTopic(sdoid, 0, topic_type, true,
-                            topic_ct_code, topic_orig_value, qualcode, qualvalue));
-
-                    }
-                }
-                */
             }
         }
 
 
         // Supplementary mesh list - rarely found.
 
-        XElement suppmesh_list = citation.Element("SupplMeshList");
-        if (suppmesh_list != null)
+        var suppmesh_list = r.SupplMeshList;
+        if (suppmesh_list?.Any() == true)
         {
-            IEnumerable<XElement> supp_mesh_names = suppmesh_list.Elements("SupplMeshName");
-            if (supp_mesh_names.Count() > 0)
+            foreach (var sh in suppmesh_list)
             {
-                foreach (XElement s in supp_mesh_names)
-                {
-                    topics.Add(new ObjectTopic(sdoid, 0, GetAttributeAsString(s.Attribute("Type"))?.ToLower(), true,
-                             GetAttributeAsString(s.Attribute("UI")), GetElementAsString(s)));
+                // Create a mesh heading record.
+                // Then check does not already exist 
+                // before adding it to the topics list.
 
+                string? desc = sh.Value;
+                if (!string.IsNullOrEmpty(desc))
+                {
+                    string? topic_ct_code = sh.UI;
+                    string? topic_type = sh.Type;
+
+                    bool new_topic = true;
+                    foreach (ObjectTopic t in topics)
+                    {
+                        if (t.original_value?.ToLower() == desc.ToLower())
+                        {
+                            new_topic = false;
+                            break;
+                        }
+                    }
+
+                    if (new_topic)
+                    {
+                        topics.Add(new ObjectTopic(sdoid, 0, topic_type, true, topic_ct_code, desc));
+                    }
                 }
             }
         }
@@ -778,64 +636,49 @@ public class PubmedProcessor : IObjectProcessor
 
         // Keywords
 
-        var keywords_lists = citation.Elements("KeywordList");
-        if (keywords_lists.Count() > 0)
+        var keywords_lists = r.KeywordList;
+        if (keywords_lists?.Any() == true)
         {
-            foreach (XElement e in keywords_lists)
+            string? this_owner = r.keywordOwner;
+            int ct_id = (this_owner == "NOTNLM") ? 11 : 0;
+
+            foreach (var kw in keywords_lists)
             {
-                string this_owner = GetAttributeAsString(e.Attribute("Owner"));
-                IEnumerable<XElement> words = e.Elements("Keyword");
-                if (words.Count() > 0)
-                {
-                    foreach (XElement k in words)
-                    {
-                        int ct_id = (this_owner == "NOTNLM") ? 11 : 0;
-                        topics.Add(new ObjectTopic(sdoid, 11, "keyword", GetElementAsString(k), ct_id, null));
-                    }
-                }
-
-            }
+                topics.Add(new ObjectTopic(sdoid, 11, "keyword", kw.Value, ct_id, null));
+            }   
         }
-        #endregion
 
-
-
-        #region Identifiers
 
         // Article Elocations - can provide doi and publishers id.
 
-        var locations = article.Elements("ELocationID");
+        var locations = r.EReferences;
         string source_elocation_string = "";
-        if (locations.Count() > 0)
+        if (locations?.Any() == true)
         {
-            string valid_yn = null;
-            string loctype = null;
-            string value = null;
-            foreach (XElement t in locations)
+            foreach (EReference er in locations)
             {
-                valid_yn = GetAttributeAsString(t.Attribute("ValidYN"));
-                if (valid_yn.ToUpper() == "Y")
+                string? loctype = er.EIdType;
+                string? value = er.Value;
+                if (loctype is not null && value is not null)
                 {
-                    loctype = GetAttributeAsString(t.Attribute("EIdType"));
-                    value = GetElementAsString(t);
-                    if (loctype != null && value != null)
+                    switch (loctype.ToLower())
                     {
-                        switch (loctype.ToLower())
-                        {
-                            case "pii":
-                                {
-                                    identifiers.Add(new ObjectIdentifier(sdoid, 34, "Publisher article ID", value, null, null));
-                                    source_elocation_string += "pii:" + value + ". ";
-                                    break;
-                                }
+                        case "pii":
+                            {
+                                identifiers.Add(new ObjectIdentifier(sdoid, 34, "Publisher article ID", value, null, null));
+                                source_elocation_string += "pii:" + value + ". ";
+                                break;
+                            }
 
-                            case "doi":
+                        case "doi":
+                            {
+                                if (fob.doi is null)
                                 {
-                                    if (fob.doi == null) fob.doi = value.Trim();
-                                    source_elocation_string += "doi:" + value + ". ";
-                                    break;
+                                    fob.doi = value.Trim();
                                 }
-                        }
+                                source_elocation_string += "doi:" + value + ". ";
+                                break;
+                            }
                     }
                 }
             }
@@ -844,30 +687,27 @@ public class PubmedProcessor : IObjectProcessor
 
         // Other ids.
 
-        var other_ids = citation.Elements("OtherID");
-        if (other_ids.Count() > 0)
+        var other_ids = r.AdditionalIds;
+        if (other_ids?.Any() == true)
         {
-            string source = null;
-            string other_id = null;
-            foreach (XElement i in other_ids)
+            foreach (var i in other_ids)
             {
-                source = GetAttributeAsString(i.Attribute("Source"));
-                other_id = GetElementAsString(i);
-                if (source != null && other_id != null)
+                string? source = i.Source;
+                string? other_id = i.Value;
+                if (!string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(other_id))
                 {
                     // Both source and value are present, 
                     // only a few source types listed as possible.
 
                     if (source == "NLM")
                     {
-                        if (other_id.Substring(0, 3) == "PMC")
+                        if (other_id[0..3] == "PMC")
                         {
                             identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
 
-                            instances.Add(new ObjectInstance(sdoid, 1, "Full resource", 100133, "National Library of Medicine",
+                            instances.Add(new ObjectInstance(sdoid, 100133, "National Library of Medicine",
                             "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
                             36, "Web text with download"));
-                           
                         }
                         else
                         {
@@ -887,109 +727,103 @@ public class PubmedProcessor : IObjectProcessor
         // IdNotPresent is a helper function that checks that an id of a 
         // particular type has not already been extracted.
 
-        XElement article_ids = pubmed.Element("ArticleIdList");
-        if (article_ids != null)
+        var article_ids = r.ArticleIds;
+        if (article_ids?.Any() == true)
         {
-            IEnumerable<XElement> artids = article_ids.Elements("ArticleId");
-            if (artids.Count() > 0)
+            foreach (var artid in article_ids)
             {
-                string id_type = null;
-                string other_id = null;
-                foreach (XElement artid in artids)
+                string? id_type = artid.IdType;
+                string? other_id = artid.Value?.Trim();
+                if (id_type is not null && other_id is not null)
                 {
-                    id_type = GetAttributeAsString(artid.Attribute("IdType"));
-                    other_id = GetElementAsString(artid).Trim();
-                    if (id_type != null && other_id != null)
+                    switch (id_type.ToLower())
                     {
-                        switch (id_type.ToLower())
-                        {
-                            case "doi":
+                        case "doi":
+                            {
+                                if (fob.doi == null)
                                 {
-                                    if (fob.doi == null)
-                                    {
-                                        fob.doi = other_id;
-                                    }
-                                    else
-                                    {
-                                        if (fob.doi != other_id)
-                                        {
-                                            string qText = "Two different dois have been supplied: " + fob.doi +
-                                                           " from ELocation, and " + other_id + " from Article Ids, pmid { sdoid}";
-                                            _logger.LogLine(qText, sdoid);
-                                            break;
-                                        }
-                                    }
-                                    break;
+                                    fob.doi = other_id;
                                 }
-                            case "pii":
+                                else
                                 {
-                                    if (ih.IdNotPresent(identifiers, 34, other_id))
+                                    if (fob.doi != other_id)
                                     {
-                                        identifiers.Add(new ObjectIdentifier(sdoid, 34, "Publisher article ID", other_id, null, null));
+                                        string qText = $"Two different dois have been supplied: {fob.doi}";
+                                        qText += $" from ELocation, and {other_id} from Article Ids, pmid {sdoid}";
+                                        _logger_helper.LogLine(qText, sdoid);
+                                        break;
                                     }
-                                    break;
                                 }
-
-                            case "pmcpid": { identifiers.Add(new ObjectIdentifier(sdoid, 37, "PMC Publisher ID", other_id, null, null)); break; }
-
-                            case "pmpid": { identifiers.Add(new ObjectIdentifier(sdoid, 38, "PM Publisher ID", other_id, null, null)); break; }
-
-                            case "sici": { identifiers.Add(new ObjectIdentifier(sdoid, 35, "Serial Item and Contribution Identifier ", other_id, null, null)); break; }
-
-                            case "medline": { identifiers.Add(new ObjectIdentifier(sdoid, 36, "Medline UID", other_id, 100133, "National Library of Medicine")); break; }
-
-                            case "pubmed":
+                                break;
+                            }
+                        case "pii":
+                            {
+                                if (ph.IdNotPresent(identifiers, 34, other_id))
                                 {
-                                    if (ih.IdNotPresent(identifiers, 16, other_id))
-                                    {
-                                        // should be present already! - if a different value log it a a query
-                                        string qText = "Two different values for pmid found: record pmiod is {sdoid}, but in article ids the value " + other_id + " is listed";
-                                        _logger.LogLine(qText, sdoid);
-                                        identifiers.Add(new ObjectIdentifier(sdoid, 16, "PMID", sdoid, 100133, "National Library of Medicine"));
-                                    }
-                                    break;
+                                    identifiers.Add(new ObjectIdentifier(sdoid, 34, "Publisher article ID", other_id, null, null));
                                 }
-                            case "mid":
-                                {
-                                    if (ih.IdNotPresent(identifiers, 32, other_id))
-                                    {
-                                        identifiers.Add(new ObjectIdentifier(sdoid, 32, "NIH Manuscript ID", other_id, 100134, "National Institutes of Health"));
-                                    }
-                                    break;
-                                }
+                                break;
+                            }
 
-                            case "pmc":
-                                {
-                                    if (ih.IdNotPresent(identifiers, 31, other_id))
-                                    {
-                                        identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
+                        case "pmcpid": { identifiers.Add(new ObjectIdentifier(sdoid, 37, "PMC Publisher ID", other_id, null, null)); break; }
 
-                                        instances.Add(new ObjectInstance(sdoid, 1, "Full resource", 100133, "National Library of Medicine",
-                                        "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
-                                        36, "Web text with download"));
-                                    }
-                                    break;
-                                }
+                        case "pmpid": { identifiers.Add(new ObjectIdentifier(sdoid, 38, "PM Publisher ID", other_id, null, null)); break; }
 
-                            case "pmcid":
-                                {
-                                    if (ih.IdNotPresent(identifiers, 31, other_id))
-                                    {
-                                        identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
+                        case "sici": { identifiers.Add(new ObjectIdentifier(sdoid, 35, "Serial Item and Contribution Identifier ", other_id, null, null)); break; }
 
-                                        instances.Add(new ObjectInstance(sdoid, 1, "Full resource", 100133, "National Library of Medicine",
-                                        "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
-                                        36, "Web text with download"));
-                                    }
-                                    break;
-                                }
-                            default:
+                        case "medline": { identifiers.Add(new ObjectIdentifier(sdoid, 36, "Medline UID", other_id, 100133, "National Library of Medicine")); break; }
+
+                        case "pubmed":
+                            {
+                                if (ph.IdNotPresent(identifiers, 16, other_id))
                                 {
-                                    string qText = "A unexpexted article id type (" + id_type + ") found a date in the article id section, for pmid {sdoid}";
-                                    _logger.LogLine(qText, sdoid);
-                                    break;
+                                    // should be present already! - if a different value log it a a query
+                                    string qText = "Two different values for pmid found: record pmiod is {sdoid}, but in article ids the value " + other_id + " is listed";
+                                    _logger_helper.LogLine(qText, sdoid);
+                                    identifiers.Add(new ObjectIdentifier(sdoid, 16, "PMID", sdoid, 100133, "National Library of Medicine"));
                                 }
-                        }
+                                break;
+                            }
+                        case "mid":
+                            {
+                                if (ph.IdNotPresent(identifiers, 32, other_id))
+                                {
+                                    identifiers.Add(new ObjectIdentifier(sdoid, 32, "NIH Manuscript ID", other_id, 100134, "National Institutes of Health"));
+                                }
+                                break;
+                            }
+
+                        case "pmc":
+                            {
+                                if (ph.IdNotPresent(identifiers, 31, other_id))
+                                {
+                                    identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
+
+                                    instances.Add(new ObjectInstance(sdoid, 100133, "National Library of Medicine",
+                                    "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
+                                    36, "Web text with download"));
+                                }
+                                break;
+                            }
+
+                        case "pmcid":
+                            {
+                                if (ph.IdNotPresent(identifiers, 31, other_id))
+                                {
+                                    identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
+
+                                    instances.Add(new ObjectInstance(sdoid, 100133, "National Library of Medicine",
+                                    "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
+                                    36, "Web text with download"));
+                                }
+                                break;
+                            }
+                        default:
+                            {
+                                string qText = "A unexpexted article id type (" + id_type + ") found a date in the article id section, for pmid {sdoid}";
+                                _logger_helper.LogLine(qText, sdoid);
+                                break;
+                            }
                     }
                 }
             }
@@ -1015,7 +849,7 @@ public class PubmedProcessor : IObjectProcessor
             }
 
             // pmid date may be available as an entrez date
-            if (i.identifier_type_id == 16 && i.identifier_date == null)
+            else if (i.identifier_type_id == 16 && i.identifier_date == null)
             {
                 // pmid
                 foreach (ObjectDate dt in dates)
@@ -1029,7 +863,7 @@ public class PubmedProcessor : IObjectProcessor
                 }
             }
 
-            if (i.identifier_type_id == 31)
+            else if (i.identifier_type_id == 31)
             {
                 // pmc id
                 foreach (ObjectDate dt in dates)
@@ -1043,7 +877,7 @@ public class PubmedProcessor : IObjectProcessor
                 }
             }
 
-            if (i.identifier_type_id == 34)
+            else if (i.identifier_type_id == 34)
             {
                 // publisher's id
                 foreach (ObjectDate dt in dates)
@@ -1058,7 +892,7 @@ public class PubmedProcessor : IObjectProcessor
                 }
             }
 
-            if (i.identifier_type_id == 36)
+            else if (i.identifier_type_id == 36)
             {
                 // Medline UID
                 foreach (ObjectDate dt in dates)
@@ -1075,88 +909,77 @@ public class PubmedProcessor : IObjectProcessor
 
         }
 
-        #endregion
-
-
-
-        #region People
 
         // Get author details. GetPersonalData is a helper function that
         // splits the author information up into its constituent classes.
 
-        XElement author_list = article.Element("AuthorList");
-        if (author_list != null)
+        var author_list = r.Creators;
+        if (author_list?.Any() == true)
         {
-            var authors = author_list.Elements("Author");
-            foreach (XElement a in authors)
+            foreach (var a in author_list)
             {
-                bool valid = GetAttributeAsBool(a.Attribute("ValidYN"));
-                if (valid)   // only use valid entries
+                // Construct the basic contributor data from the various elements.
+                string? family_name = a.FamilyName.ReplaceApos(); 
+                string? given_name = a.GiveneName;
+                string? suffix = a.Suffix;
+                string? initials = a.Initials;
+                string? collective_name = a.CollectiveName;
+
+                if (string.IsNullOrEmpty(given_name))
                 {
-                    // Construct the basic contributor data from the various elements.
-                    string family_name = GetElementAsString(a.Element("LastName")) ?? "";
-                    string given_name = GetElementAsString(a.Element("ForeName")) ?? "";
-                    string suffix = GetElementAsString(a.Element("Suffix")) ?? "";
-                    string initials = GetElementAsString(a.Element("Initials")) ?? "";
-                    string collective_name = GetElementAsString(a.Element("CollectiveName")) ?? "";
+                    given_name = initials;
+                }
 
-                    if (given_name == "")
-                    {
-                        given_name = initials;
+                string? full_name;
+                if (!string.IsNullOrEmpty(collective_name))
+                {
+                    family_name = collective_name;
+                    full_name = collective_name;
+                    given_name = null;
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(suffix)) 
+                    { 
+                        suffix = " " + suffix; 
                     }
+                    full_name = (given_name + " " + family_name + suffix).Trim();
+                }
+                full_name = full_name?.ReplaceApos();
 
-                    string full_name = "";
-                    if (collective_name != "")
-                    {
-                        family_name = collective_name;
-                        full_name = collective_name;
-                        given_name = "";
-                    }
-                    else
-                    {
-                        if (suffix != "") { suffix = " " + suffix; }
-                        full_name = (given_name + " " + family_name + suffix).Trim();
-                    }
-                    full_name = sh.ReplaceApos(full_name);
+                // should only ever be a single ORCID identifier.
 
-                    string identifier = "", identifier_source = "";
-                    if (a.Elements("Identifier").Count() > 0)
+                string? identifier = a.IdentifierValue;
+                if (!string.IsNullOrEmpty(identifier))
+                {
+                    string? identifier_source = a.IdentifierSource;
+                    if (!string.IsNullOrEmpty(identifier_source))
                     {
-                        var person_identifiers = a.Elements("Identifier");
-                        foreach (XElement e in person_identifiers)
+                        if (identifier_source.ToLower() == "orcid")
                         {
-                            identifier = GetElementAsString(e).Trim();
-                            identifier_source = GetAttributeAsString(e.Attribute("Source"));
-
-                            // should only ever be a single ORCID identifier
-                            if (identifier_source == "ORCID")
-                            {
-                                identifier = sh.TidyORCIDId(identifier);
-                                if (identifier.Length != 19)
-                                {
-                                    identifier = sh.TidyORCIDId2(identifier);
-                                }
-                                break;  // no need to look for more
-                            }
-                            else
-                            {
-                                string qText = "person " + full_name + "(linked to {sdoid}) identifier ";
-                                qText += "is not an ORCID (" + identifier + " (source =" + identifier_source + "))";
-                                _logger.LogLine(qText, sdoid);
-                                identifier = ""; identifier_source = "";  // do not store in db
-                            }
+                            identifier = identifier.TidyORCIDId();
+                        }
+                        else
+                        {
+                            string qText = $"person {full_name} (linked to {sdoid}) identifier ";
+                            qText += "is not an ORCID (" + identifier + " (source =" + identifier_source + "))";
+                            _logger_helper.LogLine(qText, sdoid);
+                            identifier = null; identifier_source = null;  // do not store in db
                         }
                     }
+                }
 
-                    string affiliation = "", affil_identifier = "", affil_organisation = ""; 
-                    string affil_ident_source = "";
-                    if (a.Elements("AffiliationInfo").Count() > 0)
+
+                string? affil_organisation = null;
+                string? affiliation = null;
+                var affiliations = a.AffiliationInfo;
+                if (affiliations?.Any() == true)
+                {
+                    foreach (var aff in affiliations)
                     {
-                        var person_affiliations = a.Elements("AffiliationInfo");
-                        foreach (XElement e in person_affiliations)
+                        affiliation = aff.Affiliation;
+                        if (!string.IsNullOrEmpty(affiliation))
                         {
-                            affiliation = GetElementAsString(e.Element("Affiliation")) ?? "";
-
                             if (affiliation.Length > 400)
                             {
                                 // Likely to be a compound affiliation ... do not use
@@ -1164,87 +987,63 @@ public class PubmedProcessor : IObjectProcessor
                             }
                             else
                             {
-                                affil_identifier = GetElementAsString(e.Element("Identifier")) ?? "";
-                                affil_ident_source = GetAttributeAsString(e.Element("Identifier")?.Attribute("Source")) ?? "";
-
-
+                                string? affil_identifier = aff.IdentifierValue;
+                                string? affil_ident_source = aff.IdentifierSource;
                                 if (affil_ident_source == "INSI")
                                 {
                                     /*
                                     * Needs writing to look up affil id and turn it into an organisation
+                                    * repo call through to the contextual org data
                                     * ***********************************************************************
                                     */
                                 }
                                 else if (affil_ident_source == "GRID")
                                 {
                                     /*
-                                     * Needs writing to look up affil id and turn it into an organisation
-                                     * ***********************************************************************
-                                     */
+                                    * Needs writing to look up affil id and turn it into an organisation
+                                    * repo call through to the contextual org data
+                                    * ***********************************************************************
+                                    */
                                 }
                                 else
                                 {
                                     // look at affiliation string
-                                    affil_organisation = sh.ExtractOrganisation(affiliation, sdoid);
+                                    affil_organisation = affiliation.ExtractOrganisation(sdoid);
                                 }
                             }
                         }
-
                     }
-
-                    if (identifier == "") identifier = null;
-                    if (affiliation == "") affiliation = null;
-                    if (affil_organisation == "") affil_organisation = null;
-
-                    contributors.Add(new ObjectContributor(sdoid, 11, "Creator",
-                                                        given_name, family_name, full_name,
-                                                        identifier, affiliation, affil_organisation));
-
                 }
 
+                contributors.Add(new ObjectContributor(sdoid, 11, "Creator",
+                                                    given_name, family_name, full_name,
+                                                    identifier, affiliation, affil_organisation));
             }
 
-            // Construct author string for citation - exact form depends on numbers of ayuthors identified.
+            // Construct author string for citation - exact form depends on numbers of authors identified.
 
             if (contributors.Count == 1)
             {
-                string initial0 = (string.IsNullOrEmpty(contributors[0].person_given_name)) ? "" : contributors[0].person_given_name.Substring(0, 1).ToUpper();
-                author_string = (contributors[0].person_family_name + " " + initial0).Trim();
+                author_string = ph.GetCitationName(contributors, 0);
             }
 
             else if (contributors.Count == 2)
             {
-                string initial0 = (string.IsNullOrEmpty(contributors[0].person_given_name)) ? "" : contributors[0].person_given_name.Substring(0, 1).ToUpper();
-                string initial1 = (string.IsNullOrEmpty(contributors[1].person_given_name)) ? "" : contributors[1].person_given_name.Substring(0, 1).ToUpper();
-
-                author_string = (contributors[0].person_family_name + " " + initial0).Trim() + " & ";
-                author_string += (contributors[1].person_family_name + " " + initial1).Trim();
+                author_string = ph.GetCitationName(contributors, 0) + " & " + ph.GetCitationName(contributors, 1);
             }
 
             else if (contributors.Count == 3)
             {
-                string initial0 = (string.IsNullOrEmpty(contributors[0].person_given_name)) ? "" : contributors[0].person_given_name.Substring(0, 1).ToUpper();
-                string initial1 = (string.IsNullOrEmpty(contributors[1].person_given_name)) ? "" : contributors[1].person_given_name.Substring(0, 1).ToUpper();
-                string initial2 = (string.IsNullOrEmpty(contributors[2].person_given_name)) ? "" : contributors[2].person_given_name.Substring(0, 1).ToUpper();
-
-                author_string = (contributors[0].person_family_name + " " + initial0).Trim() + ", ";
-                author_string += (contributors[1].person_family_name + " " + initial1).Trim() + " & ";
-                author_string += (contributors[2].person_family_name + " " + initial2).Trim();
+                author_string = ph.GetCitationName(contributors, 0) + ", " + ph.GetCitationName(contributors, 1)
+                                + " & " + ph.GetCitationName(contributors, 2);
             }
 
             else if (contributors.Count > 3)
             {
-                string initial0 = (string.IsNullOrEmpty(contributors[0].person_given_name)) ? "" : contributors[0].person_given_name.Substring(0, 1).ToUpper();
-                string initial1 = (string.IsNullOrEmpty(contributors[1].person_given_name)) ? "" : contributors[1].person_given_name.Substring(0, 1).ToUpper();
-                string initial2 = (string.IsNullOrEmpty(contributors[2].person_given_name)) ? "" : contributors[2].person_given_name.Substring(0, 1).ToUpper();
-
-                author_string = (contributors[0].person_family_name + " " + initial0).Trim() + ", ";
-                author_string += (contributors[1].person_family_name + " " + initial1).Trim() + ", ";
-                author_string += (contributors[2].person_family_name + " " + initial2).Trim() + " et al";
-
+                author_string = ph.GetCitationName(contributors, 0) + ", " + ph.GetCitationName(contributors, 1)
+                                + ", " + ph.GetCitationName(contributors, 2) + " et al";
             }
-
-            author_string = author_string.Trim();
+            author_string = author_string.Trim() + ".";
 
             // some contributors may be teams or groups
 
@@ -1254,8 +1053,8 @@ public class PubmedProcessor : IObjectProcessor
                 {
                     // check if a group inserted as an individual
 
-                    string fullname = oc.person_full_name.ToLower();
-                    if (ih.CheckIfOrganisation(fullname))
+                    string? fullname = oc.person_full_name?.ToLower();
+                    if (fullname.IsAnOrganisation())
                     {
                         oc.organisation_name = oc.person_full_name;
                         oc.person_full_name = null;
@@ -1268,211 +1067,180 @@ public class PubmedProcessor : IObjectProcessor
                 }
             }
         }
-        #endregion
 
-
-
-        #region Descriptions
 
         // Derive Journal source string (used as a descriptive element)...
         // Constructed as <MedlineTA>. Date;<Volume>(<Issue>):<Pagination>. <ELocationID>.
         // Needs to be extended to take into account the publication model and thus the other poossible dates
         // see https://www.nlm.nih.gov/bsd/licensee/elements_article_source.html
 
-        if  (JournalInfo != null)
+        string medline_ta = r.journalMedlineTA ?? "";
+        if (medline_ta != "")
         {
-            string medline_ta = GetElementAsString(JournalInfo.Element("MedlineTA"));
-            medline_ta = (medline_ta == "") ? "" : medline_ta + ". ";
-
-            string date = (publication_date_string != null) ? publication_date_string : "";
-
-            string volume = GetElementAsString(article.Element("Journal").Element("JournalIssue").Element("Volume"));
-            if (volume == null) volume = "";
-
-            string issue = GetElementAsString(article.Element("Journal").Element("JournalIssue").Element("Issue"));
-            if (issue == null)
-            {
-                issue = "";
-            }
-            else
-            {
-                issue = "(" + issue + ")";
-            }
-
-            string pagination = "";
-            XElement pagn = article.Element("Pagination");
-            if (pagn != null)
-            {
-                pagination = GetElementAsString(pagn.Element("MedlinePgn"));
-                if (string.IsNullOrEmpty(pagination))
-                {
-                    pagination = "";
-                }
-                else
-                {
-                    pagination = ":" + pagination;
-                    pagination = pagination.TrimEnd(';', ' ');
-                }
-            }
-
-            string vip = volume + issue + pagination;
-            vip = (vip == "") ? "" : vip + ". ";
-
-            if (string.IsNullOrEmpty(source_elocation_string))
-            {
-                source_elocation_string = "";
-            }
-            else
-            {
-                source_elocation_string = source_elocation_string.Trim();
-            }
-
-
-            string public_date = "";
-            string elec_date = "";
-            
-
-            switch (pub_model)
-            {
-                case "Print":
-                    {
-                        // The date is taken from the PubDate element.
-
-                        public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                        journal_source = medline_ta + public_date + vip + source_elocation_string;
-                        break;
-                    }
-
-
-                case "Print-Electronic":
-                    {
-                        // The electronic date is before the print date but the publisher has selected the print date to be the date within the citation.
-                        // The date in the citation therefore comes from the print publication date, PubDate.
-                        // The electronic publishing date is then shown afterwards, as "Epub YYY MMM DD".
-
-                        public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                        elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
-                        journal_source = medline_ta + public_date + vip + "Epub " + elec_date + source_elocation_string;
-                        break;
-                    }
-
-                case "Electronic":
-                    {
-                        // Here there is no published hardcopy print version of the item. 
-                        // If there is an ArticleDate element present in the citation it is used as the source of the publication date in the journal source string.
-                        // If no ArticleDate element was provided the publication date is assumed to be that of an electronic publication.
-                        // In either case there is no explicit indication that this is an electronic publication in the citation.
-
-                        elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
-                        if (elec_date == "")
-                        {
-                            elec_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                        }
-                        journal_source = medline_ta + elec_date + vip + source_elocation_string;
-                        break;
-                    }
-
-                case "Electronic-Print":
-                    {
-                        // The electronic date is before the print date, but – in contrast to "Print - Electronic" – the publisher wishes the main citation date to be based on the electronic date (ArticleDate). 
-                        // The source is followed by the print date notation using the content of the PubDate element.
-
-                        public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                        elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
-                        journal_source = medline_ta + elec_date + vip + "Print " + public_date + source_elocation_string;
-                        break;
-                    }
-
-                case "Electronic-eCollection":
-                    {
-                        // This is an electronic publication first, followed by inclusion in an electronic collection(similar to an issue).
-                        // The publisher wants articles cited by the electronic article publication date.The citation therefore uses the ArticleDate as the source of the date, 
-                        // but the eCollection date can be obtained from the PubDate element.
-
-                        public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                        elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
-                        journal_source = medline_ta + elec_date + vip + "eCollection " + public_date + source_elocation_string;
-                        break;
-                    }
-            }
-
-            // add the description
-            descriptions.Add(new ObjectDescription
-            {
-                sd_oid = sdoid,
-                description_type_id = 18,
-                description_type = "Journal Source String",
-                description_text = journal_source.Trim(),
-                lang_code = "en"
-            });
+            medline_ta = medline_ta + ". ";
         }
 
-        #endregion
+        string volume = r.journalVolume ?? "";
+        string issue = r.journalIssue ?? "";
+        if (issue == null)
+        { 
+            issue = "";
+        }
+        else
+        {
+            issue = "(" + issue + ")";
+        }
 
+        string? pagination = r.medlinePgn ?? "";   
+        if (!string.IsNullOrEmpty(pagination))
+        {
+            pagination = ":" + pagination;
+            pagination = pagination.TrimEnd(';', ' ');
+        }
 
+        string vip = volume + issue + pagination;
+        vip = (vip == "") ? "" : vip + ". ";
 
-        #region Miscellaneous
+        if (string.IsNullOrEmpty(source_elocation_string))
+        {
+            source_elocation_string = "";
+        }
+        else
+        {
+            source_elocation_string = source_elocation_string.Trim();
+        }
+
+        string public_date = "";
+        string elec_date = "";
+            
+        switch (r.pubModel)
+        {
+            case "Print":
+                {
+                    // The date is taken from the PubDate element.
+
+                    public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
+                    journal_source = medline_ta + public_date + vip + source_elocation_string;
+                    break;
+                }
+
+            case "Print-Electronic":
+                {
+                    // The electronic date is before the print date but the publisher has selected the print date to be the date within the citation.
+                    // The date in the citation therefore comes from the print publication date, PubDate.
+                    // The electronic publishing date is then shown afterwards, as "Epub YYY MMM DD".
+
+                    public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
+                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    journal_source = medline_ta + public_date + vip + "Epub " + elec_date + source_elocation_string;
+                    break;
+                }
+
+            case "Electronic":
+                {
+                    // Here there is no published hardcopy print version of the item. 
+                    // If there is an ArticleDate element present in the citation it is used as the source of the publication date in the journal source string.
+                    // If no ArticleDate element was provided the publication date is assumed to be that of an electronic publication.
+                    // In either case there is no explicit indication that this is an electronic publication in the citation.
+
+                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    if (elec_date == "")
+                    {
+                        elec_date = (publication_date_string != null) ? publication_date_string + ". " : "";
+                    }
+                    journal_source = medline_ta + elec_date + vip + source_elocation_string;
+                    break;
+                }
+
+            case "Electronic-Print":
+                {
+                    // The electronic date is before the print date, but – in contrast to "Print - Electronic" – the publisher wishes the main citation date to be based on the electronic date (ArticleDate). 
+                    // The source is followed by the print date notation using the content of the PubDate element.
+
+                    public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
+                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    journal_source = medline_ta + elec_date + vip + "Print " + public_date + source_elocation_string;
+                    break;
+                }
+
+            case "Electronic-eCollection":
+                {
+                    // This is an electronic publication first, followed by inclusion in an electronic collection(similar to an issue).
+                    // The publisher wants articles cited by the electronic article publication date.The citation therefore uses the ArticleDate as the source of the date, 
+                    // but the eCollection date can be obtained from the PubDate element.
+
+                    public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
+                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    journal_source = medline_ta + elec_date + vip + "eCollection " + public_date + source_elocation_string;
+                    break;
+                }
+        }
+
+        // add the description
+        descriptions.Add(new ObjectDescription
+        {
+            sd_oid = sdoid,
+            description_type_id = 18,
+            description_type = "Journal Source String",
+            description_text = journal_source.Trim(),
+            lang_code = "en"
+        });
+    
+
 
         // Comment corrections list.
 
-        XElement comments_list = citation.Element("CommentsCorrectionsList");
-        if (comments_list != null)
+        var comments_list = r.CorrectionsList;
+        if (comments_list?.Any() == true)
         {
-            comments = comments_list
-                        .Elements("CommentsCorrections").Select(cc => new ObjectComment
-                        {
-                            sd_oid = sdoid,
-                            ref_type = GetAttributeAsString(cc.Attribute("RefType")),
-                            ref_source = GetElementAsString(cc.Element("RefSource")),
-                            pmid = GetElementAsString(cc.Element("PMID")),
-                            pmid_version = (cc.Element("PMID") != null) ? GetAttributeAsString(cc.Element("PMID").Attribute("Version")) : null,
-                            notes = GetElementAsString(cc.Element("Note"))
-                        }).ToList();
+            foreach (var comm in comments_list)
+            {
+                string? ref_type = comm.RefType;
+                string? ref_source = comm.RefSource;
+                string? pmid = comm.PMID_Value is null ? "" : comm.PMID_Value.ToString();
+                string? pmid_version = comm.PMID_Version is null ? "" : comm.PMID_Version.ToString();
+                string? notes = comm.Note; // *********************************************************
+                comments.Add(new ObjectComment(sdoid, ref_type, ref_source, pmid, pmid_version, notes));
+            }
         }
 
 
         // Publication types.
 
-        XElement publication_type_list = article.Element("PublicationTypeList");
-        if (publication_type_list != null)
+        var publication_type_list = r.ArticleTypes;
+        if (publication_type_list?.Any() == true)
         {
-            string type_name;
-            var pub_types = publication_type_list.Elements("PublicationType");
-            if (pub_types.Count() > 0)
+            foreach (var pub in publication_type_list)
             {
-                foreach (var pub in pub_types)
+                string? type_name = pub.Value;
+                if (!string.IsNullOrEmpty(type_name) && !type_name.Contains("Research Support"))
                 {
-                    type_name = GetElementAsString(pub);
-                    
-                    if(!type_name.Contains("Research Support"))
-                    {
-                        pubtypes.Add(new ObjectPublicationType(sdoid, type_name));
-                    }
+                    pubtypes.Add(new ObjectPublicationType(sdoid, type_name));
                 }
             }
         }
 
-        #endregion
-
-
 
         // Tidy up article title and then derive the display title.
 
-        if (art_title.EndsWith(";"))
+        if (!string.IsNullOrEmpty(default_title))
         {
-            art_title = art_title.TrimEnd(';') + ". ";
-        }
-        else if (!art_title.EndsWith(".") && !art_title.EndsWith("?"))
-        {
-            art_title = art_title + ". ";
-        }
-        else
-        {
-            art_title = art_title + " ";
+            if (default_title.EndsWith(";"))
+            {
+                default_title = default_title.TrimEnd(';') + ". ";
+            }
+            else if (!default_title.EndsWith(".") && !default_title.EndsWith("?"))
+            {
+                default_title = default_title + ". ";
+            }
+            else
+            {
+                default_title = default_title + " ";
+            }
         }
 
-        fob.title = art_title.Trim();
-        fob.display_title = ((author_string != "" ? author_string + ". " : "") + art_title + journal_source).Trim();
+        fob.title = default_title.Trim();
+        fob.display_title = ((author_string != "" ? author_string + ". " : "") + default_title + journal_source).Trim();
 
         // Tidy up doi status.
 
@@ -1504,8 +1272,8 @@ public class PubmedProcessor : IObjectProcessor
 
         // get managing org data from eissn, pissn
         // need reference to a repo...
-        // fob.managing_org_id
-        // fob.managing_org
+        // for.managing_org_id
+        // for.managing_org
 
 
         // Assign repeating properties to citation object
@@ -1523,71 +1291,6 @@ public class PubmedProcessor : IObjectProcessor
         fob.object_comments = comments;
 
         return fob;
-    }
-
-
-    private string GetElementAsString(XElement e) => (e == null) ? null : (string)e;
-
-    private string GetAttributeAsString(XAttribute a) => (a == null) ? null : (string)a;
-
-
-    private int? GetElementAsInt(XElement e)
-    {
-        string evalue = GetElementAsString(e);
-        if (string.IsNullOrEmpty(evalue))
-        {
-            return null;
-        }
-        else
-        {
-            if (Int32.TryParse(evalue, out int res))
-                return res;
-            else
-                return null;
-        }
-    }
-
-    private int? GetAttributeAsInt(XAttribute a)
-    {
-        string avalue = GetAttributeAsString(a);
-        if (string.IsNullOrEmpty(avalue))
-        {
-            return null;
-        }
-        else
-        {
-            if (Int32.TryParse(avalue, out int res))
-                return res;
-            else
-                return null;
-        }
-    }
-
-
-    private bool GetElementAsBool(XElement e)
-    {
-        string evalue = GetElementAsString(e);
-        if (evalue != null)
-        {
-            return (evalue.ToLower() == "true" || evalue.ToLower()[0] == 'y') ? true : false;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    private bool GetAttributeAsBool(XAttribute a)
-    {
-        string avalue = GetAttributeAsString(a);
-        if (avalue != null)
-        {
-            return (avalue.ToLower() == "true" || avalue.ToLower()[0] == 'y') ? true : false;
-        }
-        else
-        {
-            return false;
-        }
     }
 }
 

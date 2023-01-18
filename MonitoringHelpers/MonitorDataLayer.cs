@@ -224,17 +224,6 @@ public class MonitorDataLayer : IMonitorDataLayer
         using NpgsqlConnection Conn = new(connString);
         return (int)Conn.Insert<HarvestEvent>(harvest);
     }
-    
-
-    // gets a 2 letter language code rather than thean the original 3
-    public string? lang_3_to_2(string lang_code_3)
-    {
-        using NpgsqlConnection Conn = new(context_connString);
-        string sql_string = "select code from lup.language_codes where ";
-        sql_string += " marc_code = '" + lang_code_3 + "';";
-        return Conn.Query<string>(sql_string).FirstOrDefault();
-    }
-
 
 }
 

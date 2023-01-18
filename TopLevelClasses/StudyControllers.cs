@@ -49,16 +49,19 @@ namespace MDR_Harvester
                     if (File.Exists(filePath))
                     {
                         string jsonString = File.ReadAllText(filePath);
-                        Study s = _processor.ProcessData(jsonString, rec.last_downloaded);
+                        Study? s = _processor.ProcessData(jsonString, rec.last_downloaded);
 
-                        // store the data in the database			
-                        _storage_repo.StoreFullStudy(s, _source);
-
-                        // update file record with last processed datetime
-                        // (if not in test mode)
-                        if (harvest_type_id != 3)
+                        if (s is not null)
                         {
-                            _mon_repo.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvest_id);
+                            // store the data in the database			
+                            _storage_repo.StoreFullStudy(s, _source);
+
+                            // update file record with last processed datetime
+                            // (if not in test mode)
+                            if (harvest_type_id != 3)
+                            {
+                                _mon_repo.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvest_id);
+                            }
                         }
                     }
 

@@ -116,7 +116,7 @@ class Harvester : IHarvester
                 {
                     if (source.uses_who_harvest)
                     {
-                        study_processor = new WHOProcessor(_mon_repo, logging_helper);
+                        study_processor = new WHOProcessor(logging_helper);
                     }
                     else
                     {
@@ -124,7 +124,7 @@ class Harvester : IHarvester
                         {
                             case 101900:
                                 {
-                                    study_processor = new BioLinccProcessor(_mon_repo, logging_helper);
+                                    study_processor = new BioLinccProcessor(logging_helper);
                                     break;
                                 }
                             case 101901:
@@ -134,7 +134,7 @@ class Harvester : IHarvester
                                 }
                             case 100120:
                                 {
-                                    study_processor = new CTGProcessor(_mon_repo, logging_helper);
+                                    study_processor = new CTGProcessor(logging_helper);
                                     break;
                                 }
                             case 100123:
@@ -144,7 +144,7 @@ class Harvester : IHarvester
                                 }
                             case 100126:
                                 {
-                                    study_processor = new IsrctnProcessor(_mon_repo, logging_helper);
+                                    study_processor = new IsrctnProcessor(logging_helper);
                                     break;
                                 }
                         }
