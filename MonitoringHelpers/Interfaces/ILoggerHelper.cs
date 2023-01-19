@@ -1,9 +1,22 @@
 ﻿namespace MDR_Harvester
 {
-    public interface ILoggerHelper
+    public interface ILoggingHelper
     {
-        void LogCommandLineParameters(Options opts);
+        string LogFilePath { get; }
+
+        void OpenLogFile(string database_name);
+        void OpenNoSourceLogFile();
+
+        void LogLine(string message, string identifier = "");
         void LogHeader(string header_text);
+        void LogError(string message);
+        void LogCodeError(string header, string errorMessage, string? stackTrace);
+        void LogParseError(string header, string errorNum, string errorType);
+        void Reattach();
+        void SwitchLog();
+        void CloseLog();
+        
+        void LogCommandLineParameters(Options opts);
         void LogStudyHeader(Options opts, string dbline);
         void LogTableStatistics(ISource s, string schema);
     }

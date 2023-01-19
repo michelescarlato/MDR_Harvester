@@ -8,12 +8,10 @@ namespace MDR_Harvester.Ctg;
 
 public class CTGProcessor : IStudyProcessor
 {
-    //IMonitorDataLayer _mon_repo;
-    LoggingHelper _logger_helper;
+    ILoggingHelper _logger_helper;
 
-    public CTGProcessor(LoggingHelper logger_helper)
+    public CTGProcessor(ILoggingHelper logger_helper)
     {
-        //_mon_repo = mon_repo;
         _logger_helper = logger_helper;
     }
 
@@ -49,6 +47,8 @@ public class CTGProcessor : IStudyProcessor
         List<StudyRelationship> relationships = new();
         List<StudyLocation> sites = new();
         List<StudyCountry> countries = new();
+        List<StudyCondition> conditions = new();
+        List<StudyIEC> iec = new();
 
         List<DataObject> data_objects = new();
         List<ObjectDataset> object_datasets = new();
@@ -452,10 +452,10 @@ public class CTGProcessor : IStudyProcessor
             var condition_meshlist = ConditionBrowseModule.ConditionMeshList;
             if (condition_meshlist is not null)
             {
-                var conditions = condition_meshlist.ConditionMesh;
-                if (conditions?.Any() == true)
+                var conds = condition_meshlist.ConditionMesh;
+                if (conds?.Any() == true)
                 {
-                    foreach (var con in conditions)
+                    foreach (var con in conds)
                     {
                         string? mesh_code = con.ConditionMeshId;
                         string? mesh_term = con.ConditionMeshTerm;
@@ -492,12 +492,13 @@ public class CTGProcessor : IStudyProcessor
             var conditions_list = ConditionsModule.ConditionList;
             if (conditions_list is not null)
             {
-                var conditions = conditions_list.Condition;
-                if (conditions?.Any() == true)
+                var conds = conditions_list.Condition;
+                if (conds?.Any() == true)
                 {
-                    foreach (string condition in conditions)
+                    foreach (string condition in conds)
                     {
-                        // only add the condition name if not already present in the mesh coded conditions
+                        // only add the condition name if not already present in the mesh coded conditions.
+
                         if (topic_is_new(condition))
                         {
                             topics.Add(new StudyTopic(sid, 13, "condition", condition));
@@ -1402,7 +1403,7 @@ public class CTGProcessor : IStudyProcessor
                                     object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
                                     title_type_id, title_type, true));
 
-                                    object_instances.Add(new ObjectInstance(sd_oid, 4, "Summary version", 100165,
+                                    object_instances.Add(new ObjectInstance(sd_oid, 100165,
                                                 "Merck Sharp & Dohme Corp.", ipd_url, true, 11, "PDF", null, null));
                                 }
                                 else
@@ -1851,6 +1852,8 @@ public class CTGProcessor : IStudyProcessor
         s.relationships = relationships;
         s.sites = sites;
         s.countries = countries;
+        s.conditions = conditions;
+        s.iec = iec;
 
         s.data_objects = data_objects;
         s.object_datasets = object_datasets;

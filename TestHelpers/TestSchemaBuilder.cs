@@ -61,6 +61,10 @@ public class TestSchemaBuilder
         studytablebuilder.create_table_study_relationships();
         studytablebuilder.create_table_ipd_available();
         studytablebuilder.create_table_study_links();
+        studytablebuilder.create_table_study_countries();
+        studytablebuilder.create_table_study_locations();
+        studytablebuilder.create_table_study_conditions();
+        studytablebuilder.create_table_study_iec();
 
         ExpectedObjectTableBuilder objecttablebuilder = new ExpectedObjectTableBuilder(_db_conn);
 
@@ -98,6 +102,10 @@ public class TestSchemaBuilder
         studytablebuilder.create_table_ipd_available();
         studytablebuilder.create_table_study_links();
         studytablebuilder.create_table_study_hashes();
+        studytablebuilder.create_table_study_countries();
+        studytablebuilder.create_table_study_locations();
+        studytablebuilder.create_table_study_conditions();
+        studytablebuilder.create_table_study_iec();
 
         SDCompObjectTableBuilder objecttablebuilder = new SDCompObjectTableBuilder(_db_conn);
 

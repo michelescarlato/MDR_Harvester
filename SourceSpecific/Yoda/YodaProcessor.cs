@@ -7,9 +7,9 @@ namespace MDR_Harvester.Yoda;
 
 public class YodaProcessor : IStudyProcessor
 {
-    private readonly LoggingHelper _logger_helper;
+    private readonly ILoggingHelper _logger_helper;
 
-    public YodaProcessor(LoggingHelper logger_helper)
+    public YodaProcessor(ILoggingHelper logger_helper)
     {
         _logger_helper = logger_helper;
     }
@@ -38,16 +38,17 @@ public class YodaProcessor : IStudyProcessor
         // get date retrieved in object fetch
         // transfer to study and data object records
 
-        List<StudyIdentifier> study_identifiers = new();
-        List<StudyTitle> study_titles = new();
-        List<StudyReference> study_references = new();
-        List<StudyContributor> study_contributors = new();
-        List<StudyTopic> study_topics = new();
+        List<StudyIdentifier> identifiers = new();
+        List<StudyTitle> titles = new();
+        List<StudyReference> references = new();
+        List<StudyContributor> contributors = new();
+        List<StudyTopic> topics = new();
+        List<StudyCondition> conditions = new();
 
         List<DataObject> data_objects = new();
         List<ObjectDataset> object_datasets = new();
-        List<ObjectTitle> data_object_titles = new();
-        List<ObjectInstance> data_object_instances = new();
+        List<ObjectTitle> object_titles = new();
+        List<ObjectInstance> object_instances = new();
 
         string sid = r.sd_sid!;
         s.sd_sid = sid;
@@ -73,7 +74,7 @@ public class YodaProcessor : IStudyProcessor
                 string? title_type = t.title_type; 
                 bool? is_default = t.is_default;
                 string? comments = t.comments;
-                study_titles.Add(new StudyTitle(sid, title_text, title_type_id, title_type, is_default, comments));
+                titles.Add(new StudyTitle(sid, title_text, title_type_id, title_type, is_default, comments));
             }
         }
 
@@ -146,7 +147,11 @@ public class YodaProcessor : IStudyProcessor
                 int? identifier_org_id = i.identifier_org_id;  
                 string? identifier_org = i.identifier_org?.ReplaceApos();
 
-                study_identifiers.Add(new StudyIdentifier(sid, identifier_value, identifier_type_id, identifier_type,
+                if (identifier_org_id == 0)
+                {
+                    identifier_org_id = null;  // 0 is inserted in the JSON file by default
+                }
+                identifiers.Add(new StudyIdentifier(sid, identifier_value, identifier_type_id, identifier_type,
                                                     identifier_org_id, identifier_org));
             }
         }
@@ -169,15 +174,16 @@ public class YodaProcessor : IStudyProcessor
             sponsor_org_id = null;
             sponsor_org = "No organisation name provided in source data";
         }
-        study_contributors.Add(new StudyContributor(sid, 54, "Study Sponsor", sponsor_org_id, sponsor_org));
+        contributors.Add(new StudyContributor(sid, 54, "Study Sponsor", sponsor_org_id, sponsor_org));
 
         // study topics.
 
         string? compound_generic_name = r.compound_generic_name;
         string? compound_product_name = r.compound_product_name;
+
         if (!string.IsNullOrEmpty(compound_generic_name))
         {
-            study_topics.Add(new StudyTopic(sid, 12, "chemical / agent", compound_generic_name));
+            topics.Add(new StudyTopic(sid, 12, "chemical / agent", compound_generic_name));
         }
 
         if (!string.IsNullOrEmpty(compound_product_name))
@@ -187,7 +193,7 @@ public class YodaProcessor : IStudyProcessor
 
             // see if already exists
             bool add_product = true;
-            foreach (StudyTopic t in study_topics)
+            foreach (StudyTopic t in topics)
             {
                 if (product_name.ToLower() == t.original_value?.ToLower())
                 {
@@ -199,14 +205,14 @@ public class YodaProcessor : IStudyProcessor
             if (add_product)
             {
                 product_name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(product_name.ToLower());
-                study_topics.Add(new StudyTopic(sid, 12, "chemical / agent", product_name));
+                topics.Add(new StudyTopic(sid, 12, "chemical / agent", product_name));
             }
         }
 
         string? conditions_studied = r.conditions_studied;
-        if (!string.IsNullOrEmpty(conditions_studied))
+        if (!string.IsNullOrEmpty(conditions_studied) && conditions_studied != "Healthy Volunteers")
         {
-            study_topics.Add(new StudyTopic(sid, 13, "condition", conditions_studied));
+            conditions.Add(new StudyCondition(sid, conditions_studied, null, null));
         }
 
         // create study references (pmids)
@@ -219,7 +225,7 @@ public class YodaProcessor : IStudyProcessor
                 string? link = sr.link;
                     
                 // normally only 1 if there is one there at all 
-                study_references.Add(new StudyReference(sid, pmid, link, null, null));
+                references.Add(new StudyReference(sid, pmid, link, null, 202, "Journal article - results"));
             }
         }
 
@@ -235,9 +241,9 @@ public class YodaProcessor : IStudyProcessor
 
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", 38, "Study Overview",
                             101901, "Yoda", 12, download_datetime));
-        data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
+        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
                         "Study short name :: object type", true));
-        data_object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda",
+        object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda",
                             remote_url, true, 35, "Web text"));
 
         // then for each supp doc...
@@ -252,10 +258,9 @@ public class YodaProcessor : IStudyProcessor
                 string? doc_name = sd.doc_name;
                 string? comment = sd.comment;
                 string? url = sd.url;
-                //object_title = doc_name;
 
                 if (doc_name is not null)
-                {
+                {               
                     if (doc_name.Contains("Datasets"))
                     {
                         object_class_id = 14; object_class = "Datasets";
@@ -283,6 +288,7 @@ public class YodaProcessor : IStudyProcessor
                         object_type_id = obtype.Item1;
                         object_type = obtype.Item2;
 
+                        object_title = doc_name;
                         object_display_title = name_base + " :: " + object_type;
                         sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
 
@@ -290,7 +296,7 @@ public class YodaProcessor : IStudyProcessor
                         {
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
                                             101901, "Yoda", 11, download_datetime));
-                            data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
+                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
 
                             // create instance as resource exists
                             // get file type from link if possible
@@ -310,7 +316,7 @@ public class YodaProcessor : IStudyProcessor
                                 resource_type_id = 0;
                                 resource_type = "Not yet known";
                             }
-                            data_object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda", url, true, resource_type_id, resource_type));
+                            object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda", url, true, resource_type_id, resource_type));
                         }
                         else
                         {
@@ -322,7 +328,7 @@ public class YodaProcessor : IStudyProcessor
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
                                             101901, "Yoda", 17, "Case by case download", access_details,
                                             "https://yoda.yale.edu/how-request-data", null, download_datetime));
-                            data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
+                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
                         }
 
                         // for datasets also add dataset properties - even if they are largely unknown
@@ -340,16 +346,17 @@ public class YodaProcessor : IStudyProcessor
 
 
         // add in the study properties
-        s.identifiers = study_identifiers;
-        s.titles = study_titles;
-        s.references = study_references;
-        s.contributors = study_contributors;
-        s.topics = study_topics;
+        s.identifiers = identifiers;
+        s.titles = titles;
+        s.references = references;
+        s.contributors = contributors;
+        s.topics = topics;
+        s.conditions = conditions;
 
         s.data_objects = data_objects;
         s.object_datasets = object_datasets;
-        s.object_titles = data_object_titles;
-        s.object_instances = data_object_instances;
+        s.object_titles = object_titles;
+        s.object_instances = object_instances;
 
         return s;
     }

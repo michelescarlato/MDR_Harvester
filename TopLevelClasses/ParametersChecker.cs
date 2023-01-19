@@ -5,21 +5,22 @@ using System.Text.RegularExpressions;
 
 namespace MDR_Harvester;
 
-internal class ParameterChecker
+public class ParameterChecker
 {
-    private IMonitorDataLayer _mon_repo;
-    private ITestingDataLayer _test_repo;
-    private LoggingHelper _logging_helper;
+    private readonly ILoggingHelper _logging_helper;
+    private readonly IMonDataLayer _mon_data_layer;
+    private readonly ITestingDataLayer _test_repo;
 
-    internal ParameterChecker(IMonitorDataLayer mon_repo, ITestingDataLayer test_repo, LoggingHelper logging_helper)
+    public ParameterChecker(IMonDataLayer mon_data_layer, ITestingDataLayer test_repo, 
+                              ILoggingHelper logging_helper)
     {
-        _mon_repo = mon_repo;
+        _mon_data_layer = mon_data_layer;
         _test_repo = test_repo;
         _logging_helper = logging_helper;
     }
 
 
-    internal ParamsCheckResult CheckParams(string[]? args)
+    public ParamsCheckResult CheckParams(string[]? args)
     {
         // Calls the CommandLine parser. If an error in the initial parsing, log it 
         // and return an error. If parameters can be passed, check their validity
@@ -40,7 +41,7 @@ internal class ParameterChecker
     }
 
 
-    internal ParamsCheckResult CheckArgumentValuesAreValid(Options opts)
+    public ParamsCheckResult CheckArgumentValuesAreValid(Options opts)
     {
         // 'opts' is passed by reference and may be changed by the checking mechanism.
 
@@ -53,7 +54,6 @@ internal class ParameterChecker
                 List<int> ids = new() { 999999 };
                 opts.source_ids = ids;
                 opts.harvest_type_id = 3;
-                opts.org_update_only = false;
                 return new ParamsCheckResult(false, false, opts); // can always run if -E parameter present
             }
             else if (opts.harvest_all_test_data)
@@ -63,7 +63,6 @@ internal class ParameterChecker
 
                 opts.source_ids = _test_repo.ObtainTestSourceIDs();
                 opts.harvest_type_id = 3;
-                opts.org_update_only = false;
                 return new ParamsCheckResult(false, false, opts); // should always run if -F parameter present
             }
             else
@@ -71,22 +70,25 @@ internal class ParameterChecker
                 // check valid harvest type id
 
                 int harvest_type_id = opts.harvest_type_id;
-                if (!opts.org_update_only)
+                if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3)
                 {
-                    if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3)
-                    {
-                        throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2 or 3");
-                    }
+                    throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2 or 3");
                 }
 
                 // check the source(s) validity
-
-                foreach (int source_id in opts.source_ids)
+                if (opts.source_ids is null)
                 {
-                    if (!_mon_repo.SourceIdPresent(source_id))
+                    throw new ArgumentException("No Source parameter found");
+                }
+                else
+                {
+                    foreach (int source_id in opts.source_ids)
                     {
-                        throw new ArgumentException("Source argument " + source_id.ToString() +
-                                                    " does not correspond to a known source");
+                        if (!_mon_data_layer.SourceIdPresent(source_id))
+                        {
+                            throw new ArgumentException("Source argument " + source_id.ToString() +
+                                                        " does not correspond to a known source");
+                        }
                     }
                 }
 
@@ -146,11 +148,8 @@ public class Options
     [Option('s', "source_ids", Required = false, Separator = ',', HelpText = "Comma separated list of Integer ids of data sources.")]
     public IEnumerable<int>? source_ids { get; set; }
 
-    [Option('t', "harvest_type_id", Required = false, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 3 = test data only.")]
+    [Option('t', "harvest_type_id", Required = true, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 3 = test data only.")]
     public int harvest_type_id { get; set; }
-
-    [Option('G', "organisation_update_only", Required = false, HelpText = "If present does not recreate sd tables - only updates organisation ids")]
-    public bool org_update_only { get; set; }
 
     [Option('E', "establish_expected_test_data", Required = false, HelpText = "If present only creates and fills tables for the 'expected' data. for comparison with processed test data")]
     public bool setup_expected_data_only { get; set; }
@@ -160,7 +159,7 @@ public class Options
 }
 
 
-internal class ParamsCheckResult
+public class ParamsCheckResult
 {
     internal bool ParseError { get; set; }
     internal bool ValidityError { get; set; }

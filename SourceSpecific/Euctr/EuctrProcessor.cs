@@ -13,9 +13,9 @@ namespace MDR_Harvester.Euctr;
 
 public class EUCTRProcessor : IStudyProcessor
 {
-    private readonly LoggingHelper _logger_helper;
+    private readonly ILoggingHelper _logger_helper;
 
-    public EUCTRProcessor(LoggingHelper logger_helper)
+    public EUCTRProcessor(ILoggingHelper logger_helper)
     {
         _logger_helper = logger_helper;
     }
@@ -46,6 +46,8 @@ public class EUCTRProcessor : IStudyProcessor
         List<StudyTopic> topics = new();
         List<StudyFeature> features = new();
         List<StudyCountry> countries = new();
+        List<StudyCondition> conditions = new();
+        List<StudyIEC> iec = new();
 
         List<DataObject> data_objects = new();
         List<ObjectTitle> object_titles = new();
@@ -1096,6 +1098,8 @@ public class EUCTRProcessor : IStudyProcessor
         s.topics = topics;
         s.features = features;
         s.countries = countries;
+        s.conditions = conditions;
+        s.iec = iec;
 
         s.data_objects = data_objects;
         s.object_titles = object_titles;

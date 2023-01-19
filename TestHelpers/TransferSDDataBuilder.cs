@@ -9,15 +9,20 @@ namespace MDR_Harvester
 
     class TransferSDDataBuilder
     {
-        private int _source_id;
-        private string _db_conn;
-        private ISource _source;
+        private int _source_id = 0;
+        private string _db_conn = "";
+        private ISource? _source;
 
         public TransferSDDataBuilder(ISource source)
         {
             _source = source;
-            _source_id = source.id;
-            _db_conn = source.db_conn;
+            if (source is not null && source.id.HasValue)
+            {
+                // as it always should be...
+
+                _source_id = (int)source.id!;           
+                _db_conn = source.db_conn;
+            }
         }
 
 
@@ -32,13 +37,17 @@ namespace MDR_Harvester
 
                 // these are database dependent
 
-                if (_source.has_study_topics) DeleteData(_source_id, "study_topics");
-                if (_source.has_study_features) DeleteData(_source_id, "study_features");
-                if (_source.has_study_contributors) DeleteData(_source_id, "study_contributors");
-                if (_source.has_study_references) DeleteData(_source_id, "study_references");
-                if (_source.has_study_relationships) DeleteData(_source_id, "study_relationships");
-                if (_source.has_study_links) DeleteData(_source_id, "study_links");
-                if (_source.has_study_ipd_available) DeleteData(_source_id, "study_ipd_available");
+                if (_source?.has_study_topics == true) DeleteData(_source_id, "study_topics");
+                if (_source?.has_study_features == true) DeleteData(_source_id, "study_features");
+                if (_source?.has_study_contributors == true) DeleteData(_source_id, "study_contributors");
+                if (_source?.has_study_references == true) DeleteData(_source_id, "study_references");
+                if (_source?.has_study_relationships == true) DeleteData(_source_id, "study_relationships");
+                if (_source?.has_study_links == true) DeleteData(_source_id, "study_links");
+                if (_source?.has_study_ipd_available == true) DeleteData(_source_id, "study_ipd_available");
+                if (_source?.has_study_countries == true) DeleteData(_source_id, "study_ipd_available");
+                if (_source?.has_study_locations == true) DeleteData(_source_id, "study_ipd_available");
+                if (_source?.has_study_conditions == true) DeleteData(_source_id, "study_ipd_available");
+                if (_source?.has_study_iec == true) DeleteData(_source_id, "study_ipd_available");
             }
         }
 
@@ -54,11 +63,11 @@ namespace MDR_Harvester
 
                 // these are database dependent		
 
-                if (_source.has_object_datasets) DeleteData(_source_id, "object_datasets");
-                if (_source.has_object_dates) DeleteData(_source_id, "object_dates");
-                if (_source.has_object_relationships) DeleteData(_source_id, "object_relationships");
-                if (_source.has_object_rights) DeleteData(_source_id, "object_rights");
-                if (_source.has_object_pubmed_set)
+                if (_source?.has_object_datasets == true) DeleteData(_source_id, "object_datasets");
+                if (_source?.has_object_dates == true) DeleteData(_source_id, "object_dates");
+                if (_source?.has_object_relationships == true) DeleteData(_source_id, "object_relationships");
+                if (_source?.has_object_rights == true) DeleteData(_source_id, "object_rights");
+                if (_source?.has_object_pubmed_set == true)
                 {
                     DeleteData(_source_id, "object_contributors");
                     DeleteData(_source_id, "object_topics");
@@ -83,13 +92,13 @@ namespace MDR_Harvester
 
             // these are database dependent
 
-            if (_source.has_study_topics) stt.TransferStudyTopics();
-            if (_source.has_study_features) stt.TransferStudyFeatures();
-            if (_source.has_study_contributors) stt.TransferStudyContributors();
-            if (_source.has_study_references) stt.TransferStudyReferences();
-            if (_source.has_study_relationships) stt.TransferStudyRelationships();
-            if (_source.has_study_links) stt.TransferStudyLinks();
-            if (_source.has_study_ipd_available) stt.TransferStudyIPDAvaiable();
+            if (_source?.has_study_topics == true) stt.TransferStudyTopics();
+            if (_source?.has_study_features == true) stt.TransferStudyFeatures();
+            if (_source?.has_study_contributors == true) stt.TransferStudyContributors();
+            if (_source?.has_study_references == true) stt.TransferStudyReferences();
+            if (_source?.has_study_relationships == true) stt.TransferStudyRelationships();
+            if (_source?.has_study_links == true) stt.TransferStudyLinks();
+            if (_source?.has_study_ipd_available == true) stt.TransferStudyIPDAvaiable();
 
         }
 
@@ -105,12 +114,12 @@ namespace MDR_Harvester
            
             // these are database dependent		
 
-            if (_source.has_object_datasets) ott.TransferObjectDatasets();
-            if (_source.has_object_dates) ott.TransferObjectDates();
-            if (_source.has_object_relationships) ott.TransferObjectRelationships();
-            if (_source.has_object_rights) ott.TransferObjectRights();
+            if (_source?.has_object_datasets == true) ott.TransferObjectDatasets();
+            if (_source?.has_object_dates == true) ott.TransferObjectDates();
+            if (_source?.has_object_relationships == true) ott.TransferObjectRelationships();
+            if (_source?.has_object_rights == true) ott.TransferObjectRights();
 
-            if (_source.has_object_pubmed_set)
+            if (_source?.has_object_pubmed_set == true)
             {
                 ott.TransferObjectContributors();
                 ott.TransferObjectTopics();

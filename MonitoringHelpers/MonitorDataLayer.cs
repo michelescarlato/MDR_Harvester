@@ -9,12 +9,13 @@ using System.Linq;
 
 namespace MDR_Harvester;
 
-public class MonitorDataLayer : IMonitorDataLayer
+public class MonDataLayer : IMonDataLayer
 {
-    ICredentials _credentials;
-    NpgsqlConnectionStringBuilder builder;
-    private string connString;
-    private string context_connString;
+    private readonly ILoggingHelper _logging_helper;
+    private readonly ICredentials _credentials;
+    private readonly NpgsqlConnectionStringBuilder builder;
+    private readonly string connString;
+    private readonly string context_connString;
     
 
     /// <summary>
@@ -23,14 +24,15 @@ public class MonitorDataLayer : IMonitorDataLayer
     /// from the app settings, themselves derived from a json file.
     /// </summary>
     /// 
-    public MonitorDataLayer(ICredentials credentials)
+
+    public MonDataLayer(ILoggingHelper logging_helper, ICredentials credentials)
     {
         builder = new NpgsqlConnectionStringBuilder();
 
         builder.Host = credentials.Host;
         builder.Username = credentials.Username;
         builder.Password = credentials.Password;
-
+        builder.Port = credentials.Port;
         builder.Database = "mon";
         connString = builder.ConnectionString;
 
@@ -208,7 +210,7 @@ public class MonitorDataLayer : IMonitorDataLayer
         return Conn.Query<ObjectFileRecord>(sql_string).FirstOrDefault();
     }
 
-    public void UpdateFileRecLastHarvested(int id, string source_type, int last_harvest_id)
+    public void UpdateFileRecLastHarvested(int? id, string source_type, int last_harvest_id)
     {
         using NpgsqlConnection Conn = new(connString);
         string sql_string = source_type.ToLower() == "study" ? "update sf.source_data_studies"
@@ -224,6 +226,5 @@ public class MonitorDataLayer : IMonitorDataLayer
         using NpgsqlConnection Conn = new(connString);
         return (int)Conn.Insert<HarvestEvent>(harvest);
     }
-
 }
 

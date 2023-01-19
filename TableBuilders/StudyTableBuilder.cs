@@ -6,20 +6,20 @@ namespace MDR_Harvester
 {
     public class StudyTableBuilder
     {
-        string _db_conn;
+        private readonly string _db_conn = "";
 
-        public StudyTableBuilder(string db_conn)
+        public StudyTableBuilder(string? db_conn)
         {
-            _db_conn = db_conn;
+            if (db_conn is not null)
+            {
+                _db_conn = db_conn;
+            }
         }
-
 
         public void Execute_SQL(string sql_string)
         {
-            using (var conn = new NpgsqlConnection(_db_conn))
-            {
-                conn.Execute(sql_string);
-            }
+            using var conn = new NpgsqlConnection(_db_conn);
+            conn.Execute(sql_string);
         }
 
 
@@ -39,7 +39,7 @@ namespace MDR_Harvester
               , study_type             VARCHAR         NULL
               , study_status_id        INT             NULL
               , study_status           VARCHAR         NULL
-              , study_enrolment        VARCHAR             NULL
+              , study_enrolment        VARCHAR         NULL
               , study_gender_elig_id   INT             NULL
               , study_gender_elig      VARCHAR         NULL
               , min_age                INT             NULL
@@ -48,9 +48,8 @@ namespace MDR_Harvester
               , max_age                INT             NULL
               , max_age_units_id       INT             NULL
               , max_age_units          VARCHAR         NULL
+              , iec_level              INT             NULL
               , datetime_of_data_fetch TIMESTAMPTZ     NULL
-              , record_hash            CHAR(32)        NULL
-              , study_full_hash        CHAR(32)        NULL
             );
             CREATE INDEX studies_sid ON sd.studies(sd_sid);";
 
@@ -72,7 +71,6 @@ namespace MDR_Harvester
               , identifier_org_ror_id  VARCHAR         NULL
               , identifier_date        VARCHAR         NULL
               , identifier_link        VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_identifiers_sd_sid ON sd.study_identifiers(sd_sid);";
 
@@ -89,7 +87,6 @@ namespace MDR_Harvester
               , relationship_type_id   INT             NULL
               , relationship_type      VARCHAR         NULL
               , target_sd_sid          VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_relationships_sd_sid ON sd.study_relationships(sd_sid);
             CREATE INDEX study_relationships_target_sd_sid ON sd.study_relationships(target_sd_sid);";
@@ -107,14 +104,14 @@ namespace MDR_Harvester
               , pmid                   VARCHAR         NULL
               , citation               VARCHAR         NULL
               , doi                    VARCHAR         NULL	
+              , type_id                INT             NULL
+              , type                   VARCHAR         NULL
               , comments               VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_references_sd_sid ON sd.study_references(sd_sid);";
 
             Execute_SQL(sql_string);
         }
-
 
         public void create_table_study_titles()
         {
@@ -129,7 +126,6 @@ namespace MDR_Harvester
               , lang_usage_id          INT             NOT NULL default 11
               , is_default             BOOLEAN         NULL
               , comments               VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_titles_sd_sid ON sd.study_titles(sd_sid);";
 
@@ -155,7 +151,6 @@ namespace MDR_Harvester
               , organisation_id        INT             NULL
               , organisation_name      VARCHAR         NULL
               , organisation_ror_id    VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_contributors_sd_sid ON sd.study_contributors(sd_sid);";
 
@@ -177,9 +172,24 @@ namespace MDR_Harvester
               , original_ct_id         INT             NULL
               , original_ct_code       VARCHAR         NULL
               , original_value         VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_topics_sd_sid ON sd.study_topics(sd_sid);";
+
+            Execute_SQL(sql_string);
+        }
+
+
+        public void create_table_study_conditions()
+        {
+            string sql_string = @"DROP TABLE IF EXISTS sd.study_conditions;
+            CREATE TABLE sd.study_conditions(
+                id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+              , sd_sid                 VARCHAR         NOT NULL
+              , original_value         VARCHAR         NULL
+              , icd_code               VARCHAR         NULL
+              , icd_name               VARCHAR         NULL
+            );
+            CREATE INDEX study_conditions_sd_sid ON sd.study_conditions(sd_sid);";
 
             Execute_SQL(sql_string);
         }
@@ -195,13 +205,31 @@ namespace MDR_Harvester
               , feature_type           VARCHAR         NULL
               , feature_value_id       INT             NULL
               , feature_value          VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_features_sid ON sd.study_features(sd_sid);";
 
             Execute_SQL(sql_string);
         }
 
+
+        public void create_table_study_iec()
+        {
+            string sql_string = @"DROP TABLE IF EXISTS sd.study_iec;
+            CREATE TABLE sd.study_iec(
+                id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+              , sd_sid                 VARCHAR         NOT NULL
+              , seq_num                INT             NULL
+              , iec_type_id            INT             NULL
+              , iec_type               VARCHAR         NULL
+              , iec_text               VARCHAR         NULL
+              , iec_class_id           INT             NULL
+              , iec_class              VARCHAR         NULL
+              , iec_parsed_text        VARCHAR         NULL
+            );
+            CREATE INDEX study_iec_sid ON sd.study_iec(sd_sid);";
+
+            Execute_SQL(sql_string);
+        }
 
         public void create_table_study_links()
         {
@@ -211,7 +239,6 @@ namespace MDR_Harvester
               , sd_sid                 VARCHAR         NOT NULL
               , link_label             VARCHAR         NULL
               , link_url               VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_links_sd_sid ON sd.study_links(sd_sid);";
 
@@ -234,7 +261,6 @@ namespace MDR_Harvester
               , country_name           VARCHAR         NULL
               , status_id              INT             NULL
               , status                 VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_locations_sd_sid ON sd.study_locations(sd_sid);";
 
@@ -252,7 +278,6 @@ namespace MDR_Harvester
               , country_name           VARCHAR         NULL
               , status_id              INT             NULL
               , status                 VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_countries_sd_sid ON sd.study_countries(sd_sid);";
 
@@ -270,29 +295,10 @@ namespace MDR_Harvester
               , ipd_type               VARCHAR         NULL
               , ipd_url                VARCHAR         NULL
               , ipd_comment            VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX study_ipd_available_sd_sid ON sd.study_ipd_available(sd_sid);";
 
             Execute_SQL(sql_string);
         }
-
-
-        /*
-        public void create_table_study_hashes()
-        {
-            string sql_string = @"DROP TABLE IF EXISTS sd.study_hashes;
-            CREATE TABLE sd.study_hashes(
-                id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
-              , sd_sid                 VARCHAR         NOT NULL
-              , hash_type_id           INT             NULL
-              , hash_type              VARCHAR         NULL
-              , composite_hash         CHAR(32)        NULL
-            );
-            CREATE INDEX study_hashes_sd_sid ON sd.study_hashes(sd_sid);";
-
-            Execute_SQL(sql_string);
-        }
-        */
     }
 }

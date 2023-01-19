@@ -10,7 +10,7 @@ namespace MDR_Harvester
 {
     public class StorageDataLayer : IStorageDataLayer
     {
-        private string db_conn;
+        private string? db_conn;
 
         public void StoreFullStudy(Study s, ISource source)
         {
@@ -28,7 +28,7 @@ namespace MDR_Harvester
             // store study attributes
             // these common to all databases
 
-            if (s.identifiers.Count > 0)
+            if (s.identifiers?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -37,7 +37,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (s.titles.Count > 0)
+            if (s.titles?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -48,7 +48,7 @@ namespace MDR_Harvester
 
             // these are database dependent
 
-            if (source.has_study_topics && s.topics.Count > 0)
+            if (source.has_study_topics == true && s.topics?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -57,7 +57,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_study_features && s.features.Count > 0)
+            if (source.has_study_features == true && s.features?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -66,7 +66,25 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_study_contributors && s.contributors.Count > 0)
+            if (source.has_study_conditions == true && s.conditions?.Count > 0)
+            {
+                using (var conn = new NpgsqlConnection(db_conn))
+                {
+                    conn.Open();
+                    sch.study_conditions_helper.SaveAll(conn, s.conditions);
+                }
+            }
+
+            if (source.has_study_iec == true && s.iec?.Count > 0)
+            {
+                using (var conn = new NpgsqlConnection(db_conn))
+                {
+                    conn.Open();
+                    sch.study_iec_helper.SaveAll(conn, s.iec);
+                }
+            }
+
+            if (source.has_study_contributors == true && s.contributors?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -75,7 +93,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_study_references && s.references.Count > 0)
+            if (source.has_study_references == true && s.references?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -84,7 +102,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_study_relationships && s.relationships.Count > 0)
+            if (source.has_study_relationships == true && s.relationships?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -93,7 +111,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_study_countries && s.countries.Count > 0)
+            if (source.has_study_countries == true && s.countries?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -102,7 +120,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_study_locations && s.sites.Count > 0)
+            if (source.has_study_locations == true && s.sites?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -112,7 +130,7 @@ namespace MDR_Harvester
             }
 
 
-            if (source.has_study_links && s.studylinks.Count > 0)
+            if (source.has_study_links == true && s.studylinks?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -121,7 +139,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_study_ipd_available && s.ipd_info.Count > 0)
+            if (source.has_study_ipd_available == true && s.ipd_info?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -133,7 +151,7 @@ namespace MDR_Harvester
 
             // store linked data objects 
 
-            if (s.data_objects.Count > 0)
+            if (s.data_objects?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -145,7 +163,7 @@ namespace MDR_Harvester
             // store data object attributes
             // these common to all databases
 
-            if (s.object_instances.Count > 0)
+            if (s.object_instances?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -154,7 +172,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (s.object_titles.Count > 0)
+            if (s.object_titles?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -165,7 +183,7 @@ namespace MDR_Harvester
             
             // these are database dependent		
             
-            if (source.has_object_datasets && s.object_datasets.Count > 0)
+            if (source.has_object_datasets == true && s.object_datasets?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -174,7 +192,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_object_dates && s.object_dates.Count > 0)
+            if (source.has_object_dates == true && s.object_dates?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -185,18 +203,18 @@ namespace MDR_Harvester
         }
 
 
-        public void StoreFullObject(FullDataObject b, ISource source)
+        public void StoreFullObject(FullDataObject r, ISource source)
         {
             db_conn = source.db_conn;
             ObjectCopyHelpers och = new ObjectCopyHelpers();
 
-            DataObject d = new DataObject(b);
+            DataObject d = new DataObject(r);
             using (var conn = new NpgsqlConnection(db_conn))
             {
                 conn.Insert<DataObject>(d);
             }
 
-            if (r.object_instances.Count > 0)
+            if (r.object_instances?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -205,7 +223,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (r.object_titles.Count > 0)
+            if (r.object_titles?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -216,7 +234,7 @@ namespace MDR_Harvester
 
             // these are database dependent		
 
-            if (source.has_object_dates && r.object_dates.Count > 0)
+            if (source.has_object_dates == true && r.object_dates?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -225,7 +243,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_object_relationships && r.object_relationships.Count > 0)
+            if (source.has_object_relationships == true && r.object_relationships?.Count > 0)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -234,7 +252,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_object_rights && r.object_rights?.Any() == true)
+            if (source.has_object_rights == true && r.object_rights?.Any() == true)
             {
                 using (var conn = new NpgsqlConnection(db_conn))
                 {
@@ -243,7 +261,7 @@ namespace MDR_Harvester
                 }
             }
 
-            if (source.has_object_pubmed_set)
+            if (source.has_object_pubmed_set == true)
             {
                 if (r.object_contributors?.Any() == true)
                 {

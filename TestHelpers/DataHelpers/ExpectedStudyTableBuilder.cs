@@ -190,6 +190,33 @@ namespace MDR_Harvester
             Execute_SQL(sql_string);
         }
 
+        public void create_table_study_countries()
+        {
+            // *************************************
+            // To ADD
+            // *************************************
+        }
+
+        public void create_table_study_locations()
+        {
+            // *************************************
+            // To ADD
+            // *************************************
+        }
+
+        public void create_table_study_conditions()
+        {
+            // *************************************
+            // To ADD
+            // *************************************
+        }
+
+        public void create_table_study_iec()
+        {
+            // *************************************
+            // To ADD
+            // *************************************
+        }
 
         public void create_table_study_links()
         {

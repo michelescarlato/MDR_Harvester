@@ -7,12 +7,10 @@ namespace MDR_Harvester.Isrctn;
 
 public class IsrctnProcessor : IStudyProcessor
 {
-    //IMonitorDataLayer _mon_repo;
-    LoggingHelper _logger_helper;
+    ILoggingHelper _logger_helper;
 
-    public IsrctnProcessor(LoggingHelper logger_helper)
+    public IsrctnProcessor(ILoggingHelper logger_helper)
     {
-        //_mon_repo = mon_repo;
         _logger_helper = logger_helper;
     }
 
@@ -35,21 +33,23 @@ public class IsrctnProcessor : IStudyProcessor
             return null;
         }
 
-        Study s = new Study();
+        Study s = new();
 
-        List<StudyIdentifier> identifiers = new List<StudyIdentifier>();
-        List<StudyTitle> titles = new List<StudyTitle>();
-        List<StudyContributor> contributors = new List<StudyContributor>();
-        List<StudyReference> references = new List<StudyReference>();
-        List<StudyTopic> topics = new List<StudyTopic>();
-        List<StudyFeature> features = new List<StudyFeature>();
-        List<StudyLocation> sites = new List<StudyLocation>();
-        List<StudyCountry> countries = new List<StudyCountry>();
+        List<StudyIdentifier> identifiers = new();
+        List<StudyTitle> titles = new();
+        List<StudyContributor> contributors = new();
+        List<StudyReference> references = new();
+        List<StudyTopic> topics = new();
+        List<StudyFeature> features = new();
+        List<StudyLocation> sites = new();
+        List<StudyCountry> countries = new();
+        List<StudyCondition> conditions = new();
+        List<StudyIEC> iec = new();
 
-        List<DataObject> data_objects = new List<DataObject>();
-        List<ObjectTitle> object_titles = new List<ObjectTitle>();
-        List<ObjectDate> object_dates = new List<ObjectDate>();
-        List<ObjectInstance> object_instances = new List<ObjectInstance>();
+        List<DataObject> data_objects = new();
+        List<ObjectTitle> object_titles = new();
+        List<ObjectDate> object_dates = new();
+        List<ObjectInstance> object_instances = new();
 
         IsrctnHelpers ih = new();
 
@@ -207,10 +207,13 @@ public class IsrctnProcessor : IStudyProcessor
                     contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, orgname));
                 }
             }
-            sponsor_name = contributors[0].organisation_name;
+            if (contributors?.Any() == true)
+            {
+                sponsor_name = contributors[0].organisation_name;
+            }
         }
 
-        var funders = r.funders;
+            var funders = r.funders;
         if (funders?.Any() == true)
         {
             foreach (var funder in funders)
@@ -1034,6 +1037,8 @@ public class IsrctnProcessor : IStudyProcessor
         s.features = features;
         s.sites = sites;
         s.countries = countries;
+        s.conditions = conditions;
+        s.iec = iec;
 
         s.data_objects = data_objects;
         s.object_titles = object_titles;

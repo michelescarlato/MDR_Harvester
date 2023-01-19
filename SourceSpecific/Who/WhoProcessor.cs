@@ -6,12 +6,10 @@ namespace MDR_Harvester.Who;
 
 public class WHOProcessor : IStudyProcessor
 {
-    //IMonitorDataLayer _mon_repo;
-    LoggingHelper _logger_helper;
+    ILoggingHelper _logger_helper;
 
-    public WHOProcessor(LoggingHelper logger_helper)
+    public WHOProcessor(ILoggingHelper logger_helper)
     {
-       // _mon_repo = mon_repo;
         _logger_helper = logger_helper;
     }
 
@@ -33,24 +31,24 @@ public class WHOProcessor : IStudyProcessor
             return null;
         }
 
-        Study s = new Study();
+        Study s = new();
 
         // get date retrieved in object fetch
         // transfer to study and data object records
 
-        List<StudyIdentifier> study_identifiers = new List<StudyIdentifier>();
-        List<StudyTitle> study_titles = new List<StudyTitle>();
-        List<StudyFeature> study_features = new List<StudyFeature>();
-        List<StudyTopic> study_topics = new List<StudyTopic>();
-        List<StudyContributor> study_contributors = new List<StudyContributor>();
-        List<StudyCountry> countries = new List<StudyCountry>();
+        List<StudyIdentifier> study_identifiers = new();
+        List<StudyTitle> study_titles = new();
+        List<StudyFeature> study_features = new();
+        List<StudyContributor> study_contributors = new();
+        List<StudyCountry> countries = new();
+        List<StudyCondition> conditions = new();
+        List<StudyIEC> iec = new();
 
-        List<DataObject> data_objects = new List<DataObject>();
-        List<ObjectTitle> data_object_titles = new List<ObjectTitle>();
-        List<ObjectDate> data_object_dates = new List<ObjectDate>();
-        List<ObjectInstance> data_object_instances = new List<ObjectInstance>();
+        List<DataObject> data_objects = new();
+        List<ObjectTitle> data_object_titles = new();
+        List<ObjectDate> data_object_dates = new();
+        List<ObjectInstance> data_object_instances = new();
 
-        //MD5Helpers hh = new MD5Helpers();
         WhoHelpers wh = new();
 
         string? sid = r.sd_sid;
@@ -558,27 +556,29 @@ public class WHOProcessor : IStudyProcessor
         {
             foreach (var cn in condList)
             {
-                string? condition = cn.condition;
-                if (!string.IsNullOrEmpty(condition))
+                string? con = cn.condition;
+                if (!string.IsNullOrEmpty(con))
                 {
                     char[] chars_to_trim = { ' ', '?', ':', '*', '/', '-', '_', '+', '=', '>', '<', '&' };
-                    string cond = condition.Trim(chars_to_trim);
-                    if (!string.IsNullOrEmpty(cond) && cond.ToLower() != "not applicable" && cond.ToLower() != "&quot")
+                    string contrim = con.Trim(chars_to_trim);
+                    if (!string.IsNullOrEmpty(contrim) && contrim.ToLower() != "not applicable" && contrim.ToLower() != "&quot")
                     {
-                        if (topic_is_new(cond))
+                        if (condition_is_new(contrim))
                         {
                             string? code = cn.code;
                             string? code_system = cn.code_system;
 
+                            // Populate the conditions table rather than the topics table
+
                             if (code == null)
                             {
-                                study_topics.Add(new StudyTopic(sid, 13, "Condition", cond));
+                                conditions.Add(new StudyCondition(sid, contrim, null, null));
                             }
                             else
                             {
                                 if (code_system == "ICD 10")
                                 {
-                                    study_topics.Add(new StudyTopic(sid, 13, "Condition", cond, 12, code));
+                                    conditions.Add(new StudyCondition(sid, contrim, cn.code, null));
                                 }
                             }
                         }
@@ -588,11 +588,11 @@ public class WHOProcessor : IStudyProcessor
         }
 
 
-        bool topic_is_new(string candidate_topic)
+        bool condition_is_new(string candidate_condition)
         {
-            foreach (StudyTopic k in study_topics)
+            foreach (StudyCondition k in conditions)
             {
-                if (k is not null && k.original_value?.ToLower() == candidate_topic.ToLower())
+                if (k is not null && k.original_value?.ToLower() == candidate_condition.ToLower())
                 {
                     return false;
                 }
@@ -892,9 +892,10 @@ public class WHOProcessor : IStudyProcessor
         s.identifiers = study_identifiers;
         s.titles = study_titles;
         s.features = study_features;
-        s.topics = study_topics;
         s.contributors = study_contributors;
         s.countries = countries;
+        s.conditions = conditions;
+        s.iec = iec;
 
         s.data_objects = data_objects;
         s.object_titles = data_object_titles;

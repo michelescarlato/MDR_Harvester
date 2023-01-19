@@ -1,12 +1,11 @@
-﻿using MDR_Harvester;
-namespace MDR_Harvester.Pubmed;
+﻿namespace MDR_Harvester.Pubmed;
 
-internal class PubMedHelpers
+internal static class PubMedHelpers
 {
     // Two check routines that scan previously extracted Identifiers or Dates, to 
     // indicate if the input Id / Date type has already beenm extracted.
 
-    public bool IdNotPresent(List<ObjectIdentifier> ids, int id_type, string id_value)
+    internal static bool IdNotPresent(List<ObjectIdentifier> ids, int id_type, string id_value)
     {
         bool to_add = true;
         if (ids.Count > 0)
@@ -24,7 +23,7 @@ internal class PubMedHelpers
     }
 
 
-    public bool DateNotPresent(List<ObjectDate> dates, int datetype_id, int? year, int? month, int? day)
+    internal static bool DateNotPresent(List<ObjectDate> dates, int datetype_id, int? year, int? month, int? day)
     {
         bool to_add = true;
         if (dates.Count > 0)
@@ -43,7 +42,7 @@ internal class PubMedHelpers
     }
 
 
-    public SplitDate? GetSplitDateFromNumericDate(int? year, int? month, int? day)
+    internal static SplitDate? GetSplitDateFromNumericDate(int? year, int? month, int? day)
     {
         string? monthas3 = null;
         if (month.HasValue)
@@ -69,7 +68,7 @@ internal class PubMedHelpers
     }
 
 
-    public SplitDate? GetSplitDateFromPubDate(int? year, string? monthas3, int? day)
+    internal static SplitDate? GetSplitDateFromPubDate(int? year, string? monthas3, int? day)
     {
         int? month = null;
         if (!string.IsNullOrEmpty(monthas3))
@@ -95,7 +94,7 @@ internal class PubMedHelpers
     }
 
 
-    public SplitDateRange? ProcessMedlineDate(string? ml_date_string)
+    internal static SplitDateRange? ProcessMedlineDate(string? ml_date_string)
     {
         if (string.IsNullOrEmpty(ml_date_string))
         {
@@ -182,7 +181,7 @@ internal class PubMedHelpers
             {
                 smonth = month;
                 emonth = month;
-                string rest = non_year_date.Substring(3).Trim();
+                string rest = non_year_date[3..].Trim();
                 if (rest.IndexOf("-") != -1)
                 {
                     int hyphen_pos = rest.IndexOf("-");
@@ -225,7 +224,7 @@ internal class PubMedHelpers
     }
 
 
-    internal string GetCitationName(List<ObjectContributor> authors, int author_pos)
+    internal static string GetCitationName(List<ObjectContributor> authors, int author_pos)
     {
         string given_name = authors[author_pos].person_given_name ?? "";
         string initials = given_name == "" ? "" : given_name[..1]?.ToUpper() + "";
@@ -248,7 +247,7 @@ internal static class PubMedExtensions
         {
             try
             {
-                return (int)(Enum.Parse<MonthsFull>(month_name));
+                return (int)(Enum.Parse<MonthsLong>(month_name));
             }
             catch (ArgumentException)
             {
@@ -279,7 +278,7 @@ internal static class PubMedExtensions
 }
 
 
-internal enum MonthsFull
+internal enum MonthsLong
 {
     January = 1, February, March, April, May, June,
     July, August, September, October, November, December

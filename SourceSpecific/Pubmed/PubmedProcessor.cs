@@ -10,12 +10,10 @@ namespace MDR_Harvester.Pubmed;
 
 public class PubmedProcessor : IObjectProcessor
 {
-    //IMonitorDataLayer _mon_repo;
-    LoggingHelper _logger_helper;
+    ILoggingHelper _logger_helper;
 
-    public PubmedProcessor(LoggingHelper logger_helper)
+    public PubmedProcessor(ILoggingHelper logger_helper)
     {
-        //_mon_repo = mon_repo;
         _logger_helper = logger_helper;
     }
        
@@ -35,7 +33,7 @@ public class PubmedProcessor : IObjectProcessor
             return null;
         }
 
-        FullDataObject fob = new FullDataObject();
+        FullDataObject fob = new();
         string? sdoid = r.sd_oid;
         if (string.IsNullOrEmpty(sdoid))
         {
@@ -45,21 +43,21 @@ public class PubmedProcessor : IObjectProcessor
 
         fob.sd_oid = sdoid;
         fob.datetime_of_data_fetch = download_datetime;
-        PubMedHelpers ph = new();
+        ///PubMedHelpers ph = new();
 
         // Establish main citation object
         // and list structures to receive data
 
-        List<ObjectInstance> instances = new List<ObjectInstance>();
-        List<ObjectDate> dates = new List<ObjectDate>();
-        List<ObjectTitle> titles = new List<ObjectTitle>();
-        List<ObjectIdentifier> identifiers = new List<ObjectIdentifier>();
-        List<ObjectTopic> topics = new List<ObjectTopic>();
-        List<ObjectPublicationType> pubtypes = new List<ObjectPublicationType>();
-        List<ObjectDescription> descriptions = new List<ObjectDescription>();
-        List<ObjectContributor> contributors = new List<ObjectContributor>();
-        List<ObjectComment> comments = new List<ObjectComment>();
-        List<ObjectDBLink> db_ids = new List<ObjectDBLink>();
+        List<ObjectInstance> instances = new();
+        List<ObjectDate> dates = new();
+        List<ObjectTitle> titles = new();
+        List<ObjectIdentifier> identifiers = new();
+        List<ObjectTopic> topics = new();
+        List<ObjectPublicationType> pubtypes = new();
+        List<ObjectDescription> descriptions = new();
+        List<ObjectContributor> contributors = new();
+        List<ObjectComment> comments = new();
+        List<ObjectDBLink> db_ids = new();
 
         string author_string = "";
         string journal_source = "";
@@ -106,7 +104,7 @@ public class PubmedProcessor : IObjectProcessor
         // Obtain and store (in the languages list) the article's language(s) - 
         // get these now as may be needed by title extraction code below.
 
-        List<string> language_list = new List<string>();
+        List<string> language_list = new();
         var languages = r.ArticleLangs;
         if (languages?.Any() == true)
         {
@@ -338,7 +336,7 @@ public class PubmedProcessor : IObjectProcessor
         // as well as later (in creating citation string). The journal name
         // and issn numbers for electronic and / or paper versions are obtained.
 
-        JournalDetails jd = new JournalDetails(sdoid, journal_title);
+        JournalDetails jd = new(sdoid, journal_title);
         var issns = r.ISSNList;
         if (issns?.Any() == true)
         {
@@ -352,7 +350,7 @@ public class PubmedProcessor : IObjectProcessor
                     string? pissn = i.Value;
                     if (pissn is not null && pissn.Length == 9 && pissn[4] == '-')
                     {
-                        pissn = pissn.Substring(0, 4) + pissn.Substring(5, 4);
+                        pissn = pissn[..4] + pissn[5..];
                     }
                     jd.pissn = pissn;
                 }
@@ -361,7 +359,7 @@ public class PubmedProcessor : IObjectProcessor
                     string? eissn = i.Value;
                     if (eissn is not null && eissn.Length == 9 && eissn[4] == '-')
                     {
-                        eissn = eissn.Substring(0, 4) + eissn.Substring(5, 4);
+                        eissn = eissn[..4] + eissn[5..];
                     }
                     jd.eissn = eissn;
                 }
@@ -402,7 +400,7 @@ public class PubmedProcessor : IObjectProcessor
             // A string 'Medline' date, a range or a non-standard date. ProcessMedlineDate
             // is a helper function that tries to split any range.
 
-            SplitDateRange? ml_date = ph.ProcessMedlineDate(r.medlineDate);
+            SplitDateRange? ml_date = PubMedHelpers.ProcessMedlineDate(r.medlineDate);
             if (ml_date is not null)
             {
                 dates.Add(new ObjectDate(sdoid, 12, "Available", ml_date));
@@ -415,7 +413,7 @@ public class PubmedProcessor : IObjectProcessor
             {
                 // A composite Y, M, D date - though in this case the month is a string 
 
-                SplitDate? pub_date = ph.GetSplitDateFromPubDate(r.pubYear, r.pubMonth, r.pubDay);
+                SplitDate? pub_date = PubMedHelpers.GetSplitDateFromPubDate(r.pubYear, r.pubMonth, r.pubDay);
                 if (pub_date is not null)
                 {
                     dates.Add(new ObjectDate(sdoid, 12, "Available", pub_date));
@@ -431,7 +429,7 @@ public class PubmedProcessor : IObjectProcessor
         if (r.dateCitationCompleted is not null)
         {
             NumericDate numdt = r.dateCitationCompleted;
-            SplitDate? citation_date = ph.GetSplitDateFromNumericDate(numdt.Year, numdt.Month, numdt.Day);
+            SplitDate? citation_date = PubMedHelpers.GetSplitDateFromNumericDate(numdt.Year, numdt.Month, numdt.Day);
             if (citation_date is not null)
             {
                 dates.Add(new ObjectDate(sdoid, 54, "Pubmed citation completed", citation_date));
@@ -441,7 +439,7 @@ public class PubmedProcessor : IObjectProcessor
         if (r.dateCitationRevised is not null)
         {
             NumericDate numdt = r.dateCitationRevised;
-            SplitDate? citation_date = ph.GetSplitDateFromNumericDate(numdt.Year, numdt.Month, numdt.Day);
+            SplitDate? citation_date = PubMedHelpers.GetSplitDateFromNumericDate(numdt.Year, numdt.Month, numdt.Day);
             if (citation_date is not null)
             {
                 dates.Add(new ObjectDate(sdoid, 53, "Pubmed citation revised", citation_date));
@@ -463,7 +461,7 @@ public class PubmedProcessor : IObjectProcessor
                     if (date_type.ToLower() == "electronic")
                     {
                         // = epublish, type id 55
-                        SplitDate? edate = ph.GetSplitDateFromNumericDate(ad.Year, ad.Month, ad.Day);
+                        SplitDate? edate = PubMedHelpers.GetSplitDateFromNumericDate(ad.Year, ad.Month, ad.Day);
                         if (edate is not null)
                         {
                             dates.Add(new ObjectDate(sdoid, 55, "Epublish", edate));
@@ -507,7 +505,7 @@ public class PubmedProcessor : IObjectProcessor
                                 int? year = hd.Year;
                                 int? month = hd.Month;
                                 int? day = hd.Day;
-                                if (ph.DateNotPresent(dates, 55, year, month, day))
+                                if (PubMedHelpers.DateNotPresent(dates, 55, year, month, day))
                                 {
                                     date_type = 55;
                                     date_type_name = "Epublish";
@@ -535,7 +533,11 @@ public class PubmedProcessor : IObjectProcessor
 
                     if (date_type != 0)
                     {
-                        dates.Add(dh.ProcessDate(sdoid, e, date_type, date_type_name));
+                        SplitDate? hd_date = PubMedHelpers.GetSplitDateFromNumericDate(hd.Year, hd.Month, hd.Day);
+                        if (hd_date is not null)
+                        {
+                            dates.Add(new ObjectDate(sdoid, date_type, date_type_name, hd_date));
+                        }
                     }
                 }
             }
@@ -758,7 +760,7 @@ public class PubmedProcessor : IObjectProcessor
                             }
                         case "pii":
                             {
-                                if (ph.IdNotPresent(identifiers, 34, other_id))
+                                if (PubMedHelpers.IdNotPresent(identifiers, 34, other_id))
                                 {
                                     identifiers.Add(new ObjectIdentifier(sdoid, 34, "Publisher article ID", other_id, null, null));
                                 }
@@ -775,7 +777,7 @@ public class PubmedProcessor : IObjectProcessor
 
                         case "pubmed":
                             {
-                                if (ph.IdNotPresent(identifiers, 16, other_id))
+                                if (PubMedHelpers.IdNotPresent(identifiers, 16, other_id))
                                 {
                                     // should be present already! - if a different value log it a a query
                                     string qText = "Two different values for pmid found: record pmiod is {sdoid}, but in article ids the value " + other_id + " is listed";
@@ -786,7 +788,7 @@ public class PubmedProcessor : IObjectProcessor
                             }
                         case "mid":
                             {
-                                if (ph.IdNotPresent(identifiers, 32, other_id))
+                                if (PubMedHelpers.IdNotPresent(identifiers, 32, other_id))
                                 {
                                     identifiers.Add(new ObjectIdentifier(sdoid, 32, "NIH Manuscript ID", other_id, 100134, "National Institutes of Health"));
                                 }
@@ -795,7 +797,7 @@ public class PubmedProcessor : IObjectProcessor
 
                         case "pmc":
                             {
-                                if (ph.IdNotPresent(identifiers, 31, other_id))
+                                if (PubMedHelpers.IdNotPresent(identifiers, 31, other_id))
                                 {
                                     identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
 
@@ -808,7 +810,7 @@ public class PubmedProcessor : IObjectProcessor
 
                         case "pmcid":
                             {
-                                if (ph.IdNotPresent(identifiers, 31, other_id))
+                                if (PubMedHelpers.IdNotPresent(identifiers, 31, other_id))
                                 {
                                     identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
 
@@ -1024,24 +1026,24 @@ public class PubmedProcessor : IObjectProcessor
 
             if (contributors.Count == 1)
             {
-                author_string = ph.GetCitationName(contributors, 0);
+                author_string = PubMedHelpers.GetCitationName(contributors, 0);
             }
 
             else if (contributors.Count == 2)
             {
-                author_string = ph.GetCitationName(contributors, 0) + " & " + ph.GetCitationName(contributors, 1);
+                author_string = PubMedHelpers.GetCitationName(contributors, 0) + " & " + PubMedHelpers.GetCitationName(contributors, 1);
             }
 
             else if (contributors.Count == 3)
             {
-                author_string = ph.GetCitationName(contributors, 0) + ", " + ph.GetCitationName(contributors, 1)
-                                + " & " + ph.GetCitationName(contributors, 2);
+                author_string = PubMedHelpers.GetCitationName(contributors, 0) + ", " + PubMedHelpers.GetCitationName(contributors, 1)
+                                + " & " + PubMedHelpers.GetCitationName(contributors, 2);
             }
 
             else if (contributors.Count > 3)
             {
-                author_string = ph.GetCitationName(contributors, 0) + ", " + ph.GetCitationName(contributors, 1)
-                                + ", " + ph.GetCitationName(contributors, 2) + " et al";
+                author_string = PubMedHelpers.GetCitationName(contributors, 0) + ", " + PubMedHelpers.GetCitationName(contributors, 1)
+                                + ", " + PubMedHelpers.GetCitationName(contributors, 2) + " et al";
             }
             author_string = author_string.Trim() + ".";
 
@@ -1239,7 +1241,7 @@ public class PubmedProcessor : IObjectProcessor
             }
         }
 
-        fob.title = default_title.Trim();
+        fob.title = default_title?.Trim();
         fob.display_title = ((author_string != "" ? author_string + ". " : "") + default_title + journal_source).Trim();
 
         // Tidy up doi status.
@@ -1251,12 +1253,13 @@ public class PubmedProcessor : IObjectProcessor
         Boolean PMC_present = false;
         foreach (ObjectInstance i in instances)
         {
-            if (i.instance_type_id == 1)
+            if (i.resource_type_id == 36)
             {
                 PMC_present = true;
                 break;
             }
         }
+
         if (PMC_present)
         {
             fob.access_type_id = 11;
@@ -1268,13 +1271,6 @@ public class PubmedProcessor : IObjectProcessor
             fob.access_type = "Restricted download";
             fob.access_details = "Not in PMC - presumed behind pay wall, but to check";
         }
-
-
-        // get managing org data from eissn, pissn
-        // need reference to a repo...
-        // for.managing_org_id
-        // for.managing_org
-
 
         // Assign repeating properties to citation object
         // and return the fully constructed citation object.

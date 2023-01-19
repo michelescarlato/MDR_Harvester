@@ -85,7 +85,7 @@ public class TestingDataLayer : ITestingDataLayer
     {
         TransferSDDataBuilder tdb = new TransferSDDataBuilder(source);
 
-        if (source.has_study_tables)
+        if (source.has_study_tables == true)
         {
             tdb.DeleteExistingStudyData();
             tdb.TransferStudyData();  

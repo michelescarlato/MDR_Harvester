@@ -212,6 +212,34 @@ public class SDCompStudyTableBuilder
     }
 
 
+    public void create_table_study_countries()
+    {
+        // *************************************
+        // To ADD
+        // *************************************
+    }
+
+    public void create_table_study_locations()
+    {
+        // *************************************
+        // To ADD
+        // *************************************
+    }
+
+    public void create_table_study_conditions()
+    {
+        // *************************************
+        // To ADD
+        // *************************************
+    }
+
+    public void create_table_study_iec()
+    {
+        // *************************************
+        // To ADD
+        // *************************************
+    }
+
     public void create_table_study_links()
     {
         string sql_string = @"DROP TABLE IF EXISTS sdcomp.study_links;

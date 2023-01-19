@@ -63,7 +63,7 @@ public class Who_Record
     public List<string>? country_list { get; set; }
     public List<Secondary_Id>? secondary_ids { get; set; }
     public List<WhoStudyFeature>? study_features { get; set; }
-    public List<StudyCondition>? condition_list { get; set; }
+    public List<WhoCondition>? condition_list { get; set; }
 }
 
 public class Secondary_Id
@@ -128,18 +128,18 @@ public class WhoStudyFeature
     { }
 }
 
-public class StudyCondition
+public class WhoCondition
 {
     public string? condition { get; set; }
     public string? code { get; set; }
     public string? code_system { get; set; }
 
-    public StudyCondition(string? _condition)
+    public WhoCondition(string? _condition)
     {
         condition = _condition;
     }
 
-    public StudyCondition(string? _condition,
+    public WhoCondition(string? _condition,
                            string? _code, string? _code_system)
     {
         condition = _condition;
@@ -147,7 +147,7 @@ public class StudyCondition
         code_system = _code_system;
     }
 
-    public StudyCondition()
+    public WhoCondition()
     { }
 }
 

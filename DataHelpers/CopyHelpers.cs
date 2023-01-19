@@ -42,6 +42,23 @@ namespace MDR_Harvester
                 .MapVarchar("original_value", x => x.original_value);
 
 
+        public PostgreSQLCopyHelper<StudyCondition> study_conditions_helper =
+            new PostgreSQLCopyHelper<StudyCondition>("sd", "study_conditions")
+                .MapVarchar("sd_sid", x => x.sd_sid)
+                .MapVarchar("original_value", x => x.original_value)
+                .MapVarchar("icd_code", x => x.icd_code)
+                .MapVarchar("icd_name", x => x.icd_name);
+
+
+        public PostgreSQLCopyHelper<StudyIEC> study_iec_helper =
+            new PostgreSQLCopyHelper<StudyIEC>("sd", "study_iec")
+                .MapVarchar("sd_sid", x => x.sd_sid)
+                .MapInteger("seq_num", x => x.seq_num)
+                .MapInteger("iec_type_id", x => x.iec_type_id)
+                .MapVarchar("iec_type", x => x.iec_type)
+                .MapVarchar("iec_text", x => x.iec_text);
+
+
         public PostgreSQLCopyHelper<StudyContributor> study_contributors_helper =
             new PostgreSQLCopyHelper<StudyContributor>("sd", "study_contributors")
                 .MapVarchar("sd_sid", x => x.sd_sid)
@@ -89,6 +106,8 @@ namespace MDR_Harvester
                 .MapVarchar("pmid", x => x.pmid)
                 .MapVarchar("citation", x => x.citation)
                 .MapVarchar("doi", x => x.doi)
+                .MapInteger("type_id", x => x.type_id)
+                .MapVarchar("type", x => x.type)
                 .MapVarchar("comments", x => x.comments);
 
 

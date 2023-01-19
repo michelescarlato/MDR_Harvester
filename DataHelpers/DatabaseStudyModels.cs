@@ -38,6 +38,8 @@ namespace MDR_Harvester
         public List<StudyReference>? references { get; set; }
         public List<StudyTopic>? topics { get; set; }
         public List<StudyFeature>? features { get; set; }
+        public List<StudyCondition>? conditions { get; set; }
+        public List<StudyIEC>? iec { get; set; }
         public List<StudyRelationship>? relationships { get; set; }
         public List<StudyLocation>? sites { get; set; }
         public List<StudyCountry>? countries { get; set; }
@@ -264,6 +266,8 @@ namespace MDR_Harvester
         public string? pmid { get; set; }
         public string? citation { get; set; }
         public string? doi { get; set; }
+        public int? type_id { get; set; }
+        public string? type { get; set; }
         public string? comments { get; set; }
 
         public StudyReference(string _sd_sid, string? _pmid, string? _citation, string? _doi, string? _comments)
@@ -274,12 +278,23 @@ namespace MDR_Harvester
             doi = _doi;
             comments = _comments;
         }
+
+        public StudyReference(string _sd_sid, string? _pmid, string? _citation, 
+                              string? _doi, int? _type_id, string? _type)
+        {
+            sd_sid = _sd_sid;
+            pmid = _pmid;
+            citation = _citation;
+            doi = _doi;
+            type_id = _type_id;
+            type = _type;
+        }
     }
     
 
     public class StudyIdentifier
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public int? identifier_type_id { get; set; }
         public string? identifier_type { get; set; }
         public string? identifier_value { get; set; }
@@ -322,7 +337,7 @@ namespace MDR_Harvester
 
     public class StudyTopic
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public int? topic_type_id { get; set; }
         public string? topic_type { get; set; }
         public bool? mesh_coded { get; set; }
@@ -379,9 +394,27 @@ namespace MDR_Harvester
     }
 
 
+    public class StudyCondition
+    {
+        public string? sd_sid { get; set; }
+        public string? original_value { get; set; }
+        public string? icd_code { get; set; }
+        public string? icd_name { get; set; }
+
+        public StudyCondition(string? _sd_sid, string? _original_value, 
+                              string? _icd_code, string? _icd_name)
+        {
+            sd_sid = _sd_sid;
+            original_value = _original_value;
+            icd_code = _icd_code;
+            icd_name = _icd_name;
+        }
+    }
+
+
     public class StudyFeature
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public int? feature_type_id { get; set; }
         public string? feature_type { get; set; }
         public int? feature_value_id { get; set; }
@@ -398,9 +431,32 @@ namespace MDR_Harvester
     }
 
 
+    public class StudyIEC
+    {
+        public string? sd_sid { get; set; }
+        public int? seq_num { get; set; }
+        public int? iec_type_id { get; set; }
+        public string? iec_type { get; set; }
+        public string? iec_text { get; set; }
+        public int? iec_class_id { get; set; }
+        public string? iec_class { get; set; }
+        public string? iec_parsed_text { get; set; }
+
+        public StudyIEC(string? _sd_sid, int? _seq_num, int? _iec_type_id, 
+                        string? _iec_type, string? _iec_text)
+        {
+            sd_sid = _sd_sid;
+            seq_num = _seq_num;
+            iec_type_id = _iec_type_id;
+            iec_type = _iec_type;
+            iec_text = _iec_text;
+        }
+    }
+
+
     public class StudyLink
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public string? link_label { get; set; }
         public string? link_url { get; set; }
 
@@ -446,8 +502,8 @@ namespace MDR_Harvester
 
     public class StudyCountry
     {
-        public string sd_sid { get; set; }
-        public int country_id { get; set; }
+        public string? sd_sid { get; set; }
+        public int? country_id { get; set; }
         public string? country_name { get; set; }
         public int? status_id { get; set; }
         public string? status { get; set; }
@@ -472,7 +528,7 @@ namespace MDR_Harvester
 
     public class AvailableIPD
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public string? ipd_id { get; set; }
         public string? ipd_type { get; set; }
         public string? ipd_url { get; set; }

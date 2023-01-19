@@ -6,20 +6,21 @@ namespace MDR_Harvester
 {
     public class ObjectTableBuilder
     {
-        string _db_conn;
+        private readonly string _db_conn = "";
 
-        public ObjectTableBuilder(string db_conn)
+        public ObjectTableBuilder(string? db_conn)
         {
-            _db_conn = db_conn;
+            if (db_conn is not null)
+            {
+                _db_conn = db_conn;
+            }
         }
 
        
         public void Execute_SQL(string sql_string)
         {
-            using (var conn = new NpgsqlConnection(_db_conn))
-            {
-                conn.Execute(sql_string);
-            }
+            using var conn = new NpgsqlConnection(_db_conn);
+            conn.Execute(sql_string);
         }
 
 
@@ -53,8 +54,6 @@ namespace MDR_Harvester
               , add_study_contribs     BOOLEAN         NULL
               , add_study_topics       BOOLEAN         NULL
               , datetime_of_data_fetch TIMESTAMPTZ     NULL
-              , record_hash            CHAR(32)        NULL
-              , object_full_hash       CHAR(32)        NULL
             );
             CREATE INDEX data_objects_sd_oid ON sd.data_objects(sd_oid);
             CREATE INDEX data_objects_sd_sid ON sd.data_objects(sd_sid);";
@@ -88,7 +87,6 @@ namespace MDR_Harvester
               , consent_genetic_only   BOOLEAN         NULL
               , consent_no_methods     BOOLEAN         NULL
               , consent_details        VARCHAR         NULL 
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_datasets_sd_oid ON sd.object_datasets(sd_oid);";
 
@@ -113,7 +111,6 @@ namespace MDR_Harvester
               , end_month              INT             NULL
               , end_day                INT             NULL
               , details                VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_dates_sd_oid ON sd.object_dates(sd_oid);";
 
@@ -127,8 +124,6 @@ namespace MDR_Harvester
             CREATE TABLE sd.object_instances(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , sd_oid                 VARCHAR        NOT NULL
-              , instance_type_id       INT             NOT NULL 
-              , instance_type          VARCHAR         NULL
               , repository_org_id      INT             NULL
               , repository_org         VARCHAR         NULL
               , url                    VARCHAR         NULL
@@ -139,7 +134,6 @@ namespace MDR_Harvester
               , resource_size          VARCHAR         NULL
               , resource_size_units    VARCHAR         NULL
               , resource_comments      VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_instances_sd_oid ON sd.object_instances(sd_oid);";
 
@@ -165,7 +159,6 @@ namespace MDR_Harvester
               , organisation_id        INT             NULL
               , organisation_name      VARCHAR         NULL
               , organisation_ror_id    VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_contributors_sd_oid ON sd.object_contributors(sd_oid);";
 
@@ -186,7 +179,6 @@ namespace MDR_Harvester
               , lang_usage_id          INT             NOT NULL default 11
               , is_default             BOOLEAN         NULL
               , comments               VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_titles_sd_oid ON sd.object_titles(sd_oid);";
 
@@ -208,7 +200,6 @@ namespace MDR_Harvester
               , original_ct_id         INT             NULL
               , original_ct_code       VARCHAR         NULL
               , original_value         VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_topics_sd_oid ON sd.object_topics(sd_oid);";
 
@@ -227,7 +218,6 @@ namespace MDR_Harvester
               , pmid                   VARCHAR         NULL 
               , pmid_version           VARCHAR         NULL 
               , notes                  VARCHAR         NULL 
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_comments_sd_oid ON sd.object_comments(sd_oid);";
 
@@ -246,7 +236,6 @@ namespace MDR_Harvester
               , label                  VARCHAR         NULL
               , description_text       VARCHAR         NULL
               , lang_code              VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_descriptions_sd_oid ON sd.object_descriptions(sd_oid);";
 
@@ -267,7 +256,6 @@ namespace MDR_Harvester
               , identifier_org         VARCHAR         NULL
               , identifier_org_ror_id  VARCHAR         NULL
               , identifier_date        VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_identifiers_sd_oid ON sd.object_identifiers(sd_oid);";
 
@@ -283,7 +271,6 @@ namespace MDR_Harvester
               , db_sequence            INT             NULL
               , db_name                VARCHAR         NULL
               , id_in_db               VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_db_links_sd_oid ON sd.object_db_links(sd_oid);";
 
@@ -298,7 +285,6 @@ namespace MDR_Harvester
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , sd_oid                 VARCHAR         NOT NULL
               , type_name              VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_publication_types_sd_oid ON sd.object_publication_types(sd_oid);";
 
@@ -315,7 +301,6 @@ namespace MDR_Harvester
               , relationship_type_id   INT             NULL
               , relationship_type      VARCHAR         NULL
               , target_sd_oid          VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_relationships_sd_oid ON sd.object_relationships(sd_oid);";
 
@@ -332,7 +317,6 @@ namespace MDR_Harvester
               , rights_name            VARCHAR         NULL
               , rights_uri             VARCHAR         NULL
               , comments               VARCHAR         NULL
-              , record_hash            CHAR(32)        NULL
             );
             CREATE INDEX object_rights_sd_oid ON sd.object_rights(sd_oid);";
 

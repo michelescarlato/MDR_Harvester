@@ -1,4 +1,5 @@
 ﻿using MDR_Harvester.Extensions;
+using MDR_Harvester.Pubmed;
 using System.Text.Json;
 
 
@@ -6,12 +7,10 @@ namespace MDR_Harvester.Biolincc;
 
 public class BioLinccProcessor : IStudyProcessor
 {
-    //IMonitorDataLayer _mon_repo;
-    LoggingHelper _logger_helper;
+    private readonly ILoggingHelper _logger_helper;
 
-    public BioLinccProcessor( LoggingHelper logger_helper)
+    public BioLinccProcessor( ILoggingHelper logger_helper)
     {
-        //_mon_repo = mon_repo;
         _logger_helper = logger_helper;
     }
 
@@ -33,24 +32,22 @@ public class BioLinccProcessor : IStudyProcessor
             return null;
         }
 
-        Study s = new Study();
+        Study s = new();
 
         // get date retrieved in object fetch
         // transfer to study and data object records
 
-        List<StudyTitle> study_titles = new();
-        List<StudyIdentifier> study_identifiers = new();
-        List<StudyReference> study_references = new();
-        List<StudyContributor> study_contributors = new();
-        List<StudyRelationship> study_relationships = new();
+        List<StudyTitle> titles = new();
+        List<StudyIdentifier> identifiers = new();
+        List<StudyReference> references = new();
+        List<StudyContributor> contributors = new();
+        List<StudyRelationship> relationships = new();
 
         List<DataObject> data_objects = new();
         List<ObjectDataset> object_datasets = new();
-        List<ObjectTitle> data_object_titles = new();
-        List<ObjectDate> data_object_dates = new();
-        List<ObjectInstance> data_object_instances = new();
-            
-        MD5Helpers hh = new();
+        List<ObjectTitle> object_titles = new();
+        List<ObjectDate> object_dates = new();
+        List<ObjectInstance> object_instances = new();
 
         // transfer features of main study object
         // In most cases study will have already been registered in CGT
@@ -67,17 +64,15 @@ public class BioLinccProcessor : IStudyProcessor
 
         // For the study, set up two titles, acronym and display title
         // NHLBI title not always exactly the same as the trial registry entry.
+        // study display title (= default title) always the biolincc one.
 
-        string? title = s.display_title;
+        string? title = r.title;
         if (title is not null)
         {
             title = title.ReplaceTags()?.ReplaceApos();
         }
-
-        // study display title (= default title) always the biolincc one.
-
         s.display_title = title;
-        study_titles.Add(new StudyTitle(sid, title, 18, "Other scientific title", true, "From BioLINCC web page"));
+        titles.Add(new StudyTitle(sid, title, 18, "Other scientific title", true, "From BioLINCC web page"));
 
         // but set up a 'name base' for data object names
         // which will be the CGT name if one exists as this is usually shorter
@@ -86,14 +81,13 @@ public class BioLinccProcessor : IStudyProcessor
         // and only for those where an nct entry exists (Some BioLincc studiues are not registered)
 
         string? nct_name = r.nct_base_name?.ReplaceApos();
-        string? name_base = "";
-        bool in_multiple_biolincc_group = r.in_multiple_biolincc_group is null ? false : (bool)r.in_multiple_biolincc_group;
-        name_base = (!in_multiple_biolincc_group && !string.IsNullOrEmpty(nct_name)) ? nct_name : title;
+        bool in_multiple_biolincc_group = r.in_multiple_biolincc_group is not null && (bool)r.in_multiple_biolincc_group;
+        string? name_base = (!in_multiple_biolincc_group && !string.IsNullOrEmpty(nct_name)) ? nct_name : title;
 
         string? acronym = r.acronym;
         if (!string.IsNullOrEmpty(acronym))
         {
-            study_titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, "From BioLINCC web page"));
+            titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, "From BioLINCC web page"));
         }
 
         s.brief_description = r.brief_description?.StringClean();
@@ -125,7 +119,7 @@ public class BioLinccProcessor : IStudyProcessor
                     if (study_period.IndexOf(" ") != -1)
                     {
                         int spacepos = study_period.IndexOf(" ");
-                        string month_name = study_period.Substring(0, spacepos);
+                        string month_name = study_period[..spacepos];
                         if (Enum.TryParse<MonthsFull>(month_name, out MonthsFull month_enum))
                         {
                             // get value...
@@ -150,7 +144,7 @@ public class BioLinccProcessor : IStudyProcessor
         if (hbli_identifier is not null)
         {
             // identifier type = NHBLI ID, id = 42, org = National Heart, Lung, and Blood Institute, id = 100167.
-            study_identifiers.Add(new StudyIdentifier(sid, hbli_identifier, 42, "NHLBI ID", 100167, "National Heart, Lung, and Blood Institute (US)"));
+            identifiers.Add(new StudyIdentifier(sid, hbli_identifier, 42, "NHLBI ID", 100167, "National Heart, Lung, and Blood Institute (US)"));
         }
 
         // If there is a NCT ID (there usually is...).
@@ -162,30 +156,32 @@ public class BioLinccProcessor : IStudyProcessor
                 string? nct_id = rid.nct_id;
                 if (nct_id is not null)
                 {
-                    study_identifiers.Add(new StudyIdentifier(sid, nct_id, 11, "Trial Registry ID", 100120, "ClinicalTrials.gov"));
+                    identifiers.Add(new StudyIdentifier(sid, nct_id, 11, "Trial Registry ID", 100120, "ClinicalTrials.gov"));
                 }
             }
 
         }
 
         int? sponsor_id = r.sponsor_id;
-        string? sponsor_name = r.sponsor_name;
-        if (sponsor_id is not null)
+        if (sponsor_id == 0)
         {
-            study_contributors.Add(new StudyContributor(sid, 54, "Trial sponsor", sponsor_id, sponsor_name));
+            sponsor_id = null;  // 0 inserted by json serialisation as default value
         }
-
+        string? sponsor_name = r.sponsor_name;
+        if (sponsor_name is not null)
+        {
+            contributors.Add(new StudyContributor(sid, 54, "Trial sponsor", sponsor_id, sponsor_name));
+        }
 
         var rel_studies = r.related_studies;
         if (rel_studies?.Any() == true)
         {
             foreach (var relstudy in rel_studies)
             {
-                string? related_study = relstudy.link_text;
-                string? study_link = relstudy.study_link;
-
                 // relationshiup is simply 'is related' as no further information is provided
-                study_relationships.Add(new StudyRelationship(sid, 27,
+
+                string? related_study = relstudy.link_text;
+                relationships.Add(new StudyRelationship(sid, 27,
                                     "Has link listed in registry but nature of link unclear", related_study));
             }
         }
@@ -213,10 +209,10 @@ public class BioLinccProcessor : IStudyProcessor
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, pub_year, 23, "Text", 38, "Study Overview",
             100167, "National Heart, Lung, and Blood Institute (US)", 12, download_datetime));
 
-        data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
+        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
                             "Study short name :: object type", true));
 
-        data_object_instances.Add(new ObjectInstance(sd_oid, 101900, "BioLINCC",
+        object_instances.Add(new ObjectInstance(sd_oid, 101900, "BioLINCC",
                             remote_url, true, 35, "Web text"));
 
         // Add dates if available.
@@ -228,7 +224,7 @@ public class BioLinccProcessor : IStudyProcessor
         if (page_prepared_date is not null)
         {
             DateTime dt = (DateTime)page_prepared_date;
-            data_object_dates.Add(new ObjectDate(sd_oid, 12, "Available", dt.Year,
+            object_dates.Add(new ObjectDate(sd_oid, 12, "Available", dt.Year,
                         dt.Month, dt.Day, dt.ToString("yyyy MMM dd")));
         }
 
@@ -243,9 +239,9 @@ public class BioLinccProcessor : IStudyProcessor
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", 134, "Website",
                                 sponsor_id, sponsor_name, 12, download_datetime));
-            data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
+            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
                                 "Study short name :: object type", true));
-            data_object_instances.Add(new ObjectInstance(sd_oid, sponsor_id, sponsor_name,
+            object_instances.Add(new ObjectInstance(sd_oid, sponsor_id, sponsor_name,
                                 study_website, true, 35, "Web text"));
         }
 
@@ -267,7 +263,7 @@ public class BioLinccProcessor : IStudyProcessor
         string? resources_available = r.resources_available;
         if (resources_available is not null && resources_available.ToLower().Contains("datasets"))
         {
-            DateTime date_access_url_checked = new DateTime(2021, 7, 23);
+            DateTime date_access_url_checked = new(2021, 7, 23);
 
             object_title = "Individual participant data";
             object_display_title = name_base + " :: " + "Individual participant data";
@@ -280,19 +276,19 @@ public class BioLinccProcessor : IStudyProcessor
                     "https://biolincc.nhlbi.nih.gov/media/guidelines/handbook.pdf?link_time=2019-12-13_11:33:44.807479#page=15",
                     date_access_url_checked, download_datetime));
 
-            data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
+            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
 
             if (last_revised_date is not null)
             {
                 DateTime dt = (DateTime)last_revised_date;
-                data_object_dates.Add(new ObjectDate(sd_oid, 18, "Updated", dt.Year,
+                object_dates.Add(new ObjectDate(sd_oid, 18, "Updated", dt.Year,
                             dt.Month, dt.Day, dt.ToString("yyyy MMM dd")));
             }
             // Datasets and consent restrictions
             string? dataset_consent_restrictions = r.dataset_consent_restrictions;
 
-            int consent_type_id = 0;
-            string? consent_type = null;
+            int consent_type_id;
+            string? consent_type;
             string? restrictions = null;
             if (string.IsNullOrEmpty(dataset_consent_restrictions))
             {
@@ -322,7 +318,7 @@ public class BioLinccProcessor : IStudyProcessor
             if (last_revised_date is not null)
             {
                 DateTime dt = (DateTime)last_revised_date;
-                data_object_dates.Add(new ObjectDate(sd_oid, 18, "Updated", dt.Year,
+                object_dates.Add(new ObjectDate(sd_oid, 18, "Updated", dt.Year,
                             dt.Month, dt.Day, dt.ToString("yyyy MMM dd")));
             }
         }
@@ -336,7 +332,7 @@ public class BioLinccProcessor : IStudyProcessor
                 string? url = doc.url;
                 if (url is not null)
                 {
-                    study_references.Add(new StudyReference(sid, pubmed_id, null, url, "primary"));
+                    references.Add(new StudyReference(sid, pubmed_id, null, url, 202, "Journal article - results"));
                 }
             }
         }
@@ -368,8 +364,8 @@ public class BioLinccProcessor : IStudyProcessor
 
                 data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", object_type_id, object_type,
                                 100167, "National Heart, Lung, and Blood Institute (US)", access_type_id, download_datetime));
-                data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 21, "Study short name :: object name", true));
-                data_object_instances.Add(new ObjectInstance(sd_oid, 101900, "BioLINCC", url, true, doc_type_id, doc_type, size, size_units));
+                object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 21, "Study short name :: object name", true));
+                object_instances.Add(new ObjectInstance(sd_oid, 101900, "BioLINCC", url, true, doc_type_id, doc_type, size, size_units));
             }
         }
 
@@ -384,22 +380,22 @@ public class BioLinccProcessor : IStudyProcessor
                 string? link_id = doc.link_id;
                 if (display_title is not null)
                 {
-                    study_references.Add(new StudyReference(s.sd_sid, pubmed_id, display_title, link_id, "associated"));
+                    references.Add(new StudyReference(s.sd_sid, pubmed_id, display_title, link_id, 12, "Journal article - unspecified"));
                 }
             }
         }
 
 
         // check that the primary doc is not duplicated in the associated docs (it sometimes is)
-        if (study_references.Count > 0)
+        if (references.Count > 0)
         {
-            foreach (StudyReference p in study_references)
+            foreach (StudyReference p in references)
             {
-                if (p.comments == "primary")
+                if (p.type_id == 202)
                 {
-                    foreach (StudyReference a in study_references)
+                    foreach (StudyReference a in references)
                     {
-                        if (a.comments == "associated" && p.pmid == a.pmid)
+                        if (a.type_id == 12 && p.pmid == a.pmid)
                         {
                             // update the primary link
                             p.citation = a.citation;
@@ -413,27 +409,27 @@ public class BioLinccProcessor : IStudyProcessor
             }
         }
 
-        List<StudyReference> study_references2 = new List<StudyReference>();
-        foreach (StudyReference a in study_references)
+        List<StudyReference> references2 = new();
+        foreach (StudyReference a in references)
         {
             if (a.comments != "to go")
             {
-                study_references2.Add(a);
+                references2.Add(a);
             }
         }
 
 
         // add in the study properties
-        s.titles = study_titles;
-        s.identifiers = study_identifiers;
-        s.references = study_references2;
-        s.contributors = study_contributors;
+        s.titles = titles;
+        s.identifiers = identifiers;
+        s.references = references2;
+        s.contributors = contributors;
 
         s.data_objects = data_objects;
         s.object_datasets = object_datasets;
-        s.object_titles = data_object_titles;
-        s.object_dates = data_object_dates;
-        s.object_instances = data_object_instances;
+        s.object_titles = object_titles;
+        s.object_dates = object_dates;
+        s.object_instances = object_instances;
 
         return s;
     }

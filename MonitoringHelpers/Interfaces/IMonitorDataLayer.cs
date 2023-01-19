@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MDR_Harvester
 {
-    public interface IMonitorDataLayer
+    public interface IMonDataLayer
     {
         Credentials Credentials { get; }
 
@@ -19,6 +19,6 @@ namespace MDR_Harvester
         int GetNextHarvestEventId();
         bool SourceIdPresent(int source_id);
         int StoreHarvestEvent(HarvestEvent harvest);
-        void UpdateFileRecLastHarvested(int id, string source_type, int last_harvest_id);
+        void UpdateFileRecLastHarvested(int? id, string source_type, int last_harvest_id);
     }
 }
