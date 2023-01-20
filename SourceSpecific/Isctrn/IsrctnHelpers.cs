@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
+using MDR_Harvester.Extensions;
+using Microsoft.VisualBasic;
+
 
 namespace MDR_Harvester.Isctrn;
 
@@ -22,35 +20,30 @@ internal class IsrctnHelpers
 
         if (id_val.Length < 3)
         {
-            idd.id_type = "Not usable";   // too small 
+            idd.id_type = "Not usable"; // too small 
         }
-
         else if (id_val.Length <= 4 && Regex.Match(id_value, @"^(\d{1}\.\d{1}|\d{1}\.\d{2})$").Success)
         {
-            idd.id_type = "Not usable";  // probably just a protocol version number
+            idd.id_type = "Not usable"; // probably just a protocol version number
         }
-
         else if (Regex.Match(id_val, @"^version ?([0-9]|[0-9]\.[0-9]|[0-9]\.[0-9][0-9])").Success)
         {
-            idd.id_type = "Not usable";  // probably just a protocol version number
+            idd.id_type = "Not usable"; // probably just a protocol version number
         }
-
         else if (Regex.Match(id_val, @"^v ?([0-9]|[0-9]\.[0-9]|[0-9]\.[0-9][0-9])").Success)
         {
-            idd.id_type = "Not usable";   // probably just a protocol version number
+            idd.id_type = "Not usable"; // probably just a protocol version number
         }
-
         else if (Regex.Match(id_value, @"^0+$").Success)
         {
-            idd.id_type = "Not usable";  // all zeroes!
+            idd.id_type = "Not usable"; // all zeroes!
         }
-
         else if (Regex.Match(id_value, @"^0+").Success)
         {
             string val2 = id_value.TrimStart('0');
             if (val2.Length <= 4 && Regex.Match(val2, @"^(\d{1}|\d{1}\.\d{1}|\d{1}\.\d{2})$").Success)
             {
-                idd.id_type = "Not usable";  // starts with zeroes, then a few numbers
+                idd.id_type = "Not usable"; // starts with zeroes, then a few numbers
             }
         }
 
@@ -141,6 +134,159 @@ internal class IsrctnHelpers
 
         return idd;
     }
+
+    public string FindPossibleSeparator(string inputString)
+    {
+        // Look for numbered lists and try to
+        // identify the symbol following the number.
+
+        string numInd = "";
+        if (inputString.Contains("1. ") && inputString.Contains("2. "))
+        {
+            numInd = ". ";
+        }
+        else if (inputString.Contains("1) ") && inputString.Contains("2) "))
+        {
+            numInd = ") ";
+        }
+        else if (inputString.Contains("1 -") && inputString.Contains("2 -"))
+        {
+            numInd = " -";
+        }
+        else if (inputString.Contains("1.") && inputString.Contains("2."))
+        {
+            numInd = ".";
+        }
+
+        return numInd;
+    }
+
+
+    public List<Criterion>? GetNumberedCriteria(string sid, string input_string, string type)
+    {
+        if (string.IsNullOrEmpty(input_string))
+        {
+            return null;
+        }
+        else
+        {
+            // Establish criteria list to receive results,
+            // and set up criterion type codes to be used.
+
+            List<Criterion> cr = new();
+
+            int single_crit = type == "inclusion" ? 1 : 2;
+            int all_crit = single_crit + 10;
+            int pre_crit = single_crit + 100;
+            int post_crit = single_crit + 200;
+            int grp_hdr = single_crit + 300;
+            int no_sep = single_crit + 1000;
+
+            string single_type = type + " criterion";
+            string all_crit_type = type + " criteria (as one statement)";
+            string pre_crit_type = type + " criteria prefix statement";
+            string post_crit_type = type + " criteria supplementary sttaement";
+            string grp_hdr_type = type + " criteria group heading";
+            string no_sep_type = type + " with no separator";
+
+            string[] lines = input_string.Split('\n');
+            if (lines.Length == 1)
+            {
+                // no separators in the input string...
+                cr.Add(new Criterion(1, no_sep, no_sep_type, input_string));
+                return cr;
+            }
+            else
+            {
+                // Do a 'pre-run' to put any sub-headings and sub-sub
+                // headings in properly and remove null lines
+                
+                List<string> crits = new();
+                int j = -1;
+                if (sid == "ISRCTN11358769")
+                {
+                    // break!
+                }
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (!string.IsNullOrEmpty(lines[i]))
+                    {
+                        if (Regex.Match(lines[i], @"^\d{1,2}\.\d{1,2}\.\d{1,2}\. ").Success)
+                        {
+                            // Sub-sub-heading.
+                            
+                            int spacepos = lines[i].IndexOf(" ");
+                            string line = "\n\t\t=> " + lines[i][spacepos..].TrimPlus();
+                            crits[j] += line;
+                        }
+                        else if (Regex.Match(lines[i], @"^\d{1,2}\.\d{1,2}\. ").Success)
+                        {
+                            // Sub-heading.
+                           
+                            int spacepos = lines[i].IndexOf(" ");
+                            string line = "\n\t-> " + lines[i][spacepos..].TrimPlus();
+                            crits[j] += line;
+                        }
+                        else if (Regex.Match(lines[i], @"^\d{1,2}\.\d{1,2} ").Success)
+                        {
+                            // Sub-heading.
+                           
+                            int spacepos = lines[i].IndexOf(" ");
+                            string line = "\n\t-> " + lines[i][spacepos..].TrimPlus();
+                            crits[j] += line;
+                        }
+                        else if (Regex.Match(lines[i], @"^[a-z]{1}\. ").Success)
+                        {
+                            // Sub-heading.
+                           
+                            int spacepos = lines[i].IndexOf(" ");
+                            string line = "\n\t-> " + lines[i][spacepos..].TrimPlus();
+                            crits[j] += line;
+                        }
+                        else
+                        {
+                            crits.Add(lines[i].TrimPlus());;
+                            j++;
+                        }
+                    }
+                }
+
+                for (int i = 0; i < crits.Count; i++)
+                {
+                    // Standard in ISRCTN is to use 'N. ' for numbering IEC
+                    // and it seems to be pretty consistent
+                    // Use Regex to see if the line begins with that pattern.
+                    
+                    if (Regex.Match(crits[i], @"^\d{1,2}. ").Success)
+                    {
+                        // add as a simple criterion
+                        int spacepos = crits[i].IndexOf(" ");
+                        string critline = crits[i][spacepos..].TrimPlus();
+                        cr.Add(new Criterion(i + 1, single_crit, single_type, critline));
+                    }
+                    else
+                    {
+                        if (i == 0)
+                        {
+                            cr.Add(new Criterion(i + 1, grp_hdr, grp_hdr_type, crits[i]));
+                        }
+                        else if (i == crits.Count - 1)
+                        {
+                            cr.Add(new Criterion(i + 1, post_crit, post_crit_type, crits[i]));
+                        }
+                        else
+                        {
+                            // probably !!! - Need to improve detection of line types
+
+                            cr.Add(new Criterion(i + 1, grp_hdr, grp_hdr_type, crits[i]));
+                        }
+                    }
+                }
+
+                return cr;
+            }
+        }
+    }
 }
 
 
@@ -158,6 +304,7 @@ internal class IsrctnIdentifierDetails
         id_type = _id_type;
         id_org_id = _id_org_id;
         id_org = _id_org;
+        id_value = _id_value;
     }
 }
 

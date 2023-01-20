@@ -101,8 +101,8 @@ namespace MDR_Harvester
             CREATE TABLE sd.study_references(
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , sd_sid                 VARCHAR         NOT NULL
-              , pmid                   VARCHAR         NULL
               , citation               VARCHAR         NULL
+              , pmid                   VARCHAR         NULL
               , doi                    VARCHAR         NULL	
               , type_id                INT             NULL
               , type                   VARCHAR         NULL
