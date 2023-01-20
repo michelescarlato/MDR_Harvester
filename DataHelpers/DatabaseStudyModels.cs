@@ -22,6 +22,7 @@ namespace MDR_Harvester
         public string? study_enrolment { get; set; }
         public int? study_gender_elig_id { get; set; }
         public string? study_gender_elig { get; set; }
+        public int? iec_level { get; set; }
 
         public int? min_age { get; set; }
         public int? min_age_units_id { get; set; }
@@ -29,7 +30,6 @@ namespace MDR_Harvester
         public int? max_age { get; set; }
         public int? max_age_units_id { get; set; }
         public string? max_age_units { get; set; }
-
         public DateTime? datetime_of_data_fetch { get; set; }
 
         public List<StudyIdentifier>? identifiers { get; set; }
@@ -280,7 +280,7 @@ namespace MDR_Harvester
         }
 
         public StudyReference(string _sd_sid, string? _pmid, string? _citation, 
-                              string? _doi, int? _type_id, string? _type)
+                              string? _doi, int? _type_id, string? _type, string? _comments)
         {
             sd_sid = _sd_sid;
             pmid = _pmid;
@@ -288,6 +288,7 @@ namespace MDR_Harvester
             doi = _doi;
             type_id = _type_id;
             type = _type;
+            comments = _comments;
         }
     }
     
@@ -452,6 +453,25 @@ namespace MDR_Harvester
             iec_text = _iec_text;
         }
     }
+    
+    
+    public class Criterion
+    {
+        public int? SeqNum { get; set; }
+        public int? CritTypeId { get; set; }
+        public string? CritType { get; set; }
+        public string? CritText { get; set; }
+
+        public Criterion(int? seqNum, int? critTypeId, 
+            string? critType, string? critText)
+        {
+            SeqNum = seqNum;
+            CritTypeId = critTypeId;
+            CritType = critType;
+            CritText = critText;
+        }
+    }
+    
 
 
     public class StudyLink

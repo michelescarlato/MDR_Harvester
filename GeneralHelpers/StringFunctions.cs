@@ -1,5 +1,7 @@
-﻿using System;
-using System.Xml.Linq;
+﻿using MDR_Harvester.Extensions;
+using MDR_Harvester;
+using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MDR_Harvester.Extensions;
 
@@ -26,7 +28,7 @@ public static class StringHelpers
             return null;
         }
 
-        apos_name = apos_name.Replace("&#44;", ",");  // unusual but it occurs
+        apos_name = apos_name.Replace("&#44;", ","); // unusual but it occurs
 
         while (apos_name.Contains("'"))
         {
@@ -69,7 +71,7 @@ public static class StringHelpers
 
         string output_string = input_string.Replace("&#44;", ",");
 
-        if (!(output_string.Contains("<") && output_string.Contains(">")))
+        if (!(output_string.Contains('<') && output_string.Contains('>')))
         {
             return output_string;
         }
@@ -77,11 +79,11 @@ public static class StringHelpers
         // The commonest case.
 
         output_string = output_string
-                        .Replace("<br>", "\n")
-                        .Replace("<br/>", "\n")
-                        .Replace("<br />", "\n")
-                        .Replace("<br/ >", "\n")
-                        .Replace("< br / >", "\n");
+            .Replace("<br>", "\n")
+            .Replace("<br/>", "\n")
+            .Replace("<br />", "\n")
+            .Replace("<br/ >", "\n")
+            .Replace("< br / >", "\n");
 
         // Check need to continue.
 
@@ -100,6 +102,7 @@ public static class StringHelpers
             int end_pos = output_string.IndexOf(">", start_pos);
             output_string = output_string[..start_pos] + "\n" + output_string[(end_pos + 1)..];
         }
+
         output_string = output_string.Replace("</p>", "");
 
         // Check for any list structures
@@ -139,7 +142,8 @@ public static class StringHelpers
             // remove any div start tags
             int start_pos = output_string.IndexOf("<div");
             int end_pos = output_string.IndexOf(">", start_pos);
-            output_string = output_string[..start_pos] + output_string[(end_pos + 1)..]; ;
+            output_string = output_string[..start_pos] + output_string[(end_pos + 1)..];
+            ;
         }
 
         while (output_string.Contains("<span"))
@@ -220,6 +224,7 @@ public static class StringHelpers
                 {
                     new_string += string_to_change[i].ChangeToSupUnicode();
                 }
+
                 if (end_pos > output_string.Length - 1)
                 {
                     output_string = output_string[..start_pos] + new_string;
@@ -236,6 +241,7 @@ public static class StringHelpers
                 output_string = output_string.Replace("<sup>", "");
             }
         }
+
         return output_string;
     }
 
@@ -267,11 +273,13 @@ public static class StringHelpers
             {
                 instring = instring.Replace("  ", " ");
             }
+
             instring = instring.Replace("\n ", "\n");
             while (instring.Contains("\n\n"))
             {
                 instring = instring.Replace("\n\n", "\n");
             }
+
             return instring.Trim();
         }
     }
@@ -391,8 +399,9 @@ public static class StringHelpers
             if (identifier.Length == 16)
             {
                 identifier = identifier.Substring(0, 4) + "-" + identifier.Substring(4, 4) +
-                            "-" + identifier.Substring(8, 4) + "-" + identifier.Substring(12, 4);
+                             "-" + identifier.Substring(8, 4) + "-" + identifier.Substring(12, 4);
             }
+
             if (identifier.Length == 15) identifier = "0000" + identifier;
             if (identifier.Length == 14) identifier = "0000-" + identifier;
 
@@ -458,7 +467,7 @@ public static class StringHelpers
 
         string nlower = name.ToLower();
         if (nlower.Contains("newcastle") && nlower.Contains("university")
-            && !nlower.Contains("hospital"))
+                                         && !nlower.Contains("hospital"))
         {
             if (nlower.Contains("nsw") || nlower.Contains("australia"))
             {
@@ -542,17 +551,17 @@ public static class StringHelpers
             name = name[7..];
         }
         else if (low_name.StartsWith("dr ") || low_name.StartsWith("mr ")
-            || low_name.StartsWith("ms "))
+                                            || low_name.StartsWith("ms "))
         {
             name = name[3..];
         }
         else if (low_name.StartsWith("dr") && low_name.Length > 2
-            && name[2].ToString() == low_name[2].ToString().ToUpper())
+                                           && name[2].ToString() == low_name[2].ToString().ToUpper())
         {
             name = name[2..];
         }
         else if (low_name == "dr" || low_name == "mr"
-            || low_name == "ms")
+                                  || low_name == "ms")
         {
             name = "";
         }
@@ -609,6 +618,7 @@ public static class StringHelpers
             {
                 result = false;
             }
+
             return result;
         }
     }
@@ -626,27 +636,30 @@ public static class StringHelpers
             string lower_title = in_title.ToLower().Trim();
 
             if (lower_title == "n.a." || lower_title == "na"
-                    || lower_title == "n.a" || lower_title == "n/a")
+                                      || lower_title == "n.a" || lower_title == "n/a")
             {
                 result = false;
             }
             else if (lower_title.StartsWith("not applic") || lower_title.StartsWith("not aplic")
-                    || lower_title.StartsWith("non applic") || lower_title.StartsWith("non aplic")
-                    || lower_title.StartsWith("no applic") || lower_title.StartsWith("no aplic"))
+                                                          || lower_title.StartsWith("non applic") ||
+                                                          lower_title.StartsWith("non aplic")
+                                                          || lower_title.StartsWith("no applic") ||
+                                                          lower_title.StartsWith("no aplic"))
             {
                 result = false;
             }
             else if (lower_title.StartsWith("see ") || lower_title.StartsWith("not avail")
-                    || lower_title.StartsWith("non dispo"))
+                                                    || lower_title.StartsWith("non dispo"))
             {
                 result = false;
             }
             else if (lower_title == "none" || lower_title == "not done"
-                    || lower_title == "same as above" || lower_title == "in preparation"
-                    || lower_title == "non fornito")
+                                           || lower_title == "same as above" || lower_title == "in preparation"
+                                           || lower_title == "non fornito")
             {
                 result = false;
             }
+
             return result;
         }
     }
@@ -668,7 +681,7 @@ public static class StringHelpers
                 result = false;
             }
             else if (in_name == "n.a." || in_name == "n a" || in_name == "n/a" ||
-               in_name == "nil" || in_name == "nill" || in_name == "non")
+                     in_name == "nil" || in_name == "nill" || in_name == "non")
             {
                 result = false;
             }
@@ -677,12 +690,12 @@ public static class StringHelpers
                 result = false;
             }
             else if (in_name == "none" || in_name.StartsWith("non fund") || in_name.StartsWith("non spon")
-                || in_name.StartsWith("nonfun") || in_name.StartsWith("noneno"))
+                     || in_name.StartsWith("nonfun") || in_name.StartsWith("noneno"))
             {
                 result = false;
             }
             else if (in_name.StartsWith("investigator ") || in_name == "investigator" || in_name == "self"
-                || in_name.StartsWith("Organisation name "))
+                     || in_name.StartsWith("Organisation name "))
             {
                 result = false;
             }
@@ -691,17 +704,18 @@ public static class StringHelpers
                 result = false;
             }
             else if (in_name.StartsWith("professor") || in_name.StartsWith("prof ")
-                || in_name.StartsWith("prof. ") || in_name.StartsWith("associate prof"))
+                                                     || in_name.StartsWith("prof. ") ||
+                                                     in_name.StartsWith("associate prof"))
             {
                 result = false;
             }
             else if (in_name.StartsWith("dr med ") || in_name.StartsWith("dr ") || in_name.StartsWith("mr ")
-                || in_name.StartsWith("ms "))
+                     || in_name.StartsWith("ms "))
             {
                 result = false;
             }
             else if (in_name.StartsWith("dr")
-                && org_name[2].ToString() == in_name[2].ToString().ToUpper())
+                     && org_name[2].ToString() == in_name[2].ToString().ToUpper())
             {
                 result = false;
             }
@@ -748,6 +762,7 @@ public static class StringHelpers
             {
                 make_individual = true;
             }
+
             return make_individual;
         }
     }
@@ -818,7 +833,7 @@ public static class StringHelpers
             p = p.Replace("wisconsin,", "wisconsin*");
 
             int startpos = p.IndexOf(target);
-            int commapos1 = p.LastIndexOf(",", startpos);  // if -1 becomes 0 
+            int commapos1 = p.LastIndexOf(",", startpos); // if -1 becomes 0 
             int commapos2 = p.IndexOf(",", startpos + target.Length - 1);
             if (commapos2 == -1)
             {
@@ -831,7 +846,47 @@ public static class StringHelpers
             {
                 org_name = org_name[4..];
             }
+
             return org_name;
+        }
+    }
+
+
+    public static List<string>? SplitStringWithMinWordSize(this string? input_string, char separator, int min_width)
+    {
+        if (!string.IsNullOrEmpty(input_string))
+        {
+            return null;
+        }
+        else
+        {
+            // try and avoid spurious split string results
+            string[] split_strings = input_string!.Split(separator);
+            for (int j = 0; j < split_strings.Length; j++)
+            {
+                if (split_strings[j].Length < min_width)
+                {
+                    if (j == 0)
+                    {
+                        split_strings[1] = split_strings[0] + "," + split_strings[1];
+                    }
+                    else
+                    {
+                        split_strings[j - 1] = split_strings[j - 1] + "," + split_strings[j];
+                    }
+                }
+            }
+
+            List<string> strings = new();
+            foreach (string ss in split_strings)
+            {
+                if (ss.Length >= min_width)
+                {
+                    strings.Add(ss);
+                }
+            }
+
+            return strings;
         }
     }
 
@@ -851,13 +906,199 @@ public static class StringHelpers
             }
         }
 
+        // Anything left at the front of the string?
+        if (input_string != "")
+        {
+            split_strings.Add(input_string);
+        }
+
         // reverse order before returning
         List<string> reversed_strings = new();
         for (int j = split_strings.Count - 1; j >= 0; j--)
         {
             reversed_strings.Add(split_strings[j]);
         }
+
         return reversed_strings;
+    }
+
+}
+
+
+/*
+
+public static string FindPossibleSeparator(this string inputString)
+    {
+        // Look for numbered lists and try to
+        // identify the symbol following the number.
+
+        string numInd = "";
+        if (inputString.Contains("1. ") && inputString.Contains("2. "))
+        {
+            numInd = ". ";
+        }
+        else if (inputString.Contains("1) ") && inputString.Contains("2) "))
+        {
+            numInd = ") ";
+        }
+        else if (inputString.Contains("1 -") && inputString.Contains("2 -"))
+        {
+            numInd = " -";
+        }
+        else if (inputString.Contains("1.") && inputString.Contains("2."))
+        {
+            numInd = ".";
+        }
+
+        return numInd;
+    }
+
+}
+*/
+/*
+
+public static List<Criterion>? GetNumberedCritera(this string input_string, string type, int max_number)
+{
+    if (string.IsNullOrEmpty(input_string))
+    {
+        return null;
+    }
+    else
+    {
+        // Establish criteria list to receive results,
+        // save the original input for later comparison,
+        // and set up criterion type codes to be used.
+        
+        List<Criterion> cr = new();
+        string original_input = input_string;
+        
+        int single_crit = type == "inclusion" ? 1 : 2; 
+        int all_crit = single_crit + 10;
+        int pre_crit = single_crit + 100;
+        int post_crit = single_crit + 200;
+        int grp_hdr = single_crit + 300;
+        int no_sep = single_crit + 1000;
+        
+        string single_type = type + " criterion";
+        string all_crit_type = type + " criteria (as one statement)";
+        string pre_crit_type = type + " criteria prefix statement";
+        string post_crit_type = type + " criteria supplementary sttaement";
+        string grp_hdr_type = type + " criteria group heading";
+        string no_sep_type = type + " with no separator";
+        
+        int n = 0;
+
+        while (input_string != "")
+        {
+            // Look for numbered lists and try to
+            // identify the symbol following the number.
+
+            string num_ind = input_string.FindPossibleSeparator();
+            if (num_ind == "")
+            {
+                // No separators left (if there ever were any). Add the criterion
+                // to the list and ensure the input text = "" to exit the loop.
+                // What is returned depends on whether this is the whole of the
+                // original input text, or what is left after a run back
+                // through the numbered criteria. Ways of identifying group 
+                // headers to be added later.
+
+                n++; 
+                if (input_string == original_input)
+                {
+                    cr.Add(new Criterion(n, no_sep, no_sep_type, input_string)); // no common separator found
+                }
+                else
+                {
+                    cr.Add(new Criterion(n, pre_crit, pre_crit_type, input_string)); 
+                }
+                input_string = "";
+            }
+            else
+            {
+                // Split list on the identified separator, 
+                // working backwards from the end of the string.
+
+                // Note i is the number in the text being processed
+                // n is the overall sequence number, which may span
+                // more than one sublist, and m is the sequence number
+                // within the current (sub)list.
+
+                int m = 0;       
+                for (int i = max_number; i > 0; i--)
+                {
+                    string string_number = i + num_ind;
+                    int number_pos = input_string.LastIndexOf(string_number);
+                    if (number_pos != -1)
+                    {
+                        // But is this a genuine numered criterion or the presence of the 
+                        // sought characters within a larger number , e.g 7.45 rather than 7.4.
+
+                        // Remove the number and any separator from the found string.
+                        // TrimPlus removes any trailing carriage returns.
+
+                        m++;
+                        string string_to_store = input_string[(number_pos + string_number.Length)..].TrimPlus();
+
+                        // But is it the final string in the list, i.e. the first to be found?
+                        // If so an internal carriage return is likely to indicate a supplementary statement.
+                        // TrimPlus will remove any trailing carriage return.
+                        
+                        if (m == 1)
+                        {
+                            int cr_pos = string_to_store.LastIndexOf('\n');
+                            if (cr_pos != -1)
+                            {
+                                // Split this 'final string' and store it as two
+                                // separate statements, the last one being a supplement.
+
+                                string criterion_to_store = string_to_store[..cr_pos];
+                                string supp_statement = string_to_store[(cr_pos + 1)..];
+                                n++;
+                                cr.Add(new Criterion(n, post_crit, post_crit_type, supp_statement.TrimPlus()));
+                                n++;
+                                cr.Add(new Criterion(n, single_crit, single_type, criterion_to_store.TrimPlus()));
+                            }
+                        }
+                        else
+                        {
+                            n++;
+                            cr.Add(new Criterion(n, single_crit, single_type, string_to_store.TrimPlus()));
+                        }
+                        
+                        // Either way truncate the string.
+                        // At the end may be an empty string - 
+                        // If not it will go through the While loop again.
+                                                
+                        input_string = input_string[..number_pos];
+                    }
+                }
+            }
+        }
+
+        // reverse order before returning.
+
+        return cr.OrderByDescending(c => c.SeqNum).ToList();
+    }
+}
+}
+*/
+/*
+public class Criterion
+{
+    public int? SeqNum { get; set; }
+    public int? CritTypeId { get; set; }
+    public string? CritType { get; set; }
+    public string? CritText { get; set; }
+
+    public Criterion(int? seqNum, int? critTypeId, 
+                     string? critType, string? critText)
+    {
+        SeqNum = seqNum;
+        CritTypeId = critTypeId;
+        CritType = critType;
+        CritText = critText;
     }
 }
 
+*/

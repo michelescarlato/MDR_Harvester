@@ -2,12 +2,13 @@
 using System.Text.Json;
 using MDR_Harvester.Extensions;
 using MDR_Harvester.Isctrn;
+using Microsoft.Extensions.FileProviders.Physical;
 
 namespace MDR_Harvester.Isrctn;
 
 public class IsrctnProcessor : IStudyProcessor
 {
-    ILoggingHelper _logger_helper;
+    private readonly ILoggingHelper _logger_helper;
 
     public IsrctnProcessor(ILoggingHelper logger_helper)
     {
@@ -92,9 +93,35 @@ public class IsrctnProcessor : IStudyProcessor
             titles.Add(new StudyTitle(sid, r.acronym, 14, "Acronym or Abbreviation", s.display_title == r.acronym, "From ISRCTN"));
         }
 
-        s.brief_description = r.plainEnglishSummary;
+        // Brief description.
+        // From Plain Englilsh Summary if one available
+        // Otherwise try to use the study hypothesis and primary outcome, if available
 
-        // study start date
+        s.brief_description = r.plainEnglishSummary;
+        if (string.IsNullOrEmpty(s.brief_description) 
+            || s.brief_description.ToLower().StartsWith("not provided"))
+        {
+            string hypothesis = r.studyHypothesis.StringClean() ?? "";
+            string poutcome = r.primaryOutcome.StringClean() ?? "";
+            if (hypothesis != "" && !hypothesis.ToLower().StartsWith("not provided"))
+            {
+                if (!hypothesis.ToLower().StartsWith("hypothes") && !hypothesis.ToLower().StartsWith("study hyp"))
+                {
+                    hypothesis = "Study hypothesis: " + hypothesis;
+                }
+                s.brief_description = hypothesis ?? "";
+            }
+            if (poutcome != "" && !poutcome.ToLower().StartsWith("not provided"))
+            {
+                if (!poutcome.ToLower().StartsWith("primary") && !poutcome.ToLower().StartsWith("outcome"))
+                {
+                    poutcome = "Primary outcome: " + poutcome;
+                }
+                s.brief_description += s.brief_description == "" ? poutcome : "\n" + poutcome;
+            }
+        }
+
+        // Study start date.
 
         string? ss_date = r.overallStartDate;
         if (!string.IsNullOrEmpty(ss_date))
@@ -103,12 +130,12 @@ public class IsrctnProcessor : IStudyProcessor
             if (study_start_date is not null)
             {
                 s.study_start_year = study_start_date.year;
-                s.study_start_year = study_start_date.month;
+                s.study_start_month = study_start_date.month;
             }
         }
 
+        // Study type and status.
 
-        // study type
         s.study_type = r.primaryStudyDesign;
         s.study_type_id = s.study_type.GetTypeId();
 
@@ -125,8 +152,7 @@ public class IsrctnProcessor : IStudyProcessor
         {
             s.study_status = "Terminated";
         }
-
-        if (!string.IsNullOrEmpty(s.study_status))
+        else
         {
             string? se_date = r.overallEndDate;
             CultureInfo culture = CultureInfo.InvariantCulture;
@@ -207,13 +233,13 @@ public class IsrctnProcessor : IStudyProcessor
                     contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, orgname));
                 }
             }
-            if (contributors?.Any() == true)
+            if (contributors.Any() == true)
             {
                 sponsor_name = contributors[0].organisation_name;
             }
         }
 
-            var funders = r.funders;
+        var funders = r.funders;
         if (funders?.Any() == true)
         {
             foreach (var funder in funders)
@@ -225,7 +251,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                     bool add_funder = true;
                     funder_name = funder_name.TidyOrgName(sid);
-                    if (contributors.Count > 0)
+                    if (contributors!.Count > 0)
                     {
                         foreach (var c in contributors)
                         {
@@ -239,7 +265,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                     if (add_funder)
                     {
-                        contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
+                        contributors!.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
                     }
                 }
             }
@@ -277,7 +303,7 @@ public class IsrctnProcessor : IStudyProcessor
                     contrib_type = cType;
                 }
 
-                contributors.Add(new StudyContributor(sid, contrib_type_id, contrib_type, givenName,
+                contributors?.Add(new StudyContributor(sid, contrib_type_id, contrib_type, givenName,
                                                         familyName, full_name, orcid, affil));
             }
         }
@@ -323,12 +349,12 @@ public class IsrctnProcessor : IStudyProcessor
         {
             foreach (var ident in idents)
             {
-                string? ivalue = ident.identifier_value?.Trim();
-                if (!string.IsNullOrEmpty(ivalue))
+                string? iType = ident.identifier_type?.Trim();
+                if (!string.IsNullOrEmpty(iType) && !string.IsNullOrEmpty(ident.identifier_value))
                 {
-                    if (ivalue != "To be determned" && ivalue != "To be determined")
+                    if (iType != "To be determined" && iType != "To be determned")
                     {
-                        identifiers.Add(new StudyIdentifier(sid, ivalue, ident.identifier_type_id, ident.identifier_type,
+                        identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id, iType,
                                                             ident.identifier_org_id, ident.identifier_org, null, null));
                     }
                     else
@@ -337,7 +363,7 @@ public class IsrctnProcessor : IStudyProcessor
                         {
                             // 'serial protocol number':  already split if included a ';' or ','
 
-                            IsrctnIdentifierDetails idd = ih.GetISRCTNIdentifierProps(ivalue, sponsor_name);
+                            IsrctnIdentifierDetails idd = ih.GetISRCTNIdentifierProps(ident.identifier_value, sponsor_name);
                             if (idd.id_type != "Not usable" && idd.id_value.IsNewToList(identifiers))
                             {
                                 identifiers.Add(new StudyIdentifier(sid, idd.id_value, idd.id_type_id, idd.id_type,
@@ -370,8 +396,11 @@ public class IsrctnProcessor : IStudyProcessor
                 _ => new Tuple<int, string, int, string>(20, "Phase", 140, "Not provided"),
             };
 
-            features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
-                                               new_feature.Item3, new_feature.Item4));
+            if (new_feature.Item4 != "Not provided")
+            {
+                features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
+                    new_feature.Item3, new_feature.Item4));
+            }
         }
 
         // Other features can be found in secondary design and / or study design fields.
@@ -398,9 +427,12 @@ public class IsrctnProcessor : IStudyProcessor
                     _ when st_des.Contains("randomised") => new Tuple<int, string, int, string>(22, "allocation type", 205, "Randomised"),
                     _ => new Tuple<int, string, int, string>(22, "allocation type", 215, "Not provided")
                 };
-                 
-                features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
-                                                       new_feature.Item3, new_feature.Item4)); 
+
+                if (new_feature.Item4 != "Not provided")
+                {
+                    features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
+                        new_feature.Item3, new_feature.Item4));
+                }
 
                 st_des = design.Replace("cross over", "cross-over")
                          .Replace("crossover", "cross-over");
@@ -431,8 +463,11 @@ public class IsrctnProcessor : IStudyProcessor
                     _ => new Tuple<int, string, int, string>(24, "Masking", 525, "Not provided")
                 };
 
-                features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
-                                                   new_feature.Item3, new_feature.Item4));
+                if (new_feature.Item4 != "Not provided")
+                {
+                    features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
+                        new_feature.Item3, new_feature.Item4));
+                }
             }
 
             if (s.study_type_id == 12)
@@ -464,7 +499,6 @@ public class IsrctnProcessor : IStudyProcessor
                     _ => new Tuple<int, string, int, string>(0, "", 0, "")
                 };
 
-
                 if (new_feature.Item1 != 0)
                 {
                     features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
@@ -490,8 +524,11 @@ public class IsrctnProcessor : IStudyProcessor
                 _ => new Tuple<int, string, int, string>(21, "primary purpose", 445, "Not provided"),
             };
 
-            features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
-                                               new_feature.Item3, new_feature.Item4));
+            if (new_feature.Item4 != "Not provided")
+            {
+                features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
+                    new_feature.Item3, new_feature.Item4));
+            }
 
         }
 
@@ -499,8 +536,11 @@ public class IsrctnProcessor : IStudyProcessor
         // Include listed drug or device names as topics.
 
         List<string> topic_names = new();
+
         string? drugNames = r.drugNames;
-        if (!string.IsNullOrEmpty(drugNames) && drugNames != "N/A")
+        if (!string.IsNullOrEmpty(drugNames) && drugNames != "N/A"
+            && !drugNames.ToLower().StartsWith("the sponsor has confirmed")
+            && !drugNames.ToLower().StartsWith("the health research authority (hra) has approved"))
         {
             drugNames = drugNames.Replace("\u00AE", string.Empty); //  lose (r) Registration mark
             drugNames = drugNames.Replace("\u2122", string.Empty); //  lose (tm) Trademark mark
@@ -518,10 +558,10 @@ public class IsrctnProcessor : IStudyProcessor
 
                 if (drugNames.Contains(','))
                 {
-                    string[] split_names = drugNames.Split(',');
-                    foreach (string sn in split_names)
+                    List<string>? split_drug_names = drugNames.SplitStringWithMinWordSize(',', 4);
+                    if (split_drug_names is not null)
                     {
-                        topic_names.Add(sn);
+                        topic_names.AddRange(split_drug_names);
                     }
                 }
             }
@@ -542,33 +582,80 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
 
-        // Include conditions as topics.
+        // Conditions.
 
         string? listed_condition = r.conditionDescription;
+        if (string.IsNullOrEmpty(listed_condition))
+        {
+            listed_condition = r.diseaseClass1;
+        }
+       
         if (!string.IsNullOrEmpty(listed_condition))
         {
-            topics.Add(new StudyTopic(sid, 13, "condition", listed_condition));
-        }
-        else
-        {
-            // These tend to be very general - high level classifcvations.
-            // Often a comma delimited list.
-
-            string? disease_class = r.diseaseClass1;
-            if (!string.IsNullOrEmpty(disease_class))
+            // Can be very general - high level classifications.
+            // Often a delimited list.
+            List<string> conds = new();
+            
+            if (listed_condition.Contains(","))
             {
-                if (disease_class.Contains(","))
+                string[] cons = listed_condition.Split(',');
+                for (int i = 0; i < cons.Length; i++)
                 {
-                    // add topics
-                    string[] conds = disease_class.Split(',');
-                    for (int i = 0; i < conds.Length; i++)
-                    {
-                        topics.Add(new StudyTopic(sid, 13, "condition", conds[i]));
-                    }
+                    conds.Add(cons[i]);
                 }
-                else
+            }
+            else if (listed_condition.Contains(";"))
+            {
+                // add condition
+                string[] cons = listed_condition.Split(';');
+                for (int i = 0; i < cons.Length; i++)
                 {
-                    topics.Add(new StudyTopic(sid, 13, "condition", disease_class));
+                    conds.Add(cons[i]);
+                }
+            }
+            else if (listed_condition.Contains("1.") && listed_condition.Contains("2."))
+            {
+                // Numbered list (almost certainly) - split and add list
+
+                List<string> cons = listed_condition.GetNumberedStrings(".", 8);
+                conds.AddRange(cons);
+            }
+            else
+            {
+                conditions.Add(new StudyCondition(sid, listed_condition, null, null));
+            }
+
+            foreach (string cond1 in conds)
+            {
+                string cond = cond1;
+                if (!cond.StartsWith("Topic") 
+                    && !cond.StartsWith("Primary Care Research Network")
+                    && !cond.StartsWith("Healthy")
+                    && !cond.ToLower().StartsWith("not applicable"))
+                {
+                    cond = cond.Replace("Generic Health Relevance and Cross Cutting Themes", "");
+                    cond = cond.Replace("Generic Health Relevance", "");
+                    cond = cond.Replace("Primary sub-specialty:", "");
+                    cond = cond.Replace("UKCRC code/ Disease:", "");       
+                    cond = cond.Replace("(all Subtopics)", "");                    
+                    cond = cond.Replace("All Diseases", "");                   
+                    cond = cond.Replace("Subtopic: ", "");
+                    cond = cond.Replace("Disease:", "");
+                    cond = cond.Replace("Not assigned", "");
+                    cond = cond.Replace("Not Assigned", "");
+                    cond = cond.Replace("Specialty:", "");
+                    cond = cond.Replace("Signs and Symptoms:", "");
+                    cond = cond.Replace(";", "");
+                    if (cond.StartsWith(" and"))
+                    {
+                        cond = cond[4..].Trim();
+                    }
+                    cond = cond.Trim();
+
+                    if (cond != "")
+                    {
+                        conditions.Add(new StudyCondition(sid, cond, null, null));
+                    }
                 }
             }
         }
@@ -581,18 +668,18 @@ public class IsrctnProcessor : IStudyProcessor
 
         if (!string.IsNullOrEmpty(target_enrolment) && target_enrolment != "Not provided at time of registration")
         {
-            s.study_enrolment = target_enrolment;
+            s.study_enrolment = target_enrolment + " (target)";
         }
 
         if (!string.IsNullOrEmpty(final_enrolment) && final_enrolment != "Not provided at time of registration")
         {
-            if (s.study_enrolment is null)
+            if (string.IsNullOrEmpty(s.study_enrolment))
             {
-                s.study_enrolment = final_enrolment;
+                s.study_enrolment = final_enrolment + " (final)";
             }
             else
             {
-                s.study_enrolment += " (planned), " + final_enrolment + " (final).";
+                s.study_enrolment += ", " + final_enrolment + " (final)";
             }
         }
 
@@ -636,6 +723,46 @@ public class IsrctnProcessor : IStudyProcessor
                 s.max_age_units_id = s.max_age_units.GetTimeUnitsId();
             }
         }
+
+
+        // Inclusion / Exclusion Criteria
+
+        string? ic = r.inclusion;
+        string? ec = r.exclusion;
+        int study_iec_type = 0;
+        
+        if (!string.IsNullOrEmpty(ic))
+        {
+            List<Criterion>? crits = ih.GetNumberedCriteria(sid, ic, "inclusion");
+            if (crits is not null)
+                
+            {
+                int seq_num = 0;
+                foreach (Criterion cr in crits)
+                {    
+                     seq_num++;
+                     iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType, cr.CritText));
+                }
+                study_iec_type = (crits.Count == 1) ? 2 : 4;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(ec))
+        {
+            List<Criterion>? crits = ih.GetNumberedCriteria(sid, ec, "exclusion");
+            if (crits is not null)
+            {
+                int seq_num = 100;
+                foreach (Criterion cr in crits)
+                {
+                    seq_num++;
+                    iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType, cr.CritText));
+                }
+                study_iec_type += (crits.Count == 1) ? 5 : 6;
+            }
+        }
+
+        s.iec_level = study_iec_type;
 
 
         // Locations.
@@ -699,7 +826,7 @@ public class IsrctnProcessor : IStudyProcessor
 
         string sd_oid = sid + " :: 13 :: " + object_title;
 
-        DataObject dobj = new DataObject(sd_oid, sid, object_title, object_display_title, pub_year,
+        DataObject dobj = new (sd_oid, sid, object_title, object_display_title, pub_year,
                 23, "Text", 13, "Trial Registry entry", 100126, "ISRCTN", 12, download_datetime);
 
         dobj.doi = r.doi;
@@ -808,19 +935,24 @@ public class IsrctnProcessor : IStudyProcessor
                     string output_lower = output_type.ToLower();
                     Tuple<int, string, int, string> object_details = output_lower switch
                     {
-                        "resultsarticle" => new Tuple<int, string, int, string>(23, "Text", 202, "Published article - study results"),
-                        "protocolarticle" => new Tuple<int, string, int, string>(23, "Text", 201, "Published article - study protocol"),
+                        "resultsarticle" => new Tuple<int, string, int, string>(23, "Text", 202, "Journal article - results"),
+                        "interimresiults" => new Tuple<int, string, int, string>(23, "Text", 203, "Journal article - interim results"),
+                        "protocolarticle" => new Tuple<int, string, int, string>(23, "Text", 201, "Journal article - protocol"),
+                        "funderreport" => new Tuple<int, string, int, string>(23, "Text", 204, "Journal article - review"),
+                        "preprint" => new Tuple<int, string, int, string>(23, "Text", 210, "Preprint article"),
+                        "otherpublications" => new Tuple<int, string, int, string>(23, "Text", 12, "Journal article - unspecified"),
                         "patient information sheet" => new Tuple<int, string, int, string>(23, "Text", 19, "Patient information sheets"),
                         "pis" or
                         "participant information sheet" or
                         "patient information sheet" => new Tuple<int, string, int, string>(23, "Text", 19, "Patient information sheets"),
-                        "basicresults" or "funderreportresults" or "thesisresults" or
-                        "posterresults" or "otherunpublishedresults" or
-                        "bookresults" => new Tuple<int, string, int, string>(23, "Text", 79, "Results or CSR summary"),
+                        "basicresults" or "thesis" or
+                        "poster" or "otherunpublishedresults" or
+                        "bookresults" or "abstract" => new Tuple<int, string, int, string>(23, "Text", 79, "Results or CSR summary"),
                         "protocolfile" or
-                        "protocol(other)" => new Tuple<int, string, int, string>(23, "Text", 11, "Study Protocol"),
+                        "protocolother" => new Tuple<int, string, int, string>(23, "Text", 11, "Study Protocol"),
                         "dataset" => new Tuple<int, string, int, string>(14, "Dataset", 80, "Individual participant data"),
                         "plainenglishresults" => new Tuple<int, string, int, string>(23, "Text", 88, "Summary of results for public"),
+                        "sap" => new Tuple<int, string, int, string>(23, "Text", 22, "Statistical analysis plan"),
                         _ when output_lower.Contains("analysis") => new Tuple<int, string, int, string>(23, "Text", 22, "Statistical analysis plan"),
                         _ when output_lower.Contains("consent") => new Tuple<int, string, int, string>(23, "Text", 18, "Informed consent forms"),
                         "otherfiles" => new Tuple<int, string, int, string>(23, "Text", 37, "Other text based object"),
@@ -839,7 +971,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                     if (artefact_type == "ExternalLink" && !string.IsNullOrEmpty(external_url))
                     {
-                        string citation = external_url;   // for storage 'as is' for later inspection
+                        string citation = external_url; // for storage 'as is' for later inspection
                         if (external_url.ToLower().Contains("pubmed"))
                         {
                             // Some sort of reference to a published article
@@ -847,7 +979,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                             int pmid = 0;
                             bool pmid_found = false;
-                            char[] endcharsToTrim = new char[] { ';', '.', '/' };
+                            char[] endcharsToTrim = new char[] { ';', '.', '/', '?' };
                             external_url = external_url.TrimEnd(endcharsToTrim);
 
                             if (external_url.Contains("list_uids="))
@@ -889,26 +1021,36 @@ public class IsrctnProcessor : IStudyProcessor
                             {
                                 pmid_string = pmid.ToString();
                             }
-                            references.Add(new StudyReference(sid, pmid_string, citation, null, output_type));
+
+                            references.Add(new StudyReference(sid, pmid_string, citation, null, object_type_id,
+                                object_type, output_type));
                         }
                         else
                         {
                             // A reference to an unpublished article, or an
                             // article in an non pubmed journmal, or a web-page
-
-                            // Is the url a doi? Implies it is a published article
-                            // but without a PubMed id. Add a reference.
-
+                            // Add as a 'Web text' object.
+                            
                             if (external_url.Contains("doi"))
                             {
-                                string doi = external_url[(external_url.IndexOf("doi.org/") + 8)..];
-                                references.Add(new StudyReference(sid, null, citation, doi, output_type));
+                                string doi = "";
+                                if (external_url.IndexOf("doi.org/") != -1)
+                                {
+                                    doi = external_url[(external_url.IndexOf("doi.org/") + 8)..];
+                                }
+                                else if (external_url.IndexOf("/10.") != -1)
+                                {
+                                    doi = external_url[(external_url.IndexOf("/10.") + 1)..];
+                                }
                             }
-                            else
-                            {
-                                // Almost certainly an object / resource within a web page or as an
-                                // unpublished web document. Create a data object record of this type.
 
+                            // Almost certainly an object / resource within a web page or as an
+                            // unpublished web document. Create a data object record of this type,
+                            // but ignore results records likely to be found in other sources.
+
+                            if (!external_url.Contains("www.clinicaltrialsregister.eu") &&
+                                !external_url.Contains("www.clinicaltrialsregister.eu"))
+                            {
                                 string object_name = object_type;
                                 if (!string.IsNullOrEmpty(op.version))
                                 {
@@ -926,102 +1068,128 @@ public class IsrctnProcessor : IStudyProcessor
                                 }
 
                                 SplitDate? dt_created = null;
-                                if (!string.IsNullOrEmpty(op.dateCreated)) 
-                                {
-                                    dt_created = op.dateCreated?[..10].GetDatePartsFromISOString();
-                                }
-                                                   
-                                DataObject d_obj = new (sd_oid, sid, object_type, object_display_title, dt_created?.year,
-                                        object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime);
-                                d_obj.version = op.version;
-                                data_objects.Add(d_obj);
-
-                                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                            22, "Study short name :: object type", true));
-
-                                object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN", 
-                                        external_url, true, 35, "Web text"));
-
-                                if (dt_created is not null)
-                                {
-                                    object_dates.Add(new ObjectDate(sd_oid, 15, "Created", dt_created.year, dt_created.month,
-                                                                             dt_created.day, dt_created.date_string));
-                                }
-                            }
-                        }
-
-
-                        if (artefact_type == "LocalFile" && !string.IsNullOrEmpty(local_url))
-                        {
-                            // some form of local file, stored on the ISRCTN web site
-
-                            string? localfile_name = op.downloadFilename;
-                            if (!string.IsNullOrEmpty(localfile_name))
-                            {
-                                string lower_name = localfile_name.ToLower();
-                                int res_type_id = 0;
-                                string res_type = "Not yet known";
-                                if (lower_name.EndsWith(".pdf"))
-                                {
-                                    res_type_id = 11;
-                                    res_type = "PDF";
-                                }
-                                else if (lower_name.EndsWith(".docx") || lower_name.EndsWith(".doc"))
-                                {
-                                    res_type_id = 16;
-                                    res_type = "Word doc";
-                                }
-                                else if (lower_name.EndsWith(".pptx") || lower_name.EndsWith(".ppt"))
-                                {
-                                    res_type_id = 20;
-                                    res_type = "PowerPoint";
-                                }
-
-                                object_display_title = s.display_title + " :: " + localfile_name;
-                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + localfile_name;
-                                int title_type_id = 21;
-                                string title_type = "Study short name :: object name";
-
-                                int next_num = checkOID(sd_oid, data_objects);
-                                if (next_num > 0)
-                                {
-                                    sd_oid += "_" + next_num.ToString();
-                                    object_display_title += "_" + next_num.ToString();
-                                }
-
-                                SplitDate? dt_created = null;
                                 if (!string.IsNullOrEmpty(op.dateCreated))
                                 {
                                     dt_created = op.dateCreated?[..10].GetDatePartsFromISOString();
                                 }
 
-                                SplitDate? dt_available = null;
-                                if (!string.IsNullOrEmpty(op.dateUploaded))
+                                DataObject d_obj = new(sd_oid, sid, object_type, object_display_title,
+                                    dt_created?.year,
+                                    object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN",
+                                    11,
+                                    download_datetime);
+                                d_obj.version = op.version;
+                                
+                                string doi = "";
+                                if (external_url.Contains("doi"))
                                 {
-                                    dt_available = op.dateUploaded?[..10].GetDatePartsFromISOString();
+                                    if (external_url.IndexOf("doi.org/") != -1)
+                                    {
+                                        doi = external_url[(external_url.IndexOf("doi.org/") + 8)..];
+                                    }
+                                    else if (external_url.IndexOf("/10.") != -1)
+                                    {
+                                        doi = external_url[(external_url.IndexOf("/10.") + 1)..];
+                                    }
                                 }
 
-                                DataObject d_obj = new(sd_oid, sid, localfile_name, object_display_title, dt_created?.year,
-                                        object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime);
-                                d_obj.version = op.version;
+                                if (doi != "")
+                                {
+                                    d_obj.doi = doi;
+                                    d_obj.doi_status_id = 1;
+                                }
+          
                                 data_objects.Add(d_obj);
 
                                 object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                        title_type_id, title_type, true));
+                                    22, "Study short name :: object type", true));
 
-                                object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN",
-                                        local_url, true, res_type_id, res_type));
+                                // May be able to get repository org in some cases from the Urls
+                                // or may wish to try to resolve the dois at some later point
+                                
+                                object_instances.Add(new ObjectInstance(sd_oid, null, null,
+                                    external_url, true, 35, "Web text"));
 
                                 if (dt_created is not null)
                                 {
-                                    object_dates.Add(new ObjectDate(sd_oid, 15, "Created", dt_created.year, dt_created.month,
-                                                                             dt_created.day, dt_created.date_string));
+                                    object_dates.Add(new ObjectDate(sd_oid, 15, "Created", dt_created.year,
+                                        dt_created.month,
+                                        dt_created.day, dt_created.date_string));
                                 }
-                                if (dt_available is not null)
-                                {
-                                    object_dates.Add(new ObjectDate(sd_oid, 12, "Available", dt_available.year, dt_available.month,
-                                                                            dt_available.day, dt_available.date_string));
-                                }
+                            }
+                        }
+                    }
+
+                    if (artefact_type == "LocalFile" && !string.IsNullOrEmpty(local_url))
+                    {
+                        // some form of local file, stored on the ISRCTN web site
+
+                        string? localfile_name = op.downloadFilename;
+                        if (!string.IsNullOrEmpty(localfile_name))
+                        {
+                            string lower_name = localfile_name.ToLower();
+                            int res_type_id = 0;
+                            string res_type = "Not yet known";
+                            if (lower_name.EndsWith(".pdf"))
+                            {
+                                res_type_id = 11;
+                                res_type = "PDF";
+                            }
+                            else if (lower_name.EndsWith(".docx") || lower_name.EndsWith(".doc"))
+                            {
+                                res_type_id = 16;
+                                res_type = "Word doc";
+                            }
+                            else if (lower_name.EndsWith(".pptx") || lower_name.EndsWith(".ppt"))
+                            {
+                                res_type_id = 20;
+                                res_type = "PowerPoint";
+                            }
+
+                            object_display_title = s.display_title + " :: " + localfile_name;
+                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + localfile_name;
+                            int title_type_id = 21;
+                            string title_type = "Study short name :: object name";
+
+                            int next_num = checkOID(sd_oid, data_objects);
+                            if (next_num > 0)
+                            {
+                                sd_oid += "_" + next_num.ToString();
+                                object_display_title += "_" + next_num.ToString();
+                            }
+
+                            SplitDate? dt_created = null;
+                            if (!string.IsNullOrEmpty(op.dateCreated))
+                            {
+                                dt_created = op.dateCreated?[..10].GetDatePartsFromISOString();
+                            }
+
+                            SplitDate? dt_available = null;
+                            if (!string.IsNullOrEmpty(op.dateUploaded))
+                            {
+                                dt_available = op.dateUploaded?[..10].GetDatePartsFromISOString();
+                            }
+
+                            DataObject d_obj = new(sd_oid, sid, localfile_name, object_display_title, dt_created?.year,
+                                    object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime);
+                            d_obj.version = op.version;
+                            data_objects.Add(d_obj);
+
+                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
+                                    title_type_id, title_type, true));
+
+                            object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN",
+                                    local_url, true, res_type_id, res_type));
+
+                            if (dt_created is not null)
+                            {
+                                object_dates.Add(new ObjectDate(sd_oid, 15, "Created", dt_created.year, dt_created.month,
+                                                                         dt_created.day, dt_created.date_string));
+                            }
+                            if (dt_available is not null)
+                            {
+                                object_dates.Add(new ObjectDate(sd_oid, 12, "Available", dt_available.year, dt_available.month,
+                                                                        dt_available.day, dt_available.date_string));
                             }
                         }
                     }

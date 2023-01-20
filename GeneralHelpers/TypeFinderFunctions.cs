@@ -69,9 +69,11 @@ public static class TypeHelpers
             return gender_elig.ToLower() switch
             {
                 "both" => 900,
+                "all" => 900,
                 "female" => 905,
                 "male" => 910,
                 "not provided" => 915,
+                "not specified" => 915,
                 _ => null,
             };
         }

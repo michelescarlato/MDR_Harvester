@@ -332,7 +332,7 @@ public class BioLinccProcessor : IStudyProcessor
                 string? url = doc.url;
                 if (url is not null)
                 {
-                    references.Add(new StudyReference(sid, pubmed_id, null, url, 202, "Journal article - results"));
+                    references.Add(new StudyReference(sid, pubmed_id, null, url, 202, "Journal article - results", ""));
                 }
             }
         }
@@ -380,7 +380,7 @@ public class BioLinccProcessor : IStudyProcessor
                 string? link_id = doc.link_id;
                 if (display_title is not null)
                 {
-                    references.Add(new StudyReference(s.sd_sid, pubmed_id, display_title, link_id, 12, "Journal article - unspecified"));
+                    references.Add(new StudyReference(s.sd_sid, pubmed_id, display_title, link_id, 12, "Journal article - unspecified", ""));
                 }
             }
         }

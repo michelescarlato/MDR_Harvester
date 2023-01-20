@@ -225,7 +225,7 @@ public class YodaProcessor : IStudyProcessor
                 string? link = sr.link;
                     
                 // normally only 1 if there is one there at all 
-                references.Add(new StudyReference(sid, pmid, link, null, 202, "Journal article - results"));
+                references.Add(new StudyReference(sid, pmid, link, null, 202, "Journal article - results", ""));
             }
         }
 
