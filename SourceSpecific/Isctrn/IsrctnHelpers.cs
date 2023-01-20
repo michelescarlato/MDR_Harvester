@@ -251,6 +251,7 @@ internal class IsrctnHelpers
                     }
                 }
 
+
                 for (int i = 0; i < crits.Count; i++)
                 {
                     // Standard in ISRCTN is to use 'N. ' for numbering IEC
