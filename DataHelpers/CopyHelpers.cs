@@ -54,6 +54,9 @@ namespace MDR_Harvester
             new PostgreSQLCopyHelper<StudyIEC>("sd", "study_iec")
                 .MapVarchar("sd_sid", x => x.sd_sid)
                 .MapInteger("seq_num", x => x.seq_num)
+                .MapVarchar("leader", x => x.leader)
+                .MapInteger("text_level", x => x.text_level)
+                .MapInteger("level_num", x => x.level_num)
                 .MapInteger("iec_type_id", x => x.iec_type_id)
                 .MapVarchar("iec_type", x => x.iec_type)
                 .MapVarchar("iec_text", x => x.iec_text);

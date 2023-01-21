@@ -219,6 +219,9 @@ namespace MDR_Harvester
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , sd_sid                 VARCHAR         NOT NULL
               , seq_num                INT             NULL
+              , leader                 VARCHAR         NOT NULL
+              , text_level             INT             NULL
+              , level_num              INT             NULL
               , iec_type_id            INT             NULL
               , iec_type               VARCHAR         NULL
               , iec_text               VARCHAR         NULL
