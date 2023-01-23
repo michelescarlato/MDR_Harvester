@@ -570,7 +570,7 @@ public class WHOProcessor : IStudyProcessor
 
                             // Populate the conditions table rather than the topics table
 
-                            if (code == null)
+                            if (code is null)
                             {
                                 conditions.Add(new StudyCondition(sid, contrim, null, null));
                             }
@@ -578,7 +578,7 @@ public class WHOProcessor : IStudyProcessor
                             {
                                 if (code_system == "ICD 10")
                                 {
-                                    conditions.Add(new StudyCondition(sid, contrim, cn.code, null));
+                                    conditions.Add(new StudyCondition(sid, contrim, 12, cn.code));
                                 }
                             }
                         }

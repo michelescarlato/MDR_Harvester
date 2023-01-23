@@ -46,6 +46,8 @@ namespace MDR_Harvester
             new PostgreSQLCopyHelper<StudyCondition>("sd", "study_conditions")
                 .MapVarchar("sd_sid", x => x.sd_sid)
                 .MapVarchar("original_value", x => x.original_value)
+                .MapInteger("original_ct", x => x.original_ct)
+                .MapVarchar("original_ct_code", x => x.original_ct_code)               
                 .MapVarchar("icd_code", x => x.icd_code)
                 .MapVarchar("icd_name", x => x.icd_name);
 
@@ -55,8 +57,8 @@ namespace MDR_Harvester
                 .MapVarchar("sd_sid", x => x.sd_sid)
                 .MapInteger("seq_num", x => x.seq_num)
                 .MapVarchar("leader", x => x.leader)
-                .MapInteger("text_level", x => x.text_level)
-                .MapInteger("level_num", x => x.level_num)
+                .MapInteger("indent_level", x => x.indent_level)
+                .MapInteger("level_seq_num", x => x.level_seq_num)
                 .MapInteger("iec_type_id", x => x.iec_type_id)
                 .MapVarchar("iec_type", x => x.iec_type)
                 .MapVarchar("iec_text", x => x.iec_text);

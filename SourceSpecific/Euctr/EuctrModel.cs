@@ -7,8 +7,8 @@ public class Euctr_Record
     public string? sponsor_id { get; set; }
     public string? sponsor_name { get; set; }
     public string? start_date { get; set; }
-    public string? competent_authority { get; set; }
-    public string? trial_type { get; set; }
+    public string? inclusion_criteria { get; set; }
+    public string? exclusion_criteria { get; set; }
     public string? trial_status { get; set; }
     public string? medical_condition { get; set; }
     public string? population_age { get; set; }

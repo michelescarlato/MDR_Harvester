@@ -177,8 +177,8 @@ public class LoggingHelper : ILoggingHelper
 
         if (s.has_study_tables == true)
         {
+            LogHeader("study tables");
             LogLine("");
-            LogLine("study tables...\n");
             LogLine(StudyTableSummary(db_conn, schema, "studies", false));
             LogLine(StudyTableSummary(db_conn, schema, "study_identifiers"));
             LogLine(StudyTableSummary(db_conn, schema, "study_titles"));
@@ -196,8 +196,9 @@ public class LoggingHelper : ILoggingHelper
             if (s.has_study_countries == true) LogLine(StudyTableSummary(db_conn, schema, "study_countries"));
             if (s.has_study_locations == true) LogLine(StudyTableSummary(db_conn, schema, "study_locations"));
         }
+
+        LogHeader("object tables");
         LogLine("");
-        LogLine("object tables...\n");
         // these common to all databases
         LogLine(ObjectTableSummary(db_conn, schema, "data_objects", false));
         LogLine(ObjectTableSummary(db_conn, schema, "object_instances"));

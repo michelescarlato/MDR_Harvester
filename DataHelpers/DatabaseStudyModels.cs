@@ -399,16 +399,18 @@ namespace MDR_Harvester
     {
         public string? sd_sid { get; set; }
         public string? original_value { get; set; }
+        public int? original_ct { get; set; }
+        public string? original_ct_code { get; set; }
         public string? icd_code { get; set; }
         public string? icd_name { get; set; }
 
         public StudyCondition(string? _sd_sid, string? _original_value, 
-                              string? _icd_code, string? _icd_name)
+                              int? _original_ct, string? _original_ct_code)
         {
             sd_sid = _sd_sid;
             original_value = _original_value;
-            icd_code = _icd_code;
-            icd_name = _icd_name;
+            original_ct = _original_ct;
+            original_ct_code = _original_ct_code;
         }
     }
 
@@ -437,21 +439,21 @@ namespace MDR_Harvester
         public string? sd_sid { get; set; }
         public int? seq_num { get; set; }
         public string? leader { get; set; }
-        public int? text_level { get; set; }
-        public int? level_num { get; set; }
+        public int? indent_level { get; set; }
+        public int? level_seq_num { get; set; }
         public int? iec_type_id { get; set; }
         public string? iec_type { get; set; }
         public string? iec_text { get; set; }
 
         public StudyIEC(string? _sd_sid, int? _seq_num, string? _leader, 
-                        int? _text_level, int? _level_num,int? _iec_type_id, 
+                        int? _indent_level, int? _level_seq_num,int? _iec_type_id, 
                         string? _iec_type, string? _iec_text)
         {
             sd_sid = _sd_sid;
             seq_num = _seq_num;
             leader = _leader;
-            text_level = _text_level;
-            level_num = _level_num;
+            indent_level = _indent_level;
+            level_seq_num = _level_seq_num;
             iec_type_id = _iec_type_id;
             iec_type = _iec_type;
             iec_text = _iec_text;
@@ -463,19 +465,19 @@ namespace MDR_Harvester
     {
         public int? SeqNum { get; set; }
         public string? Leader { get; set; }
-        public int? TextLevel { get; set; }
-        public int? LevelNum { get; set; }
+        public int? IndentLevel { get; set; }
+        public int? LevelSeqNum { get; set; }
         public int? CritTypeId { get; set; }
         public string? CritType { get; set; }
         public string? CritText { get; set; }
 
-        public Criterion(int? seqNum, string? leader, int? textLevel, int? levelNum,
+        public Criterion(int? seqNum, string? leader, int? indentLevel, int? levelSeqNum,
             int? critTypeId, string? critType, string? critText)
         {
             SeqNum = seqNum;
             Leader = leader;
-            TextLevel = textLevel;
-            LevelNum = levelNum;
+            IndentLevel = indentLevel;
+            LevelSeqNum = levelSeqNum;
             CritTypeId = critTypeId;
             CritType = critType;
             CritText = critText;

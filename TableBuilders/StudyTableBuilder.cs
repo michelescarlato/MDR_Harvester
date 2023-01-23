@@ -186,6 +186,8 @@ namespace MDR_Harvester
                 id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
               , sd_sid                 VARCHAR         NOT NULL
               , original_value         VARCHAR         NULL
+              , original_ct            INT             NULL
+              , original_ct_code       VARCHAR         NULL                 
               , icd_code               VARCHAR         NULL
               , icd_name               VARCHAR         NULL
             );
@@ -220,8 +222,8 @@ namespace MDR_Harvester
               , sd_sid                 VARCHAR         NOT NULL
               , seq_num                INT             NULL
               , leader                 VARCHAR         NOT NULL
-              , text_level             INT             NULL
-              , level_num              INT             NULL
+              , indent_level           INT             NULL
+              , level_seq_num          INT             NULL
               , iec_type_id            INT             NULL
               , iec_type               VARCHAR         NULL
               , iec_text               VARCHAR         NULL

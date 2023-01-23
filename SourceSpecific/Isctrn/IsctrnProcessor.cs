@@ -53,6 +53,7 @@ public class IsrctnProcessor : IStudyProcessor
         List<ObjectInstance> object_instances = new();
 
         IsrctnHelpers ih = new();
+        IECHelpers iech = new();
 
         string? sid = r.sd_sid;
 
@@ -734,15 +735,15 @@ public class IsrctnProcessor : IStudyProcessor
         
         if (!string.IsNullOrEmpty(ic))
         {
-            List<Criterion>? crits = ih.GetNumberedCriteria(sid, ic, "inclusion");
+            List<Criterion>? crits = iech.GetNumberedCriteria(sid, ic, "inclusion");
             if (crits is not null)
             {
                 int seq_num = 0;
                 foreach (Criterion cr in crits)
                 {    
                      seq_num++;
-                     iec.Add(new StudyIEC(sid, seq_num, cr.Leader, cr.TextLevel, 
-                                          cr.LevelNum, cr.CritTypeId, cr.CritType, cr.CritText));
+                     iec.Add(new StudyIEC(sid, seq_num, cr.Leader, cr.IndentLevel, 
+                                          cr.LevelSeqNum, cr.CritTypeId, cr.CritType, cr.CritText));
                 }
                 study_iec_type = (crits.Count == 1) ? 2 : 4;
                 num_inc_criteria = crits.Count;
@@ -751,15 +752,15 @@ public class IsrctnProcessor : IStudyProcessor
 
         if (!string.IsNullOrEmpty(ec))
         {
-            List<Criterion>? crits = ih.GetNumberedCriteria(sid, ec, "exclusion");
+            List<Criterion>? crits = iech.GetNumberedCriteria(sid, ec, "exclusion");
             if (crits is not null)
             {
                 int seq_num = num_inc_criteria;
                 foreach (Criterion cr in crits)
                 {
                     seq_num++;
-                    iec.Add(new StudyIEC(sid, seq_num, cr.Leader, cr.TextLevel, 
-                        cr.LevelNum, cr.CritTypeId, cr.CritType, cr.CritText));
+                    iec.Add(new StudyIEC(sid, seq_num, cr.Leader, cr.IndentLevel, 
+                        cr.LevelSeqNum, cr.CritTypeId, cr.CritType, cr.CritText));
                 }
                 study_iec_type += (crits.Count == 1) ? 5 : 6;
             }

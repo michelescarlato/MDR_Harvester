@@ -1,7 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using MDR_Harvester.Extensions;
-using Microsoft.VisualBasic;
-
 
 namespace MDR_Harvester.Isctrn;
 
@@ -160,8 +158,8 @@ internal class IsrctnHelpers
 
         return numInd;
     }
-
-
+}
+/*
     public List<Criterion>? GetNumberedCriteria(string sid, string input_string, string type)
     {
         if (string.IsNullOrEmpty(input_string))
@@ -312,6 +310,7 @@ internal class IsrctnHelpers
                                 // Does not appear to have any normal criteria or component
                                 // starting point - may be an internal break
                                 // level stays the same. Type depends on position.
+
                                 level_nums[level]++;
                                 if (i == lines.Length - 1)
                                 {
@@ -345,12 +344,7 @@ internal class IsrctnHelpers
                 }
                 
                 List<Criterion> cr2 = new();
-
-                if (sid == "ISRCTN11273035")
-                {
-                    //break
-                }
-                
+               
                 for (int i = cr.Count - 1 ; i >= 0; i--)
                 {
                     bool transfer_crit = true;
@@ -400,9 +394,6 @@ internal class IsrctnHelpers
                         }
 
                     }
-                    
-                    
-                    
 
                     if (transfer_crit)
                     {
@@ -447,7 +438,7 @@ internal class IsrctnHelpers
         
     }
 }
-
+*/
 
 internal class IsrctnIdentifierDetails
 {
