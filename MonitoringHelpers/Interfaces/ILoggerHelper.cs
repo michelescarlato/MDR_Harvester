@@ -12,8 +12,6 @@
         void LogError(string message);
         void LogCodeError(string header, string errorMessage, string? stackTrace);
         void LogParseError(string header, string errorNum, string errorType);
-        void Reattach();
-        void SwitchLog();
         void CloseLog();
         
         void LogCommandLineParameters(Options opts);

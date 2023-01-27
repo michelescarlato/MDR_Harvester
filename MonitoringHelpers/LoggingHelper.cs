@@ -1,73 +1,62 @@
 ﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.IO;
-using System.Linq;
 using Dapper;
 using Npgsql;
-using System.Collections.Generic;
+
 
 namespace MDR_Harvester;
 
 public class LoggingHelper : ILoggingHelper
 {
-    private string logfile_startofpath;
-    private string summary_logfile_startofpath;
-    private string logfile_path = "";
-    private string summary_logfile_path = "";
-    string dt_string;
-
-    private StreamWriter? sw;
-
-    public LoggingHelper()
+    private readonly string _logfileStartOfPath;
+    private readonly string _summaryLogfileStartOfPath;
+    private string _logfilePath = "";
+    private string _summaryLogfilePath = "";
+    private StreamWriter? _sw;
+    
+    public LoggingHelper(string sourceName)
     {
         IConfigurationRoot settings = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json")
             .Build();
 
-        dt_string = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture)
-                          .Replace(":", "").Replace("T", " ");
-
-        logfile_startofpath = settings["logfilepath"] ?? "";
-        summary_logfile_startofpath = settings["summaryfilepath"] ?? "";
+        _logfileStartOfPath = settings["logfilepath"] ?? "";
+        _summaryLogfileStartOfPath = settings["summaryfilepath"] ?? "";
     }
 
+    public string LogFilePath => _logfilePath;
 
-    // Used to check if a log file with a named source has been created.
-
-    public string LogFilePath => logfile_path;
-
-
-    public void OpenLogFile(string database_name)
+    
+    public void OpenLogFile(string databaseName)
     {
         string dt_string = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture)
-                          .Replace(":", "").Replace("T", " ");
+            .Replace(":", "").Replace("T", " ");
 
-        string log_folder_path = Path.Combine(logfile_startofpath, database_name);
+        string log_folder_path = Path.Combine(_logfileStartOfPath, databaseName);
         if (!Directory.Exists(log_folder_path))
         {
             Directory.CreateDirectory(log_folder_path);
         }
-
-        logfile_path = Path.Combine(log_folder_path, "DL " + database_name + " " + dt_string);
-        summary_logfile_path = Path.Combine(summary_logfile_startofpath, "DL " + database_name + " " + dt_string);
-
-        // source file name used for WHO case, where the source is a file
-        // In other cases is not required
-
-        logfile_path += ".log";
-        sw = new StreamWriter(logfile_path, true, System.Text.Encoding.UTF8);
+        
+        string log_file_name = "HV " + databaseName + " " + dt_string + ".log";
+        _logfilePath = Path.Combine(log_folder_path, log_file_name);
+        _summaryLogfilePath = Path.Combine(_summaryLogfileStartOfPath, log_file_name);
+        _sw = new StreamWriter(_logfilePath, true, System.Text.Encoding.UTF8);
     }
 
-
-
+    
     public void OpenNoSourceLogFile()
     {
-        logfile_path += logfile_startofpath + "HV Source not set " + dt_string + ".log";
-        sw = new StreamWriter(logfile_path, true, System.Text.Encoding.UTF8);
+        string dt_string = DateTime.Now.ToString("s", System.Globalization.CultureInfo.InvariantCulture)
+            .Replace(":", "").Replace("T", " ");
+        
+        string log_file_name = "HV Source not set " + dt_string + ".log";
+        _logfilePath = Path.Combine(_logfileStartOfPath, log_file_name);
+        _summaryLogfilePath = Path.Combine(_summaryLogfileStartOfPath, log_file_name);
+        _sw = new StreamWriter(_logfilePath, true, System.Text.Encoding.UTF8);
     }
-    
 
+    
     public void LogCommandLineParameters(Options opts)
     {
         if (opts.harvest_all_test_data)
@@ -96,8 +85,8 @@ public class LoggingHelper : ILoggingHelper
 
     public void LogLine(string message, string identifier = "")
     {
-        string dt_string = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
-        string feedback = dt_string + message + identifier;
+        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
+        string feedback = dt_prefix + message + identifier;
         Transmit(feedback);
     }
 
@@ -124,8 +113,8 @@ public class LoggingHelper : ILoggingHelper
 
     public void LogHeader(string message)
     {
-        string dt_string = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
-        string header = dt_string + "**** " + message.ToUpper().ToUpper() + " ****";
+        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
+        string header = dt_prefix + "**** " + message.ToUpper().ToUpper() + " ****";
         Transmit("");
         Transmit(header);
     }
@@ -133,8 +122,8 @@ public class LoggingHelper : ILoggingHelper
 
     public void LogError(string message)
     {
-        string dt_string = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
-        string error_message = dt_string + "***ERROR*** " + message;
+        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
+        string error_message = dt_prefix + "***ERROR*** " + message;
         Transmit("");
         Transmit("+++++++++++++++++++++++++++++++++++++++");
         Transmit(error_message);
@@ -145,8 +134,8 @@ public class LoggingHelper : ILoggingHelper
 
     public void LogCodeError(string header, string errorMessage, string? stackTrace)
     {
-        string dt_string = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
-        string headerMessage = dt_string + "***ERROR*** " + header + "\n";
+        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
+        string headerMessage = dt_prefix + "***ERROR*** " + header + "\n";
         Transmit("");
         Transmit("+++++++++++++++++++++++++++++++++++++++");
         Transmit(headerMessage);
@@ -159,8 +148,8 @@ public class LoggingHelper : ILoggingHelper
 
     public void LogParseError(string header, string errorNum, string errorType)
     {
-        string dt_string = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
-        string error_message = dt_string + "***ERROR*** " + "Error " + errorNum + ": " + header + " "  + errorType;
+        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
+        string error_message = dt_prefix + "***ERROR*** " + "Error " + errorNum + ": " + header + " "  + errorType;
         Transmit(error_message);
     }
 
@@ -223,70 +212,65 @@ public class LoggingHelper : ILoggingHelper
         }
     }
 
-    public void Reattach()
-    {
-        sw = new StreamWriter(logfile_path, true, System.Text.Encoding.UTF8);
-    }
-
-    public void SwitchLog()
-    {
-        LogHeader("Switching Log File Control");
-        sw?.Flush();
-        sw?.Close();
-    }
-
-
+    
     public void CloseLog()
     {
         LogHeader("Closing Log");
-        sw?.Flush();
-        sw?.Close();
+        _sw?.Flush();
+        _sw?.Close();
+        
+        // Write out the summary file.
+        
+        var sw_summ = new StreamWriter(_summaryLogfilePath, true, System.Text.Encoding.UTF8);
+        
+        sw_summ.Flush();
+        sw_summ.Close();
     }
 
 
     private void Transmit(string message)
     {
-        sw?.WriteLine(message);
+        _sw?.WriteLine(message);
         Console.WriteLine(message);
     }
 
 
-    private string StudyTableSummary(string db_conn, string schema, string table_name, bool include_source = true)
+    private string StudyTableSummary(string dbConn, string schema, string tableName, bool includeSource = true)
     {
-        using NpgsqlConnection conn = new(db_conn);
-        string sql_string = "select count(*) from " + schema + "." + table_name;
+        using NpgsqlConnection conn = new(dbConn);
+        string sql_string = "select count(*) from " + schema + "." + tableName;
         int res = conn.ExecuteScalar<int>(sql_string);
-        if (include_source)
+        if (includeSource)
         {
-            sql_string = "select count(distinct sd_sid) from " + schema + "." + table_name;
+            sql_string = "select count(distinct sd_sid) from " + schema + "." + tableName;
             int study_num = conn.ExecuteScalar<int>(sql_string);
-            return $"{res} records found in {schema}.{table_name}, from {study_num} studies";
+            return $"{res} records found in {schema}.{tableName}, from {study_num} studies";
         }
         else
         {
-            return $"{res} records found in {schema}.{table_name}";
+            return $"{res} records found in {schema}.{tableName}";
         }
     }
 
 
-    private string ObjectTableSummary(string db_conn, string schema, string table_name, bool include_source = true)
+    private string ObjectTableSummary(string dbConn, string schema, string tableName, bool includeSource = true)
     {
-        using NpgsqlConnection conn = new(db_conn);
-        string sql_string = "select count(*) from " + schema + "." + table_name;
+        using NpgsqlConnection conn = new(dbConn);
+        string sql_string = "select count(*) from " + schema + "." + tableName;
         int res = conn.ExecuteScalar<int>(sql_string);
-        if (include_source)
+        if (includeSource)
         {
-            sql_string = "select count(distinct sd_oid) from " + schema + "." + table_name;
+            sql_string = "select count(distinct sd_oid) from " + schema + "." + tableName;
             int object_num = conn.ExecuteScalar<int>(sql_string);
-            return $"{res} records found in {schema}.{table_name}, from {object_num} objects";
+            return $"{res} records found in {schema}.{tableName}, from {object_num} objects";
         }
         else
         {
-            return $"{res} records found in {schema}.{table_name}";
+            return $"{res} records found in {schema}.{tableName}";
         }
     }
 
-    public void SendEmail(string error_message_text)
+    public void SendEmail(string errorMessageText)
     {
         // construct txt file with message
         // and place in pickup folder for
@@ -296,7 +280,7 @@ public class LoggingHelper : ILoggingHelper
     }
 
 
-    public void SendRes(string result_text)
+    public void SendRes(string resultText)
     {
         // construct txt file with message
         // and place in pickup folder for
