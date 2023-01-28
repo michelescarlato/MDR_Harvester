@@ -7,45 +7,45 @@ namespace MDR_Harvester;
 
 public class StudyController
 {
-    private readonly ILoggingHelper _logger;
-    private readonly IMonDataLayer _mon_data_layer;
-    private readonly IStorageDataLayer _storage_repo;
+    private readonly ILoggingHelper _loggingHelper;
+    private readonly IMonDataLayer _monDataLayer;
+    private readonly IStorageDataLayer _storageDataLayer;
     private readonly IStudyProcessor _processor;
     private readonly ISource _source;
 
-    public StudyController(ILoggingHelper logger, IMonDataLayer mon_data_layer, IStorageDataLayer storage_repo,
+    public StudyController(ILoggingHelper loggingHelper, IMonDataLayer monDataLayer, IStorageDataLayer storageDataLayer,
                           ISource source, IStudyProcessor processor)
     {
-        _logger = logger;
-        _mon_data_layer = mon_data_layer;
-        _storage_repo = storage_repo;
+        _loggingHelper = loggingHelper;
+        _monDataLayer = monDataLayer;
+        _storageDataLayer = storageDataLayer;
         _processor = processor;
         _source = source;
     }
 
-    public int? LoopThroughFiles(int harvest_type_id, int harvest_id)
+    public int? LoopThroughFiles(int harvestTypeId, int harvestId)
     {
         // Loop through the available records a chunk at a time (may be 1 for smaller record sources)
         // First get the total number of records in the system for this source
         // Set up the outer limit and get the relevant records for each pass.
 
         int source_id = _source.id.HasValue ? (int)_source.id : 0;
-        int total_amount = _mon_data_layer.FetchFileRecordsCount(source_id, _source.source_type!, harvest_type_id);
+        int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvestTypeId);
         int chunk = _source.harvest_chunk.HasValue ? (int)_source.harvest_chunk : 0;
         int k = 0;
         for (int m = 0; m < total_amount; m += chunk)
         {
             //if (k >= 5000) break; // for testing...
 
-            IEnumerable<StudyFileRecord> file_list = _mon_data_layer
-                    .FetchStudyFileRecordsByOffset(source_id, m, chunk, harvest_type_id);
+            IEnumerable<StudyFileRecord> file_list = _monDataLayer
+                    .FetchStudyFileRecordsByOffset(source_id, m, chunk, harvestTypeId);
 
-            int n = 0; string? filePath;
+            string? filePath;
             foreach (StudyFileRecord rec in file_list)
             {
                 //if (k > 5000) break; // for testing...
 
-                n++; k++;
+                k++;
                 filePath = rec.local_path;
                 if (File.Exists(filePath))
                 {
@@ -55,17 +55,17 @@ public class StudyController
                     if (s is not null)
                     {
                         // store the data in the database			
-                        _storage_repo.StoreFullStudy(s, _source);
+                        _storageDataLayer.StoreFullStudy(s, _source);
 
                         // update file record with last processed datetime
                         // (if not in test mode)
-                        if (harvest_type_id != 3)
+                        if (harvestTypeId != 3)
                         {
-                            _mon_data_layer.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvest_id);
+                            _monDataLayer.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvestId);
                         }
                     }
                 }
-                if (k % chunk == 0) _logger.LogLine("Records harvested: " + k.ToString());
+                if (k % chunk == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
             }
         }
 

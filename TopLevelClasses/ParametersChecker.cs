@@ -7,16 +7,16 @@ namespace MDR_Harvester;
 
 public class ParameterChecker
 {
-    private readonly ILoggingHelper _logging_helper;
-    private readonly IMonDataLayer _mon_data_layer;
-    private readonly ITestingDataLayer _test_repo;
+    private readonly ILoggingHelper _loggingHelper;
+    private readonly IMonDataLayer _monDataLayer;
+    private readonly ITestingDataLayer _testDataLayer;
 
-    public ParameterChecker(IMonDataLayer mon_data_layer, ITestingDataLayer test_repo, 
+    public ParameterChecker(IMonDataLayer monDataLayer, ITestingDataLayer testDataLayer, 
                               ILoggingHelper logging_helper)
     {
-        _mon_data_layer = mon_data_layer;
-        _test_repo = test_repo;
-        _logging_helper = logging_helper;
+        _monDataLayer = monDataLayer;
+        _testDataLayer = testDataLayer;
+        _loggingHelper = logging_helper;
     }
 
 
@@ -61,7 +61,7 @@ public class ParameterChecker
                 // Set up array of source ids to reflect
                 // those in the test data set.
 
-                opts.source_ids = _test_repo.ObtainTestSourceIDs();
+                opts.source_ids = _testDataLayer.ObtainTestSourceIDs();
                 opts.harvest_type_id = 3;
                 return new ParamsCheckResult(false, false, opts); // should always run if -F parameter present
             }
@@ -84,7 +84,7 @@ public class ParameterChecker
                 {
                     foreach (int source_id in opts.source_ids)
                     {
-                        if (!_mon_data_layer.SourceIdPresent(source_id))
+                        if (!_monDataLayer.SourceIdPresent(source_id))
                         {
                             throw new ArgumentException("Source argument " + source_id.ToString() +
                                                         " does not correspond to a known source");
@@ -100,11 +100,11 @@ public class ParameterChecker
 
         catch (Exception e)
         {
-            _logging_helper.OpenNoSourceLogFile();
-            _logging_helper.LogHeader("INVALID PARAMETERS");
-            _logging_helper.LogCommandLineParameters(opts);
-            _logging_helper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace ?? "");
-            _logging_helper.CloseLog();
+            _loggingHelper.OpenNoSourceLogFile();
+            _loggingHelper.LogHeader("INVALID PARAMETERS");
+            _loggingHelper.LogCommandLineParameters(opts);
+            _loggingHelper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace ?? "");
+            _loggingHelper.CloseLog();
             return new ParamsCheckResult(false, true, null);
         }
     }
@@ -112,31 +112,31 @@ public class ParameterChecker
 
     internal void LogParseError(IEnumerable<Error> errs)
     {
-        _logging_helper.OpenNoSourceLogFile();
-        _logging_helper.LogHeader("UNABLE TO PARSE PARAMETERS");
-        _logging_helper.LogHeader("Error in input parameters");
-        _logging_helper.LogLine("Error in the command line arguments - they could not be parsed");
+        _loggingHelper.OpenNoSourceLogFile();
+        _loggingHelper.LogHeader("UNABLE TO PARSE PARAMETERS");
+        _loggingHelper.LogHeader("Error in input parameters");
+        _loggingHelper.LogLine("Error in the command line arguments - they could not be parsed");
 
         int n = 0;
         foreach (Error e in errs)
         {
             n++;
-            _logging_helper.LogParseError("Error {n}: Tag was {Tag}", n.ToString(), e.Tag.ToString());
+            _loggingHelper.LogParseError("Error {n}: Tag was {Tag}", n.ToString(), e.Tag.ToString());
             if (e.GetType().Name == "UnknownOptionError")
             {
-                _logging_helper.LogParseError("Error {n}: Unknown option was {UnknownOption}", n.ToString(), ((UnknownOptionError)e).Token);
+                _loggingHelper.LogParseError("Error {n}: Unknown option was {UnknownOption}", n.ToString(), ((UnknownOptionError)e).Token);
             }
             if (e.GetType().Name == "MissingRequiredOptionError")
             {
-                _logging_helper.LogParseError("Error {n}: Missing option was {MissingOption}", n.ToString(), ((MissingRequiredOptionError)e).NameInfo.NameText);
+                _loggingHelper.LogParseError("Error {n}: Missing option was {MissingOption}", n.ToString(), ((MissingRequiredOptionError)e).NameInfo.NameText);
             }
             if (e.GetType().Name == "BadFormatConversionError")
             {
-                _logging_helper.LogParseError("Error {n}: Wrongly formatted option was {MissingOption}", n.ToString(), ((BadFormatConversionError)e).NameInfo.NameText);
+                _loggingHelper.LogParseError("Error {n}: Wrongly formatted option was {MissingOption}", n.ToString(), ((BadFormatConversionError)e).NameInfo.NameText);
             }
         }
-        _logging_helper.LogLine("MDR_Downloader application aborted");
-        _logging_helper.CloseLog();
+        _loggingHelper.LogLine("MDR_Downloader application aborted");
+        _loggingHelper.CloseLog();
     }
 
 }

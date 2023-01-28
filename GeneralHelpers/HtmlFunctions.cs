@@ -7,12 +7,12 @@ namespace MDR_Harvester
 {
     public class HtmlHelpers
     {
-        //private readonly IMonDataLayer mon_data_layer;
-        private readonly LoggingHelper _logger;
+        //private readonly IMonDataLayer monDataLayer;
+        private readonly LoggingHelper _loggingHelper;
 
-        public HtmlHelpers(LoggingHelper logger)
+        public HtmlHelpers(LoggingHelper loggingHelper)
         {
-            _logger = logger; 
+            _loggingHelper = loggingHelper; 
         }
 
         

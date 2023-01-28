@@ -11,17 +11,17 @@ namespace MDR_Harvester;
 class Harvester : IHarvester
 {
     private readonly ILoggingHelper _logging_helper;
-    private readonly IMonDataLayer _mon_data_layer;
-    private readonly IStorageDataLayer _storage_repo;
-    private readonly ITestingDataLayer _test_repo;
+    private readonly IMonDataLayer _monDataLayer;
+    private readonly IStorageDataLayer _storageDataLayer;
+    private readonly ITestingDataLayer _testDataLayer;
 
-    public Harvester(ILoggingHelper logging_helper, IMonDataLayer mon_data_layer, IStorageDataLayer storage_repo, 
-                     ITestingDataLayer test_repo)
+    public Harvester(ILoggingHelper logging_helper, IMonDataLayer monDataLayer, IStorageDataLayer storageDataLayer, 
+                     ITestingDataLayer testDataLayer)
     {
         _logging_helper = logging_helper;
-        _mon_data_layer = mon_data_layer;
-        _storage_repo = storage_repo;
-        _test_repo = test_repo;
+        _monDataLayer = monDataLayer;
+        _storageDataLayer = storageDataLayer;
+        _testDataLayer = testDataLayer;
     }
 
     public int Run(Options opts)
@@ -32,11 +32,11 @@ class Harvester : IHarvester
             {
                 // Obtain source details, augment with connection string for this database
 
-                ISource source = _mon_data_layer.FetchSourceParameters(source_id);
-                Credentials creds = _mon_data_layer.Credentials;
+                ISource source = _monDataLayer.FetchSourceParameters(source_id);
+                Credentials creds = _monDataLayer.Credentials;
                 source.db_conn = creds.GetConnectionString(source.database_name, opts.harvest_type_id);
 
-                // establish and begin the logger helper for this harvest
+                // establish and begin the loggingHelper helper for this harvest
 
                 _logging_helper!.OpenLogFile(source.database_name);
                 _logging_helper.LogCommandLineParameters(opts);
@@ -56,7 +56,7 @@ class Harvester : IHarvester
                 {
                     if (opts.harvest_type_id == 3)
                     {
-                        _test_repo.TransferTestSDData(source);
+                        _testDataLayer.TransferTestSDData(source);
                     }
                     else
                     {
@@ -89,7 +89,7 @@ class Harvester : IHarvester
             // This is data derived from manual inspection of files and requires
             // a very different method, using stored procedures in the test db.
 
-            _test_repo.EstablishExpectedData();
+            _testDataLayer.EstablishExpectedData();
         }
         else
         {
@@ -102,7 +102,7 @@ class Harvester : IHarvester
             // Construct the harvest_event record.
 
             int source_id = source.id.HasValue ? (int)source.id : 0;
-            int harvest_id = _mon_data_layer.GetNextHarvestEventId();
+            int harvest_id = _monDataLayer.GetNextHarvestEventId();
             HarvestEvent harvest = new(harvest_id, source_id, opts.harvest_type_id);
             _logging_helper.LogLine("Harvest event " + harvest_id.ToString() + " began");
 
@@ -111,7 +111,7 @@ class Harvester : IHarvester
             _logging_helper.LogHeader("Process data");
             IStudyProcessor? study_processor = null;
             IObjectProcessor? object_processor = null;
-            harvest.num_records_available = _mon_data_layer.FetchFullFileCount(source_id, source.source_type!, opts.harvest_type_id);
+            harvest.num_records_available = _monDataLayer.FetchFullFileCount(source_id, source.source_type!, opts.harvest_type_id);
 
             if (source.source_type == "study")
             {
@@ -151,7 +151,7 @@ class Harvester : IHarvester
                     }
                 }
 
-                StudyController c = new(_logging_helper, _mon_data_layer, _storage_repo, source, study_processor);
+                StudyController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source, study_processor);
                 harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
             }
             else
@@ -166,12 +166,12 @@ class Harvester : IHarvester
                         }
                 }
 
-                ObjectController c = new(_logging_helper, _mon_data_layer, _storage_repo, source, object_processor);
+                ObjectController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source, object_processor);
                 harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
             }
 
             harvest.time_ended = DateTime.Now;
-            _mon_data_layer.StoreHarvestEvent(harvest);
+            _monDataLayer.StoreHarvestEvent(harvest);
 
             _logging_helper.LogLine("Number of source JSON files: " + harvest.num_records_available.ToString());
             _logging_helper.LogLine("Number of files harvested: " + harvest.num_records_harvested.ToString());

@@ -4,14 +4,14 @@ namespace MDR_Harvester;
 public class SchemaBuilder
 {
     private ISource _source;
-    private ILoggingHelper _logger;
+    private ILoggingHelper _loggingHelper;
     private StudyTableBuilder study_tablebuilder;
     private ObjectTableBuilder object_tablebuilder;
 
-    public SchemaBuilder(ISource source, ILoggingHelper logger)
+    public SchemaBuilder(ISource source, ILoggingHelper loggingHelper)
     {
         _source = source;
-        _logger = logger;
+        _loggingHelper = loggingHelper;
         study_tablebuilder = new StudyTableBuilder(source.db_conn);
         object_tablebuilder = new ObjectTableBuilder(source.db_conn);
     }
@@ -40,7 +40,7 @@ public class SchemaBuilder
             if (_source.has_study_iec == true) study_tablebuilder.create_table_study_iec();
             if (_source.has_study_ipd_available == true) study_tablebuilder.create_table_ipd_available();
 
-            _logger.LogLine("Study tables recreated");
+            _loggingHelper.LogLine("Study tables recreated");
         }
 
         // object tables - these common to all databases
@@ -67,7 +67,7 @@ public class SchemaBuilder
             object_tablebuilder.create_table_object_publication_types();
         }
 
-        _logger.LogLine("Object tables recreated");
+        _loggingHelper.LogLine("Object tables recreated");
     }
 
 }

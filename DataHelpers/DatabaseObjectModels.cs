@@ -50,7 +50,7 @@ namespace MDR_Harvester
     [Table("sd.data_objects")]
     public class DataObject
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public string? sd_sid { get; set; }
         public string? title { get; set; }
         public string? version { get; set; }
@@ -105,7 +105,7 @@ namespace MDR_Harvester
         }
 
 
-        public DataObject(string _sd_oid, string? _sd_sid, string? _title, string? _display_title, int? _publication_year, int? _object_class_id,
+        public DataObject(string? _sd_oid, string? _sd_sid, string? _title, string? _display_title, int? _publication_year, int? _object_class_id,
                             string? _object_class, int? _object_type_id, string? _object_type,
                             int? _managing_org_id, string? _managing_org, 
                             int? _access_type_id, DateTime? _datetime_of_data_fetch)
@@ -133,7 +133,7 @@ namespace MDR_Harvester
         }
 
 
-        public DataObject(string _sd_oid, string? _sd_sid, string? _title, string? _display_title, int? _publication_year, int? _object_class_id,
+        public DataObject(string? _sd_oid, string? _sd_sid, string? _title, string? _display_title, int? _publication_year, int? _object_class_id,
                             string? _object_class, int? _object_type_id, string? _object_type,
                             int? _managing_org_id, string? _managing_org,
                             int? _access_type_id, string? _access_type, string? _access_details,
@@ -165,7 +165,7 @@ namespace MDR_Harvester
         }
 
 
-        public DataObject(string _sd_oid, string? _sd_sid, string? _title, string? _display_title, int? _publication_year, int? _object_class_id,
+        public DataObject(string? _sd_oid, string? _sd_sid, string? _title, string? _display_title, int? _publication_year, int? _object_class_id,
                             string? _object_class, int? _object_type_id, string? _object_type,
                             int? _managing_org_id, string? _managing_org, string? _lang_code,
                             int? _access_type_id, string? _access_type, string? _access_details,
@@ -201,7 +201,7 @@ namespace MDR_Harvester
 
     public class ObjectDataset
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? record_keys_type_id { get; set; }
         public string? record_keys_type { get; set; }
         public string? record_keys_details { get; set; }
@@ -222,7 +222,7 @@ namespace MDR_Harvester
         public bool? consent_no_methods { get; set; }
         public string? consent_details { get; set; }
 
-        public ObjectDataset(string _sd_oid,
+        public ObjectDataset(string? _sd_oid,
                             int? _record_keys_type_id, string? _record_keys_type, string? _record_keys_details,
                             int? _deident_type_id, string? _deident_type, string? _deident_details,
                             int? _consent_type_id, string? _consent_type, string? _consent_details)
@@ -239,7 +239,7 @@ namespace MDR_Harvester
             consent_details = _consent_details;
         }
 
-        public ObjectDataset(string _sd_oid,
+        public ObjectDataset(string? _sd_oid,
                             int? _record_keys_type_id, string? _record_keys_type, string? _record_keys_details,
                             int? _deident_type_id, string? _deident_type,
                             bool? _deident_direct, bool? _deident_hipaa, bool? _deident_dates,
@@ -275,7 +275,7 @@ namespace MDR_Harvester
     
     public class ObjectTitle
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? title_type_id { get; set; }
         public string? title_type { get; set; }
         public string? title_text { get; set; }
@@ -284,7 +284,7 @@ namespace MDR_Harvester
         public bool? is_default { get; set; }
         public string? comments { get; set; }
 
-        public ObjectTitle(string _sd_oid, string? _title_text,
+        public ObjectTitle(string? _sd_oid, string? _title_text,
                                 int? _title_type_id, string? _title_type, bool? _is_default)
         {
             sd_oid = _sd_oid;
@@ -296,7 +296,7 @@ namespace MDR_Harvester
             is_default = _is_default;
         }
 
-        public ObjectTitle(string _sd_oid, string? _title_text, 
+        public ObjectTitle(string? _sd_oid, string? _title_text, 
                                int? _title_type_id, string? _title_type, bool? _is_default, string? _comments)
         {
             sd_oid = _sd_oid;
@@ -309,7 +309,7 @@ namespace MDR_Harvester
             comments = _comments;
         }
 
-        public ObjectTitle(string _sd_oid, string? _title_text, 
+        public ObjectTitle(string? _sd_oid, string? _title_text, 
                                 int? _title_type_id, string? _title_type, string? _lang_code,
                                 int? _lang_usage_id, bool? _is_default, string? _comments)
         {
@@ -354,7 +354,7 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectInstance(string _sd_oid, int? _repository_org_id, string? _repository_org, 
+        public ObjectInstance(string? _sd_oid, int? _repository_org_id, string? _repository_org, 
                     string? _url, bool? _url_accessible,
                     int? _resource_type_id, string? _resource_type,
                     string? _resource_size, string? _resource_size_units)
@@ -371,7 +371,7 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectInstance(string _sd_oid, int? _repository_org_id, string? _repository_org, 
+        public ObjectInstance(string? _sd_oid, int? _repository_org_id, string? _repository_org, 
                     string? _url, bool? _url_accessible,
                     int? _resource_type_id, string? _resource_type,
                     string? _resource_size, string? _resource_size_units, string? _resource_comments)
@@ -396,7 +396,7 @@ namespace MDR_Harvester
 
     public class ObjectIdentifier
     {
-        public string sd_oid { get; set; }
+        public string? sd_oid { get; set; }
         public int? identifier_type_id { get; set; }
         public string? identifier_type { get; set; }
         public string? identifier_value { get; set; }
@@ -433,7 +433,7 @@ namespace MDR_Harvester
         public int? end_day { get; set; }
         public string? details { get; set; }
 
-        public ObjectDate(string _sd_oid, int? _date_type_id, string? _date_type,
+        public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
                                     string? _date_as_string, int? _start_year)
         {
             sd_oid = _sd_oid;
@@ -443,8 +443,8 @@ namespace MDR_Harvester
             start_year = _start_year;
         }
 
-        public ObjectDate(string _sd_oid, int? _date_type_id, string? _date_type,
-                                    int? _start_year, int? _start_month, int? _start_day, string _date_as_string)
+        public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
+                                    int? _start_year, int? _start_month, int? _start_day, string? _date_as_string)
         {
             sd_oid = _sd_oid;
             date_type_id = _date_type_id;
@@ -455,7 +455,7 @@ namespace MDR_Harvester
             date_as_string = _date_as_string;
         }
 
-        public ObjectDate(string _sd_oid, int? _date_type_id, string? _date_type,
+        public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
                                     string? _date_as_string, bool? _date_is_range,
                                     int? _start_year, int? _start_month, int? _start_day,
                                     int? _end_year, int? _end_month, int? _end_day,
@@ -476,7 +476,7 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectDate(string _sd_oid, int? _date_type_id, string? _date_type,
+        public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
                                     SplitDate sd)
         {
             sd_oid = _sd_oid;
@@ -489,7 +489,7 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectDate(string _sd_oid, int? _date_type_id, string? _date_type,
+        public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
                                     SplitDateRange sdr)
         {
             sd_oid = _sd_oid;
@@ -557,7 +557,7 @@ namespace MDR_Harvester
         public string? sd_oid { get; set; }
         public string? type_name { get; set; }
 
-        public ObjectPublicationType(string _sd_oid, string? _type_name)
+        public ObjectPublicationType(string? _sd_oid, string? _type_name)
         {
             sd_oid = _sd_oid;
             type_name = _type_name;
@@ -634,7 +634,7 @@ namespace MDR_Harvester
 
         // used for a mesh coded topic
 
-        public ObjectTopic(string _sd_oid, int? _topic_type_id, string? _topic_type,
+        public ObjectTopic(string? _sd_oid, int? _topic_type_id, string? _topic_type,
                      bool? _mesh_coded, string? _mesh_code, string? _mesh_value)
         {
             sd_oid = _sd_oid;
@@ -650,7 +650,7 @@ namespace MDR_Harvester
 
         // non mesh coded topic - topic type and name only
 
-        public ObjectTopic(string _sd_oid, int? _topic_type_id, string? _topic_type,
+        public ObjectTopic(string? _sd_oid, int? _topic_type_id, string? _topic_type,
                            string? _topic_value)
         {
             sd_oid = _sd_oid;
@@ -663,7 +663,7 @@ namespace MDR_Harvester
 
         // non mesh coded topic - but coded using another system - comments also possible
 
-        public ObjectTopic(string _sd_oid, int? _topic_type_id, string? _topic_type, 
+        public ObjectTopic(string? _sd_oid, int? _topic_type_id, string? _topic_type, 
             string? _topic_value, int? _original_ct_id, string? _original_ct_code)
         {
             sd_oid = _sd_oid;
@@ -694,7 +694,7 @@ namespace MDR_Harvester
         public string? organisation_name { get; set; }
         public string? organisation_ror_id { get; set; }
 
-        public ObjectContributor(string _sd_oid, int? _contrib_type_id, string? _contrib_type,
+        public ObjectContributor(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
                                 int? _organisation_id, string? _organisation_name, string? _person_full_name,
                                 string? _person_affiliation)
         {
@@ -709,7 +709,7 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectContributor(string _sd_oid, int? _contrib_type_id, string? _contrib_type, 
+        public ObjectContributor(string? _sd_oid, int? _contrib_type_id, string? _contrib_type, 
                                  string? _person_given_name, string? _person_family_name, 
                                  string? _person_full_name, string? _orcid_id, string? _person_affiliation, 
                                  string? _organisation_name)
@@ -727,7 +727,7 @@ namespace MDR_Harvester
         }
 
 
-        public ObjectContributor(string _sd_oid, int? _contrib_type_id, string? _contrib_type,
+        public ObjectContributor(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
                                 string? _person_given_name, string? _person_family_name, string? _person_full_name,
                                 string? _orcid_id, string? _person_affiliation, 
                                 int? _organisation_id, string? _organisation_name)
@@ -757,7 +757,7 @@ namespace MDR_Harvester
         public string? right_uri { get; set; }
         public string? notes { get; set; }
 
-        public ObjectRight(string _sd_oid, string? _right_name,
+        public ObjectRight(string? _sd_oid, string? _right_name,
                             string? _right_uri, string? _notes)
         {
             sd_oid = _sd_oid;
@@ -776,7 +776,7 @@ namespace MDR_Harvester
         public string? relationship_type { get; set; }
         public string? target_sd_oid { get; set; }
 
-        public ObjectRelationship(string _sd_oid, int? _relationship_type_id, 
+        public ObjectRelationship(string? _sd_oid, int? _relationship_type_id, 
                                   string? _relationship_type, string? _target_sd_oid)
         {
             sd_oid = _sd_oid;

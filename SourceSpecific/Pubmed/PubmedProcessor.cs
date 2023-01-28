@@ -10,11 +10,11 @@ namespace MDR_Harvester.Pubmed;
 
 public class PubmedProcessor : IObjectProcessor
 {
-    ILoggingHelper _logger_helper;
+    ILoggingHelper _loggingHelper_helper;
 
-    public PubmedProcessor(ILoggingHelper logger_helper)
+    public PubmedProcessor(ILoggingHelper loggingHelper_helper)
     {
-        _logger_helper = logger_helper;
+        _loggingHelper_helper = loggingHelper_helper;
     }
        
     public FullDataObject? ProcessData(string json_string, DateTime? download_datetime)
@@ -29,7 +29,7 @@ public class PubmedProcessor : IObjectProcessor
         Pubmed_Record? r = JsonSerializer.Deserialize<Pubmed_Record?>(json_string, json_options);
         if (r is null)
         {
-            _logger_helper.LogError($"Unable to deserialise json file to Pubmed_Record\n{json_string[..1000]}... (first 1000 characters)");
+            _loggingHelper_helper.LogError($"Unable to deserialise json file to Pubmed_Record\n{json_string[..1000]}... (first 1000 characters)");
             return null;
         }
 
@@ -37,7 +37,7 @@ public class PubmedProcessor : IObjectProcessor
         string? sdoid = r.sd_oid;
         if (string.IsNullOrEmpty(sdoid))
         {
-            _logger_helper.LogError($"No valid object identifier found in Pubmed_Record\n{json_string[..1000]}... (first 1000 characters of json string");
+            _loggingHelper_helper.LogError($"No valid object identifier found in Pubmed_Record\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
 
@@ -97,7 +97,7 @@ public class PubmedProcessor : IObjectProcessor
         }
         else
         {
-            _logger_helper.LogLine($"No PMID version attribute found for {sdoid}");
+            _loggingHelper_helper.LogLine($"No PMID version attribute found for {sdoid}");
         }
 
 
@@ -132,7 +132,7 @@ public class PubmedProcessor : IObjectProcessor
         else
         {
             string qText = $"The {sdoid} citation does not have an article title";
-            _logger_helper.LogLine(qText, sdoid);
+            _loggingHelper_helper.LogLine(qText, sdoid);
         }
         string? vtitle = r.vernacularTitle;
         if (!string.IsNullOrEmpty(vtitle))
@@ -147,7 +147,7 @@ public class PubmedProcessor : IObjectProcessor
         {
             vtitle = null;
             string qText = $"The article and vernacular titles seem identical, for pmid {sdoid}";
-            _logger_helper.LogLine(qText, sdoid);
+            _loggingHelper_helper.LogLine(qText, sdoid);
         }
 
         // If a vernacular title try and find its language if possible - it is not given explicitly.
@@ -259,7 +259,7 @@ public class PubmedProcessor : IObjectProcessor
                     if (bracket_count > 0)
                     {
                         string qText = $"Title '{atitle}' starts with '[', ends with ')', but unable to match parentheses, for pmid {sdoid}";
-                        _logger_helper.LogLine(qText, sdoid);
+                        _loggingHelper_helper.LogLine(qText, sdoid);
                     }
                 }
                 else
@@ -268,7 +268,7 @@ public class PubmedProcessor : IObjectProcessor
 
                     string qText = "The title starts with a '[' but there is no matching ']' or ')' at the end of the title. Title = "
                                        + atitle + ", for pmid {sdoid}";
-                    _logger_helper.LogLine(qText, sdoid);
+                    _loggingHelper_helper.LogLine(qText, sdoid);
                 }
 
                 // Store the title(s) - square brackets being present.
@@ -471,7 +471,7 @@ public class PubmedProcessor : IObjectProcessor
                     else
                     {
                         string qText = $"Unexpected date type ({date_type}) found in an article date element, pmid {sdoid}"; 
-                        _logger_helper.LogLine(qText, sdoid);
+                        _loggingHelper_helper.LogLine(qText, sdoid);
                     }
                 }
             }
@@ -526,7 +526,7 @@ public class PubmedProcessor : IObjectProcessor
                             {
                                 date_type = 0;
                                 string qText = "An unexpexted status (" + pub_status + ") found a date in the history section, pmid {sdoid}";
-                                _logger_helper.LogLine(qText, sdoid);
+                                _loggingHelper_helper.LogLine(qText, sdoid);
                                 break;
                             }
                     }
@@ -752,7 +752,7 @@ public class PubmedProcessor : IObjectProcessor
                                     {
                                         string qText = $"Two different dois have been supplied: {fob.doi}";
                                         qText += $" from ELocation, and {other_id} from Article Ids, pmid {sdoid}";
-                                        _logger_helper.LogLine(qText, sdoid);
+                                        _loggingHelper_helper.LogLine(qText, sdoid);
                                         break;
                                     }
                                 }
@@ -781,7 +781,7 @@ public class PubmedProcessor : IObjectProcessor
                                 {
                                     // should be present already! - if a different value log it a a query
                                     string qText = "Two different values for pmid found: record pmiod is {sdoid}, but in article ids the value " + other_id + " is listed";
-                                    _logger_helper.LogLine(qText, sdoid);
+                                    _loggingHelper_helper.LogLine(qText, sdoid);
                                     identifiers.Add(new ObjectIdentifier(sdoid, 16, "PMID", sdoid, 100133, "National Library of Medicine"));
                                 }
                                 break;
@@ -823,7 +823,7 @@ public class PubmedProcessor : IObjectProcessor
                         default:
                             {
                                 string qText = "A unexpexted article id type (" + id_type + ") found a date in the article id section, for pmid {sdoid}";
-                                _logger_helper.LogLine(qText, sdoid);
+                                _loggingHelper_helper.LogLine(qText, sdoid);
                                 break;
                             }
                     }
@@ -965,7 +965,7 @@ public class PubmedProcessor : IObjectProcessor
                         {
                             string qText = $"person {full_name} (linked to {sdoid}) identifier ";
                             qText += "is not an ORCID (" + identifier + " (source =" + identifier_source + "))";
-                            _logger_helper.LogLine(qText, sdoid);
+                            _loggingHelper_helper.LogLine(qText, sdoid);
                             identifier = null; identifier_source = null;  // do not store in db
                         }
                     }

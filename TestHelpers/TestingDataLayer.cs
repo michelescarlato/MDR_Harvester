@@ -8,7 +8,7 @@ public class TestingDataLayer : ITestingDataLayer
     ICredentials _credentials;
     NpgsqlConnectionStringBuilder builder;
     private string _db_conn;
-    LoggingHelper _logger;
+    LoggingHelper _loggingHelper;
 
     /// <summary>
     /// Constructor is used to build the connection string, 
@@ -37,46 +37,46 @@ public class TestingDataLayer : ITestingDataLayer
 
     public int EstablishExpectedData()
     {
-        _logger.OpenLogFile("test");
+        _loggingHelper.OpenLogFile("test");
 
         try
         {
-            _logger.LogLine("STARTING EXPECTED DATA ASSEMBLY");
+            _loggingHelper.LogLine("STARTING EXPECTED DATA ASSEMBLY");
 
             TestSchemaBuilder tsb = new TestSchemaBuilder(_db_conn);
 
             tsb.SetUpMonSchema();
-            _logger.LogLine("mon_sf link established");
+            _loggingHelper.LogLine("mon_sf link established");
 
             tsb.SetUpExpectedTables();
-            _logger.LogLine("Expected Data tables recreated");
+            _loggingHelper.LogLine("Expected Data tables recreated");
 
             tsb.SetUpSDCompositeTables();
-            _logger.LogLine("SD composite test data tables recreated");
+            _loggingHelper.LogLine("SD composite test data tables recreated");
 
             ExpectedDataBuilder edb = new ExpectedDataBuilder(_db_conn);
 
             edb.InitialiseTestStudiesList();
             edb.InitialiseTestPubMedObjectsList();
-            _logger.LogLine("List of test studies and pubmed objects inserted");
+            _loggingHelper.LogLine("List of test studies and pubmed objects inserted");
 
             edb.LoadInitialInputTables();
-            _logger.LogLine("Data loaded from manual inspections");  
+            _loggingHelper.LogLine("Data loaded from manual inspections");  
 
             //edb.CalculateAndAddOIDs();
-            //_logger.Information("OIDs calculated and inserted");
+            //_loggingHelper.Information("OIDs calculated and inserted");
 
             tsb.TearDownForeignSchema();
-            _logger.LogLine("mon_sf link deleted");
+            _loggingHelper.LogLine("mon_sf link deleted");
 
             return 0;
         }
 
         catch (Exception e)
         {
-            _logger.LogCodeError("Error in establishing test data from stored procedures", e.Message, e.StackTrace);
-            _logger.LogLine("Closing Log");
-            _logger.CloseLog();
+            _loggingHelper.LogCodeError("Error in establishing test data from stored procedures", e.Message, e.StackTrace);
+            _loggingHelper.LogLine("Closing Log");
+            _loggingHelper.CloseLog();
             return -1;
         }
     }
@@ -89,12 +89,12 @@ public class TestingDataLayer : ITestingDataLayer
         {
             tdb.DeleteExistingStudyData();
             tdb.TransferStudyData();  
-            _logger.LogLine("New study SD test data for source " + source.id + " added to CompSD");
+            _loggingHelper.LogLine("New study SD test data for source " + source.id + " added to CompSD");
         }
 
         tdb.DeleteExistingObjectData();
         tdb.TransferObjectData();
-        _logger.LogLine("New object SD test data for source " + source.id + " added to CompSD");
+        _loggingHelper.LogLine("New object SD test data for source " + source.id + " added to CompSD");
     }
 
 

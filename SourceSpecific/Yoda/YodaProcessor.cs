@@ -7,14 +7,14 @@ namespace MDR_Harvester.Yoda;
 
 public class YodaProcessor : IStudyProcessor
 {
-    private readonly ILoggingHelper _logger_helper;
+    private readonly ILoggingHelper _loggingHelper;
 
-    public YodaProcessor(ILoggingHelper logger_helper)
+    public YodaProcessor(ILoggingHelper loggingHelper)
     {
-        _logger_helper = logger_helper;
+        _loggingHelper = loggingHelper;
     }
 
-    public Study? ProcessData(string json_string, DateTime? download_datetime)
+    public Study? ProcessData(string jsonString, DateTime? downloadDatetime)
     {
         // set up json reader and deserialise file to a BioLiNCC object.
 
@@ -25,11 +25,11 @@ public class YodaProcessor : IStudyProcessor
             AllowTrailingCommas = true
         };
 
-        Yoda_Record? r = JsonSerializer.Deserialize<Yoda_Record?>(json_string, json_options);
+        Yoda_Record? r = JsonSerializer.Deserialize<Yoda_Record?>(jsonString, json_options);
 
         if(r is null)
         {
-            _logger_helper.LogError($"Unable to deserialise json file to Who_Record\n{json_string[..1000]}... (first 1000 characters)");
+            _loggingHelper.LogError($"Unable to deserialise json file to Who_Record\n{jsonString[..1000]}... (first 1000 characters)");
             return null;
         }
 
@@ -52,7 +52,7 @@ public class YodaProcessor : IStudyProcessor
 
         string sid = r.sd_sid!;
         s.sd_sid = sid;
-        s.datetime_of_data_fetch = download_datetime;
+        s.datetime_of_data_fetch = downloadDatetime;
 
         string? yoda_title = r.yoda_title;  
         yoda_title = yoda_title.ReplaceApos()?.ReplaceTags();
@@ -101,6 +101,7 @@ public class YodaProcessor : IStudyProcessor
 
         s.study_enrolment = r.enrolment;
         string? percent_female = r.percent_female;
+        double tolerance = .0001;
         if (!string.IsNullOrEmpty(percent_female) && percent_female != "N/A")
         {
             if (percent_female.EndsWith("%"))
@@ -115,7 +116,7 @@ public class YodaProcessor : IStudyProcessor
                     s.study_gender_elig_id = 910;
                     s.study_gender_elig = "Male";
                 }
-                else if (female_percentage == 100)
+                else if (Math.Abs(female_percentage - 100) < tolerance)
                 {
                     s.study_gender_elig_id = 905;
                     s.study_gender_elig = "Female";
@@ -188,24 +189,26 @@ public class YodaProcessor : IStudyProcessor
 
         if (!string.IsNullOrEmpty(compound_product_name))
         {
-            string? product_name = compound_product_name.Replace(((char)174).ToString(), "");    // drop reg mark
-            product_name = product_name?.CompressSpaces();
-
-            // see if already exists
-            bool add_product = true;
-            foreach (StudyTopic t in topics)
+            string? productName = compound_product_name.Replace(((char)174).ToString(), ""); // drop reg mark
+            productName = productName?.CompressSpaces();
+            if (productName is not null)
             {
-                if (product_name.ToLower() == t.original_value?.ToLower())
+                // see if already exists
+                bool addProduct = true;
+                foreach (StudyTopic t in topics)
                 {
-                    add_product = false;
-                    break;
+                    if (productName.ToLower() == t.original_value?.ToLower())
+                    {
+                        addProduct = false;
+                        break;
+                    }
                 }
-            }
 
-            if (add_product)
-            {
-                product_name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(product_name.ToLower());
-                topics.Add(new StudyTopic(sid, 12, "chemical / agent", product_name));
+                if (addProduct)
+                {
+                    productName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(productName.ToLower());
+                    topics.Add(new StudyTopic(sid, 12, "chemical / agent", productName));
+                }
             }
         }
 
@@ -240,7 +243,7 @@ public class YodaProcessor : IStudyProcessor
         string sd_oid = sid + " :: 38 :: " + object_title;
 
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", 38, "Study Overview",
-                            101901, "Yoda", 12, download_datetime));
+                            101901, "Yoda", 12, downloadDatetime));
         object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
                         "Study short name :: object type", true));
         object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda",
@@ -295,8 +298,8 @@ public class YodaProcessor : IStudyProcessor
                         if (comment == "Available now")
                         {
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
-                                            101901, "Yoda", 11, download_datetime));
-                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
+                                            101901, "Yoda", 11, downloadDatetime));
+                            object_titles.Add(new ObjectTitle(sd_oid ,object_display_title, 22, "Study short name :: object type", true));
 
                             // create instance as resource exists
                             // get file type from link if possible
@@ -327,7 +330,7 @@ public class YodaProcessor : IStudyProcessor
 
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
                                             101901, "Yoda", 17, "Case by case download", access_details,
-                                            "https://yoda.yale.edu/how-request-data", null, download_datetime));
+                                            "https://yoda.yale.edu/how-request-data", null, downloadDatetime));
                             object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
                         }
 

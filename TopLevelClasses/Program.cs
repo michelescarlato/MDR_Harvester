@@ -41,7 +41,7 @@ IHost host = Host.CreateDefaultBuilder()
 .Build();
 
 
-// Establish logger, at this stage as an object reference
+// Establish loggingHelper, at this stage as an object reference
 // because the log file(s) are yet to be opened.
 // Establish a new parameter checker class.
 

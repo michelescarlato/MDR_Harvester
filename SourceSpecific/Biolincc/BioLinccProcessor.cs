@@ -7,11 +7,11 @@ namespace MDR_Harvester.Biolincc;
 
 public class BioLinccProcessor : IStudyProcessor
 {
-    private readonly ILoggingHelper _logger_helper;
+    private readonly ILoggingHelper _loggingHelper_helper;
 
-    public BioLinccProcessor( ILoggingHelper logger_helper)
+    public BioLinccProcessor( ILoggingHelper loggingHelper_helper)
     {
-        _logger_helper = logger_helper;
+        _loggingHelper_helper = loggingHelper_helper;
     }
 
     public Study? ProcessData(string json_string, DateTime? download_datetime)
@@ -28,7 +28,7 @@ public class BioLinccProcessor : IStudyProcessor
         BioLincc_Record? r = JsonSerializer.Deserialize<BioLincc_Record?>(json_string, json_options);
         if (r is null)
         {
-            _logger_helper.LogError($"Unable to deserialise json file to BioLincc_Record\n{json_string[..1000]}... (first 1000 characters)");
+            _loggingHelper_helper.LogError($"Unable to deserialise json file to BioLincc_Record\n{json_string[..1000]}... (first 1000 characters)");
             return null;
         }
 
@@ -55,7 +55,7 @@ public class BioLinccProcessor : IStudyProcessor
         string? sid = r.sd_sid;
         if (string.IsNullOrEmpty(sid))
         {
-            _logger_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
+            _loggingHelper_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
 
