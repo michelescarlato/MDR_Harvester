@@ -5,29 +5,13 @@ namespace MDR_Harvester;
 
 public class TestingDataLayer : ITestingDataLayer
 {
-    private readonly ICredentials _credentials;
     private readonly string _db_conn;
     private readonly ILoggingHelper _loggingHelper;
 
-    /// <summary>
-    /// Constructor is used to build the connection string, 
-    /// using a credentials object that has the relevant credentials 
-    /// from the app settings, themselves derived from a json file.
-    /// </summary>
-    /// 
     public TestingDataLayer(ICredentials credentials, ILoggingHelper loggingHelper)
     {
-        NpgsqlConnectionStringBuilder builder = new();
-
-        builder.Host = credentials.Host;
-        builder.Username = credentials.Username;
-        builder.Password = credentials.Password;
-
-        builder.Database = "test";  
-        _db_conn = builder.ConnectionString;
-
-        _credentials = credentials;
         _loggingHelper = loggingHelper;
+        _db_conn = credentials.GetConnectionString("test", 1);
     }
 
     public int EstablishExpectedData()

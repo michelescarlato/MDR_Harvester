@@ -187,22 +187,20 @@ internal static class IsrctnExtensions
         {
             return false;
         }
-        else
+
+        bool res = true;
+        if (identifiers.Count > 0)
         {
-            bool res = true;
-            if (identifiers.Count > 0)
+            foreach (StudyIdentifier i in identifiers)
             {
-                foreach (StudyIdentifier i in identifiers)
+                if (ident_value == i.identifier_value)
                 {
-                    if (ident_value == i.identifier_value)
-                    {
-                        res = false;
-                        break;
-                    }
+                    res = false;
+                    break;
                 }
             }
-            return res;
         }
+        return res;
     }
 
 
@@ -212,40 +210,38 @@ internal static class IsrctnExtensions
         {
             return false;
         }
-        else
+        
+        bool is_individual = false;
+
+        // If looks like an individual's name...
+
+        if (orgname.EndsWith(" md") || orgname.EndsWith(" phd") ||
+            orgname.Contains(" md,") || orgname.Contains(" md ") ||
+            orgname.Contains(" phd,") || orgname.Contains(" phd ") ||
+            orgname.Contains("dr ") || orgname.Contains("dr.") ||
+            orgname.Contains("prof ") || orgname.Contains("prof.") ||
+            orgname.Contains("professor"))
         {
-            bool is_individual = false;
+            is_individual = true;
 
-            // If looks like an individual's name...
+            // Unless part of a organisation reference...
 
-            if (orgname.EndsWith(" md") || orgname.EndsWith(" phd") ||
-                orgname.Contains(" md,") || orgname.Contains(" md ") ||
-                orgname.Contains(" phd,") || orgname.Contains(" phd ") ||
-                orgname.Contains("dr ") || orgname.Contains("dr.") ||
-                orgname.Contains("prof ") || orgname.Contains("prof.") ||
-                orgname.Contains("professor"))
+            if (orgname.Contains("hosp") || orgname.Contains("univer") ||
+                orgname.Contains("labor") || orgname.Contains("labat") ||
+                orgname.Contains("institu") || orgname.Contains("istitu") ||
+                orgname.Contains("school") || orgname.Contains("founda") ||
+                orgname.Contains("associat"))
             {
-                is_individual = true;
-
-                // Unless part of a organisation reference...
-
-                if (orgname.Contains("hosp") || orgname.Contains("univer") ||
-                    orgname.Contains("labor") || orgname.Contains("labat") ||
-                    orgname.Contains("institu") || orgname.Contains("istitu") ||
-                    orgname.Contains("school") || orgname.Contains("founda") ||
-                    orgname.Contains("associat"))
-                {
-                    is_individual = false;
-                }
+                is_individual = false;
             }
-
-            // some specific individuals...
-            if (orgname == "seung-jung park" || orgname == "kang yan")
-            {
-                is_individual = true;
-            }
-            return is_individual;
         }
+
+        // some specific individuals...
+        if (orgname == "seung-jung park" || orgname == "kang yan")
+        {
+            is_individual = true;
+        }
+        return is_individual;
     }
 
 
@@ -255,19 +251,17 @@ internal static class IsrctnExtensions
         {
             return false;
         }
-        else
-        {
-            bool is_org = false;
-            string fname = fullname.ToLower();
-            if (fname.Contains(" group") || fname.StartsWith("group") ||
-                fname.Contains(" assoc") || fname.Contains(" team") ||
-                fname.Contains("collab") || fname.Contains("network"))
-            {
-                is_org = true;
-            }
 
-            return is_org;
+        bool is_org = false;
+        string fname = fullname.ToLower();
+        if (fname.Contains(" group") || fname.StartsWith("group") ||
+            fname.Contains(" assoc") || fname.Contains(" team") ||
+            fname.Contains("collab") || fname.Contains("network"))
+        {
+            is_org = true;
         }
+
+        return is_org;
     }
 
 
@@ -277,20 +271,18 @@ internal static class IsrctnExtensions
         {
             return 0;
         }
-        else
+        
+        int num_of_this_type = 0;
+        if (titles.Count > 0)
         {
-            int num_of_this_type = 0;
-            if (titles.Count > 0)
+            for (int j = 0; j < titles.Count; j++)
             {
-                for (int j = 0; j < titles.Count; j++)
+                if (titles[j].title_text?.Contains(object_display_title) is true)
                 {
-                    if (titles[j].title_text?.Contains(object_display_title) is true)
-                    {
-                        num_of_this_type++;
-                    }
+                    num_of_this_type++;
                 }
             }
-            return num_of_this_type;
         }
+        return num_of_this_type;
     }
 }

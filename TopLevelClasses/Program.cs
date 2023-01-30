@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MDR_Harvester;
 
-
 string AssemblyLocation = Assembly.GetExecutingAssembly().Location;
 string? BasePath = Path.GetDirectoryName(AssemblyLocation);
 if (string.IsNullOrWhiteSpace(BasePath))
@@ -63,31 +62,30 @@ if (paramsCheck.ParseError || paramsCheck.ValidityError)
 
     return -1;
 }
-else
+
+// Should be able to proceed - (opts and source are known to be non-null).
+// Open log file, create Harvester class and call the main harvest function
+
+try
 {
-    // Should be able to proceed - (opts and source are known to be non-null).
-    // Open log file, create Harvester class and call the main harvest function
-
-    try
-    {
-        var opts = paramsCheck.Pars!;
-        Harvester harvester = ActivatorUtilities.CreateInstance<Harvester>(host.Services);
-        harvester.Run(opts);
-        return 0;
-    }
-    catch (Exception e)
-    {
-        // If an error bubbles up to here there is an issue with the code.
-        // A file should normally have been created.
-
-        if (logging_helper.LogFilePath == "")
-        {
-            logging_helper.OpenNoSourceLogFile();
-        }
-        logging_helper.LogHeader("UNHANDLED EXCEPTION");
-        logging_helper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace);
-        logging_helper.CloseLog();
-        return -1;
-    }
+    var opts = paramsCheck.Pars!;
+    Harvester harvester = ActivatorUtilities.CreateInstance<Harvester>(host.Services);
+    harvester.Run(opts);
+    return 0;
 }
+catch (Exception e)
+{
+    // If an error bubbles up to here there is an issue with the code.
+    // A file should normally have been created.
+
+    if (logging_helper.LogFilePath == "")
+    {
+        logging_helper.OpenNoSourceLogFile();
+    }
+    logging_helper.LogHeader("UNHANDLED EXCEPTION");
+    logging_helper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace);
+    logging_helper.CloseLog();
+    return -1;
+}
+
 

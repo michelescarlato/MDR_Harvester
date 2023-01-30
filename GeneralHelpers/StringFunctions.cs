@@ -514,7 +514,7 @@ public static class StringHelpers
         // Replace apostrophes and remove periods.
         
         string? name1 = in_name.ReplaceApos();
-        string pName = name1!.Replace(".", "");
+        string? pName = name1?.Replace(".", "");
         
         if (string.IsNullOrEmpty(pName))
         {
@@ -551,41 +551,39 @@ public static class StringHelpers
         {
             pName = pName[2..];
         }
-        else if (low_name == "dr" || low_name == "mr"
-                                  || low_name == "ms")
+        else if (low_name is "dr" or "mr" or "ms")
         {
             pName = "";
         }
-
-        // Remove trailing qualifications
+       
         if (pName == "")
         {
             return pName;
         }
-        else
+        
+        // remove some trailing qualifications
+
+        int comma_pos = pName.IndexOf(',', StringComparison.Ordinal);
+        if (comma_pos > -1)
         {
-            int comma_pos = pName.IndexOf(',');
-            if (comma_pos > -1)
-            {
-                pName = pName[..comma_pos];
-            }
-
-            string low_name2 = pName.ToLower();
-            if (low_name2.EndsWith(" phd") || low_name2.EndsWith(" msc"))
-            {
-                pName = pName[..^3];
-            }
-            else if (low_name2.EndsWith(" ms"))
-            {
-                pName = pName[..^2];
-            }
-            else if (low_name2.EndsWith(" ms(ophthal)"))
-            {
-                pName = pName[..^12];
-            }
-
-            return pName.Trim(' ', '-');
+            pName = pName[..comma_pos];
         }
+
+        string low_name2 = pName.ToLower();
+        if (low_name2.EndsWith(" phd") || low_name2.EndsWith(" msc"))
+        {
+            pName = pName[..^3];
+        }
+        else if (low_name2.EndsWith(" ms"))
+        {
+            pName = pName[..^2];
+        }
+        else if (low_name2.EndsWith(" ms(ophthal)"))
+        {
+            pName = pName[..^12];
+        }
+
+        return pName.Trim(' ', '-');
     }
 
 

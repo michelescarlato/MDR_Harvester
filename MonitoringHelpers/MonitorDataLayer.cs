@@ -8,30 +8,13 @@ public class MonDataLayer : IMonDataLayer
 {
     private readonly ILoggingHelper _logging_helper;
     private readonly ICredentials _credentials;
-    private readonly NpgsqlConnectionStringBuilder builder;
     private readonly string connString;
-    private readonly string context_connString;
     
-    // Constructor is used to build the connection string, 
-    // using a credentials object that has the relevant credentials 
-    // from the app settings, themselves derived from a json file.
-
     public MonDataLayer(ILoggingHelper logging_helper, ICredentials credentials)
     {
-        builder = new NpgsqlConnectionStringBuilder();
-
-        builder.Host = credentials.Host;
-        builder.Username = credentials.Username;
-        builder.Password = credentials.Password;
-        builder.Port = credentials.Port;
-        builder.Database = "mon";
-        connString = builder.ConnectionString;
-
-        builder.Database = "context";
-        context_connString = builder.ConnectionString;
-
-        _logging_helper = logging_helper;
+        _logging_helper = logging_helper; 
         _credentials = credentials;
+        connString = _credentials.GetConnectionString("mon", 1);
     }
     
 
@@ -42,7 +25,7 @@ public class MonDataLayer : IMonDataLayer
 
     public bool SourceIdPresent(int source_id)
     {
-        string sql_string = "Select id from sf.source_parameters where id = " + source_id.ToString();
+        string sql_string = $"Select id from sf.source_parameters where id = {source_id}";
         using NpgsqlConnection Conn = new(connString);
         int res = Conn.QueryFirstOrDefault<int>(sql_string);
         return (res == 0) ? false : true;
@@ -219,7 +202,7 @@ public class MonDataLayer : IMonDataLayer
     public int StoreHarvestEvent(HarvestEvent harvest)
     {
         using NpgsqlConnection Conn = new(connString);
-        return (int)Conn.Insert<HarvestEvent>(harvest);
+        return (int)Conn.Insert(harvest);
     }
 }
 
