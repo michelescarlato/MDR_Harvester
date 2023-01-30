@@ -7,9 +7,9 @@ class TransferSDDataBuilder
 {
     private readonly int _source_id;
     private readonly string _db_conn = "";
-    private readonly ISource _source;
+    private readonly Source _source;
 
-    public TransferSDDataBuilder(ISource source)
+    public TransferSDDataBuilder(Source source)
     {
         _source = source;
         if (source.id.HasValue)

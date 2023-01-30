@@ -5,7 +5,7 @@ namespace MDR_Harvester
 {
     public interface IStorageDataLayer
     {
-        void StoreFullStudy(Study s, ISource source);
-        void StoreFullObject(FullDataObject b, ISource source);
+        void StoreFullStudy(Study s, Source source);
+        void StoreFullObject(FullDataObject b, Source source);
     }
 }

@@ -76,7 +76,7 @@ public class TestingDataLayer : ITestingDataLayer
         }
     }
 
-    public void TransferTestSDData(ISource source)
+    public void TransferTestSDData(Source source)
     {
         TransferSDDataBuilder tdb = new TransferSDDataBuilder(source);
 

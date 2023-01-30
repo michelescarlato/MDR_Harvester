@@ -218,15 +218,15 @@ public static class TypeHelpers
     }
 
 
-    public static int? GetObsModelTypeId(this string obsmodel_type)
+    public static int? GetObsModelTypeId(this string obs_model_type)
     {
-        if (string.IsNullOrEmpty(obsmodel_type))
+        if (string.IsNullOrEmpty(obs_model_type))
         {
             return null;
         }
         else
         {
-            return obsmodel_type.ToLower() switch
+            return obs_model_type.ToLower() switch
             {
                 "cohort" => 600,
                 " control" => 605,
@@ -266,7 +266,7 @@ public static class TypeHelpers
         }
     }
 
-    public static int? GetSpecimentRetentionId(this string specimen_retention)
+    public static int? GetSpecimenRetentionId(this string specimen_retention)
     {
         if (string.IsNullOrEmpty(specimen_retention))
         {

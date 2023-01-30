@@ -32,7 +32,7 @@ class Harvester : IHarvester
             {
                 // Obtain source details, augment with connection string for this database
                 
-                ISource source = _monDataLayer.FetchSourceParameters(source_id);
+                Source source = _monDataLayer.FetchSourceParameters(source_id);
                 string dbName = source.database_name!;
                 source.db_conn = _monDataLayer.GetConnectionString(dbName, opts.harvest_type_id);
 
@@ -80,7 +80,7 @@ class Harvester : IHarvester
     }
 
 
-    private void HarvestData(ISource source, Options opts)
+    private void HarvestData(Source source, Options opts)
     {
         if (source.source_type == "test")
         {

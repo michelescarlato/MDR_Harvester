@@ -16,6 +16,6 @@
         
         void LogCommandLineParameters(Options opts);
         void LogStudyHeader(Options opts, string dbline);
-        void LogTableStatistics(ISource s, string schema);
+        void LogTableStatistics(Source s, string schema);
     }
 }

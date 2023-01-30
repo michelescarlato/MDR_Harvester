@@ -16,12 +16,11 @@ namespace MDR_Harvester
             }
         }
 
-        public void Execute_SQL(string sql_string)
+        private void Execute_SQL(string sql_string)
         {
             using var conn = new NpgsqlConnection(_db_conn);
             conn.Execute(sql_string);
         }
-
 
         public void create_table_studies()
         {

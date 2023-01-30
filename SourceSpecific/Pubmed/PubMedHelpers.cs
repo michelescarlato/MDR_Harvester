@@ -44,22 +44,27 @@ internal static class PubMedHelpers
 
     internal static SplitDate? GetSplitDateFromNumericDate(int? year, int? month, int? day)
     {
+        if (!year.HasValue)
+        {
+            return null;
+        }
+        
         string? monthas3 = null;
         if (month.HasValue)
         {
             monthas3 = ((Months3)month).ToString();
         }
 
-        string? date_as_string = null;
-        if (year.HasValue && month.HasValue && day.HasValue)
+        string? date_as_string = null;        
+        if (month.HasValue && day.HasValue)
         {
             date_as_string = $"{year} {monthas3} {day}";
         }
-        else if (year.HasValue && month.HasValue && day is null)
+        else if (month.HasValue && day is null)
         {
             date_as_string = $"{year} {monthas3}";
         }
-        else if (year.HasValue && monthas3 is null && day is null)
+        else if (monthas3 is null && day is null)
         {
             date_as_string = $"{year}";
         }
@@ -70,6 +75,11 @@ internal static class PubMedHelpers
 
     internal static SplitDate? GetSplitDateFromPubDate(int? year, string? monthas3, int? day)
     {
+        if (!year.HasValue)
+        {
+            return null;
+        }
+        
         int? month = null;
         if (!string.IsNullOrEmpty(monthas3))
         {
@@ -77,15 +87,15 @@ internal static class PubMedHelpers
         }
 
         string? date_as_string = null;
-        if (year.HasValue && !string.IsNullOrEmpty(monthas3) && day.HasValue)
+        if (!string.IsNullOrEmpty(monthas3) && day.HasValue)
         {
             date_as_string = $"{year} {monthas3} {day}";
         }
-        else if (year.HasValue && !string.IsNullOrEmpty(monthas3) && day is null)
+        else if (!string.IsNullOrEmpty(monthas3) && day is null)
         {
             date_as_string = $"{year} {monthas3}";
         }
-        else if (year.HasValue && string.IsNullOrEmpty(monthas3) && day is null)
+        else if (string.IsNullOrEmpty(monthas3) && day is null)
         {
             date_as_string = $"{year}";
         }
@@ -227,7 +237,7 @@ internal static class PubMedHelpers
     internal static string GetCitationName(List<ObjectContributor> authors, int author_pos)
     {
         string given_name = authors[author_pos].person_given_name ?? "";
-        string initials = given_name == "" ? "" : given_name[..1]?.ToUpper() + "";
+        string initials = given_name == "" ? "" : given_name[..1].ToUpper() + "";
         return (authors[author_pos].person_family_name + " " + initials).Trim();
     }
 }

@@ -701,7 +701,7 @@ namespace MDR_Harvester
             sd_oid = _sd_oid;
             contrib_type_id = _contrib_type_id;
             contrib_type = _contrib_type;
-            is_individual = (_person_full_name == null) ? false : true;
+            is_individual = (_person_full_name != null);
             organisation_id = _organisation_id;
             organisation_name = _organisation_name;
             person_full_name = _person_full_name;
@@ -717,7 +717,7 @@ namespace MDR_Harvester
             sd_oid = _sd_oid;
             contrib_type_id = _contrib_type_id;
             contrib_type = _contrib_type;
-            is_individual = (_person_full_name == null) ? false : true;
+            is_individual = (_person_full_name != null);
             person_given_name = _person_given_name;
             person_family_name = _person_family_name;
             person_full_name = _person_full_name;
@@ -791,8 +791,6 @@ namespace MDR_Harvester
     public class JournalDetails
     {
         public string? sd_oid { get; set; }
-        public int? publisher_id { get; set; }
-        public string? publisher { get; set; }
         public string? journal_title { get; set; }
         public string? pissn { get; set; }
         public string? eissn { get; set; }
@@ -804,110 +802,4 @@ namespace MDR_Harvester
         }
     }
 
-    /*
-    public class CitationObject
-    {
-        public string? sd_oid { get; set; }
-        public string? display_title { get; set; }
-        public string? version { get; set; }
-        public string? doi { get; set; }
-        public int doi_status_id { get; set; }
-        public int? publication_year { get; set; }
-        public int? managing_org_id { get; set; }
-        public string? managing_org { get; set; }
-        public string? lang_code { get; set; }
-        public int? access_type_id { get; set; }
-        public string? access_type { get; set; }
-        public string? access_details { get; set; }
-        public string? access_details_url { get; set; }
-        public DateTime? url_last_checked { get; set; }
-        public DateTime? datetime_of_data_fetch { get; set; }
-        public string? abstract_status { get; set; }
-        public string? pub_model { get; set; }
-        public string? publication_status { get; set; }
-        public string? journal_title { get; set; }
-        public string? pissn { get; set; }
-        public string? eissn { get; set; }
-
-        public List<string> language_list { get; set; }
-        public List<ObjectDate> article_dates { get; set; }
-        public List<ObjectTitle> article_titles { get; set; }
-        public List<ObjectIdentifier> article_identifiers { get; set; }
-        public List<ObjectTopic> article_topics { get; set; }
-        public List<ObjectPublicationType> article_pubtypes { get; set; }
-        public List<ObjectDescription> article_descriptions { get; set; }
-        public List<ObjectInstance> article_instances { get; set; }
-        public List<ObjectContributor> article_contributors { get; set; }
-        public List<ObjectComment> article_comments { get; set; }
-        public List<ObjectDBLink> article_db_ids { get; set; }
-
-        // This constructor used for journal articles in Pubmed
-
-        public CitationObject(string _sd_oid, DateTime? _datetime_of_data_fetch)
-        {
-            sd_oid = _sd_oid;
-            datetime_of_data_fetch = _datetime_of_data_fetch;
-        }
-
-    }
-
-
-    [Table("sd.citation_objects")]
-    public class CitationObjectInDB
-    {
-        public string? sd_oid { get; set; }
-        public string? sd_sid { get; set; }
-        public string? display_title { get; set; }
-        public string? version { get; set; }
-        public string? doi { get; set; }
-        public int doi_status_id { get; set; }
-        public int? publication_year { get; set; }
-        public int object_class_id { get; set; }
-        public string? object_class { get; set; }
-        public int? object_type_id { get; set; }
-        public string? object_type { get; set; }
-        public int? managing_org_id { get; set; }
-        public string? managing_org { get; set; }
-        public string? lang_code { get; set; }
-        public int? access_type_id { get; set; }
-        public string? access_type { get; set; }
-        public string? access_details { get; set; }
-        public string? access_details_url { get; set; }
-        public DateTime? url_last_checked { get; set; }
-        public int? eosc_category { get; set; }
-        public bool add_study_contribs { get; set; }
-        public bool add_study_topics { get; set; }
-        public DateTime? datetime_of_data_fetch { get; set; }
-        public string? journal_title { get; set; }
-        public string? pissn { get; set; }
-        public string? eissn { get; set; }
-
-        public CitationObjectInDB(CitationObject c)
-        {
-            sd_oid = c.sd_oid;
-            display_title = c.display_title;
-            version = c.version;
-            doi = c.doi;
-            doi_status_id = c.doi_status_id;
-            publication_year = c.publication_year;
-            object_class_id = 23;
-            object_class = "Text";
-            object_type_id = 12;
-            object_type = "Journal Article";
-            access_type_id = c.access_type_id;
-            access_type = c.access_type;
-            lang_code = c.lang_code;
-            access_details = c.access_details;
-            access_details_url = c.access_details_url;
-            url_last_checked = c.url_last_checked;
-            eosc_category = 0;
-            add_study_contribs = false;
-            add_study_topics = false;
-            datetime_of_data_fetch = c.datetime_of_data_fetch;
-            journal_title = c.journal_title;
-            pissn = c.pissn;
-            eissn = c.eissn;
-        }
-    }
-        */
 }

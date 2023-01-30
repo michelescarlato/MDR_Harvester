@@ -7,7 +7,7 @@ namespace MDR_Harvester
     public interface ITestingDataLayer
     {
         int EstablishExpectedData();
-        void TransferTestSDData(ISource source);
+        void TransferTestSDData(Source source);
         IEnumerable<int> ObtainTestSourceIDs();
     }
 }

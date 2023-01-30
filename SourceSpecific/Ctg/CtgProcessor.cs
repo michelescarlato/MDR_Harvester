@@ -7,16 +7,16 @@ namespace MDR_Harvester.Ctg;
 
 public class CTGProcessor : IStudyProcessor
 {
-    ILoggingHelper _loggingHelper_helper;
+    readonly ILoggingHelper _logging_helper;
 
-    public CTGProcessor(ILoggingHelper loggingHelper_helper)
+    public CTGProcessor(ILoggingHelper logging_helper)
     {
-        _loggingHelper_helper = loggingHelper_helper;
+            _logging_helper = logging_helper;
     }
 
     public Study? ProcessData(string json_string, DateTime? download_datetime)
     {
-        // set up json reader and deserialise file to a ISCTRN_Record object.
+        // set up json reader and deserialise file to a ISRCTN_Record object.
 
         var json_options = new JsonSerializerOptions()
         {
@@ -28,7 +28,7 @@ public class CTGProcessor : IStudyProcessor
         CTG_Record? r = JsonSerializer.Deserialize<CTG_Record?>(json_string, json_options);
         if (r is null)
         {
-            _loggingHelper_helper.LogError($"Unable to deserialise json file to Ctg_Record\n{json_string[..1000]}... (first 1000 characters)");
+            _logging_helper.LogError($"Unable to deserialise json file to Ctg_Record\n{json_string[..1000]}... (first 1000 characters)");
             return null;
         }
         
@@ -63,7 +63,7 @@ public class CTGProcessor : IStudyProcessor
 
         if (IdentificationModule is null || StatusModule is null)
         {
-            _loggingHelper_helper.LogError($"No valid Identification or Status module found for study\n{json_string[..1000]}... (first 1000 characters of json string");
+            _logging_helper.LogError($"No valid Identification or Status module found for study\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
 
@@ -71,7 +71,7 @@ public class CTGProcessor : IStudyProcessor
 
         if (string.IsNullOrEmpty(sid))
         {
-            _loggingHelper_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
+            _logging_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
 
@@ -166,14 +166,11 @@ public class CTGProcessor : IStudyProcessor
 
         if (org_study_id is not null)
         {
-            bool add_id = true;
-            if (org is not null && org.ToLower() == org_study_id.ToLower())
-            {
-                // (Rarely, and wrongly, people put the same name in both org and org_study_id fields...
-                // i.e. they put the identifier value also in as the organisation name).
-
-                add_id = false;
-            }
+            // (Rarely, and wrongly, people put the same name in both org and org_study_id fields...
+            // i.e. they put the identifier value also in as the organisation name).
+            
+            bool add_id = !(org is not null 
+                            && String.Equals(org, org_study_id, StringComparison.CurrentCultureIgnoreCase));
 
             if (add_id)
             {
@@ -249,21 +246,21 @@ public class CTGProcessor : IStudyProcessor
 
         // Get the main registry entry dates if they are available.
 
-        SplitDate? firstpost = null;
-        SplitDate? resultspost = null;
-        SplitDate? updatepost = null;
+        SplitDate? first_post = null;
+        SplitDate? results_post = null;
+        SplitDate? update_post = null;
 
         var FirstPostDate = StatusModule.StudyFirstPostDateStruct;
         if (FirstPostDate is not null)
         {
             string? firstpost_type = FirstPostDate.StudyFirstPostDateType;
             if (firstpost_type is not null && 
-                (firstpost_type == "Actual" || firstpost_type == "Estimate"))
+                firstpost_type is "Actual" or "Estimate")
             {
-                firstpost = FirstPostDate.StudyFirstPostDate?.GetDatePartsFromCTGString();
-                if (firstpost is not null && firstpost_type == "Estimate")
+                first_post = FirstPostDate.StudyFirstPostDate?.GetDatePartsFromCTGString();
+                if (first_post is not null && firstpost_type == "Estimate")
                 {
-                    firstpost.date_string += " (est.)";
+                    first_post.date_string += " (est.)";
                 }
             }
         }
@@ -275,12 +272,12 @@ public class CTGProcessor : IStudyProcessor
         {
             string? results_type = ResultsPostDate.ResultsFirstPostDateType;
             if (results_type is not null &&
-                (results_type == "Actual" || results_type == "Estimate"))
+                results_type is "Actual" or "Estimate")
             {
-                resultspost = ResultsPostDate.ResultsFirstPostDate?.GetDatePartsFromCTGString();
-                if (resultspost is not null && results_type == "Estimate")
+                results_post = ResultsPostDate.ResultsFirstPostDate?.GetDatePartsFromCTGString();
+                if (results_post is not null && results_type == "Estimate")
                 {
-                    resultspost.date_string += " (est.)";
+                    results_post.date_string += " (est.)";
                 }
 
                 // Assumption is that if results are available the results post
@@ -295,12 +292,12 @@ public class CTGProcessor : IStudyProcessor
         {
             string? update_type = LastUpdateDate.LastUpdatePostDateType;
             if (update_type is not null &&
-                (update_type == "Actual" || update_type == "Estimate"))
+                update_type is "Actual" or "Estimate")
             {
-                updatepost = LastUpdateDate.LastUpdatePostDate?.GetDatePartsFromCTGString();
-                if (updatepost is not null && update_type == "Estimate")
+                update_post = LastUpdateDate.LastUpdatePostDate?.GetDatePartsFromCTGString();
+                if (update_post is not null && update_type == "Estimate")
                 {
-                    updatepost.date_string += " (est.)";
+                    update_post.date_string += " (est.)";
                 }
             }
         }
@@ -669,7 +666,7 @@ public class CTGProcessor : IStudyProcessor
                         biospec_retention = "Not provided";
                     }
                     features.Add(new StudyFeature(sid, 32, "biospecimens retained", 
-                        biospec_retention.GetSpecimentRetentionId(), biospec_retention));
+                        biospec_retention.GetSpecimenRetentionId(), biospec_retention));
                 }
             }
 
@@ -965,21 +962,21 @@ public class CTGProcessor : IStudyProcessor
 
         string sd_oid = sid + " :: 13 :: " + object_title;
 
-        data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, firstpost?.year,
+        data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, first_post?.year,
                             23, "Text", 13, "Trial Registry entry", 100120,
                             "ClinicalTrials.gov", 12, download_datetime));
 
         object_titles.Add(new ObjectTitle(sd_oid, object_display_title, title_type_id, title_type, true));
 
-        if (firstpost is not null)
+        if (first_post is not null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 12, "Available",
-                                    firstpost.year, firstpost.month, firstpost.day, firstpost.date_string));
+                first_post.year, first_post.month, first_post.day, first_post.date_string));
         }
-        if (updatepost is not null)
+        if (update_post is not null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 18, "Updated",
-                                    updatepost.year, updatepost.month, updatepost.day, updatepost.date_string));
+                update_post.year, update_post.month, update_post.day, update_post.date_string));
         }
 
         url = "https://clinicaltrials.gov/ct2/show/study/" + sid;
@@ -994,22 +991,22 @@ public class CTGProcessor : IStudyProcessor
             object_display_title = title_base + " :: CTG results entry";
             sd_oid = sid + " :: 28 :: " + object_title;
 
-            data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, resultspost?.year,
+            data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_post?.year,
                                 23, "Text", 28, "Trial registry results summary", 100120,
                                 "ClinicalTrials.gov", 12, download_datetime));
 
             object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
                             title_type_id, title_type, true));
 
-            if (resultspost is not null)
+            if (results_post is not null)
             {
                 object_dates.Add(new ObjectDate(sd_oid, 12, "Available",
-                                        resultspost.year, resultspost.month, resultspost.day, resultspost.date_string));
+                    results_post.year, results_post.month, results_post.day, results_post.date_string));
             }
-            if (updatepost is not null)
+            if (update_post is not null)
             {
                 object_dates.Add(new ObjectDate(sd_oid, 18, "Updated",
-                                        updatepost.year, updatepost.month, updatepost.day, updatepost.date_string));
+                    update_post.year, update_post.month, update_post.day, update_post.date_string));
             }
 
             url = "https://clinicaltrials.gov/ct2/show/results/" + sid;
@@ -1020,13 +1017,13 @@ public class CTGProcessor : IStudyProcessor
 
         if (LargeDocumentModule is not null)
         {
-            var largedoclist = LargeDocumentModule.LargeDocList;
-            if (largedoclist is not null)
+            var large_doc_list = LargeDocumentModule.LargeDocList;
+            if (large_doc_list is not null)
             {
-                var largedocs = largedoclist.LargeDoc;
-                if (largedocs?.Any() is true)
+                var large_docs = large_doc_list.LargeDoc;
+                if (large_docs?.Any() is true)
                 {
-                    foreach (var largedoc in largedocs)
+                    foreach (var largedoc in large_docs)
                     {
                         string? type_abbrev = largedoc.LargeDocTypeAbbrev;
                         string? doc_label = largedoc.LargeDocLabel;
@@ -1134,7 +1131,7 @@ public class CTGProcessor : IStudyProcessor
                     foreach (var refce in refs)
                     {
                         string? ref_type = refce.ReferenceType;
-                        if (ref_type == "result" || ref_type == "derived")
+                        if (ref_type is "result" or "derived")
                         {
                             string? pmid = refce.ReferencePMID;
                             string? citation = refce.ReferenceCitation.ReplaceApos();
@@ -1206,7 +1203,7 @@ public class CTGProcessor : IStudyProcessor
                                     int? sponsor_id;
                                     string t_base;
 
-                                    if (sponsor_name == "GlaxoSmithKline" || sponsor_name == "GSK")
+                                    if (sponsor_name is "GlaxoSmithKline" or "GSK")
                                     {
                                         sponsor_id = 100163;
                                         t_base = "GSK-";
@@ -1254,7 +1251,7 @@ public class CTGProcessor : IStudyProcessor
                                     // for datasets also add dataset properties - even if they are largely unknown
                                     if (object_type_id == 80)
                                     {
-                                        if (sponsor_name == "GlaxoSmithKline" || sponsor_name == "GSK")
+                                        if (sponsor_name is "GlaxoSmithKline" or "GSK")
                                         {
                                             object_datasets.Add(new ObjectDataset(sd_oid,
                                                 3, "Anonymised", "GSK states that... 'researchers are provided access to anonymized patient-level data '",
@@ -1308,8 +1305,8 @@ public class CTGProcessor : IStudyProcessor
 
                                 if (object_type_id != 0)
                                 {
-                                    object_class_id = (object_type_id == 80 || object_type_id == 69) ? 14 : 23;
-                                    object_class = (object_type_id == 80 || object_type_id == 69) ? "Dataset" : "Text";
+                                    object_class_id = object_type_id is 80 or 69 ? 14 : 23;
+                                    object_class = object_type_id is 80 or 69 ? "Dataset" : "Text";
 
                                     object_display_title = title_base + " :: " + object_type;
 
@@ -1445,9 +1442,7 @@ public class CTGProcessor : IStudyProcessor
 
                             int resource_type_id = 0;
                             string resource_type = "Not yet known";
-                            if (object_type_id == 11 || object_type_id == 26
-                                                     || object_type_id == 18 || object_type_id == 22
-                                                     || object_type_id == 36 || object_type_id == 82)
+                            if (object_type_id is 11 or 26 or 18 or 22 or 36 or 82)
                             {
                                 resource_type_id = 11;
                                 resource_type = "PDF";
@@ -1710,7 +1705,7 @@ public class CTGProcessor : IStudyProcessor
                             if (link_label == "AmgenTrials clinical trials website") add_to_links_table = false;
                             if (link_label == "Mayo Clinic Clinical Trials") add_to_links_table = false;
                             if (link_url == "http://trials.boehringer-ingelheim.com") add_to_links_table = false;
-                            if ((link_label == null || link_label == "") && (link_url.EndsWith(".com") || link_url.EndsWith(".org"))) add_to_links_table = false;
+                            if (string.IsNullOrEmpty(link_label) && (link_url.EndsWith(".com") || link_url.EndsWith(".org"))) add_to_links_table = false;
 
                             // only add to links table if all tests above have failed, for possible further inspection.
 
@@ -1764,7 +1759,7 @@ public class CTGProcessor : IStudyProcessor
                                 sc.contrib_type_id = 70;
                                 sc.contrib_type = "Sponsor-investigator";
                             }
-                            else if (orgname == "sponsor" || orgname == "company internal")
+                            else if (orgname is "sponsor" or "company internal")
                             {
                                 // seems to be unique to Clinical Trials.gov
                                 sc.organisation_name = sponsor_name;

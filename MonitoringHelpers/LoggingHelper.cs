@@ -94,19 +94,19 @@ public class LoggingHelper : ILoggingHelper
     public void LogStudyHeader(Options opts, string studyName)
     {
         int harvest_type = opts.harvest_type_id;
-        string dividerline;
+        string dividerLine;
         if (opts.harvest_all_test_data || opts.setup_expected_data_only)
         {
-            dividerline = new string('-', 70);
+            dividerLine = new string('-', 70);
         }
         else
         {
-            dividerline = harvest_type is 1 or 2 ? new string('=', 70) : new string('-', 70);
+            dividerLine = harvest_type is 1 or 2 ? new string('=', 70) : new string('-', 70);
         }
         LogLine("");
-        LogLine(dividerline);
+        LogLine(dividerLine);
         LogLine(studyName);
-        LogLine(dividerline);
+        LogLine(dividerLine);
         LogLine("");
     }
 
@@ -154,10 +154,10 @@ public class LoggingHelper : ILoggingHelper
     }
 
 
-    public void LogTableStatistics(ISource s, string schema)
+    public void LogTableStatistics(Source s, string schema)
     {
         // Gets and logs record count for each table in the sd schema of the database
-        // Start by obtaining conection string, then construct log line for each by 
+        // Start by obtaining the connection string, then construct log line for each by 
         // calling db interrogation for each applicable table
         string db_conn = s.db_conn ?? "";
 
@@ -221,10 +221,10 @@ public class LoggingHelper : ILoggingHelper
         
         // Write out the summary file.
         
-        var sw_summ = new StreamWriter(_summaryLogfilePath, true, System.Text.Encoding.UTF8);
+        var sw_summary = new StreamWriter(_summaryLogfilePath, true, System.Text.Encoding.UTF8);
         
-        sw_summ.Flush();
-        sw_summ.Close();
+        sw_summary.Flush();
+        sw_summary.Close();
     }
 
 

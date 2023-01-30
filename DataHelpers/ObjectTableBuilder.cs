@@ -7,7 +7,7 @@ namespace MDR_Harvester
     public class ObjectTableBuilder
     {
         private readonly string _db_conn = "";
-
+        
         public ObjectTableBuilder(string? db_conn)
         {
             if (db_conn is not null)
@@ -16,13 +16,11 @@ namespace MDR_Harvester
             }
         }
 
-       
-        public void Execute_SQL(string sql_string)
+        private void Execute_SQL(string sql_string)
         {
             using var conn = new NpgsqlConnection(_db_conn);
             conn.Execute(sql_string);
         }
-
 
         public void create_table_data_objects()
         {

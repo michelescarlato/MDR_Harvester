@@ -20,7 +20,7 @@ var configFiles = new ConfigurationBuilder()
 
 // Set up the host for the app,
 // adding the services used in the system to support DI.
-// Note all listed services are singletons apart from ISource.
+// Note ALL listed services are singletons.
 
 IHost host = Host.CreateDefaultBuilder()
 .UseContentRoot(BasePath)
@@ -28,7 +28,7 @@ IHost host = Host.CreateDefaultBuilder()
 {
     builder.AddConfiguration(configFiles);
 })
-.ConfigureServices((hostContext, services) =>
+.ConfigureServices((services) =>
 {
     services.AddSingleton<ICredentials, Credentials>();
     services.AddSingleton<ILoggingHelper, LoggingHelper>();
@@ -38,7 +38,6 @@ IHost host = Host.CreateDefaultBuilder()
     services.AddSingleton<IStudyCopyHelpers, StudyCopyHelpers>();
     services.AddSingleton<IObjectCopyHelpers, ObjectCopyHelpers>();
     services.AddSingleton<ITestingDataLayer, TestingDataLayer>();
-    services.AddTransient<ISource, Source>();
 })
 .Build();
 
@@ -66,7 +65,7 @@ if (paramsCheck.ParseError || paramsCheck.ValidityError)
 }
 else
 {
-    // Should be able to proceed - (opts and srce are known to be non-null).
+    // Should be able to proceed - (opts and source are known to be non-null).
     // Open log file, create Harvester class and call the main harvest function
 
     try

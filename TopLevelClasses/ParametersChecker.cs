@@ -1,7 +1,4 @@
 ﻿using CommandLine;
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace MDR_Harvester;
 
@@ -20,7 +17,7 @@ public class ParameterChecker
     }
 
 
-    public ParamsCheckResult CheckParams(string[]? args)
+    public ParamsCheckResult CheckParams(IEnumerable<string>? args)
     {
         // Calls the CommandLine parser. If an error in the initial parsing, log it 
         // and return an error. If parameters can be passed, check their validity
@@ -33,15 +30,13 @@ public class ParameterChecker
             LogParseError(((NotParsed<Options>)parsedArguments).Errors);
             return new ParamsCheckResult(true, false, null);
         }
-        else
-        {
-            var opts = parsedArguments.Value;
-            return CheckArgumentValuesAreValid(opts);
-        }
+
+        var opts = parsedArguments.Value;
+        return CheckArgumentValuesAreValid(opts);
     }
 
 
-    public ParamsCheckResult CheckArgumentValuesAreValid(Options opts)
+    private ParamsCheckResult CheckArgumentValuesAreValid(Options opts)
     {
         // 'opts' is passed by reference and may be changed by the checking mechanism.
 
@@ -110,7 +105,7 @@ public class ParameterChecker
     }
 
 
-    internal void LogParseError(IEnumerable<Error> errs)
+    private void LogParseError(IEnumerable<Error> errs)
     {
         _loggingHelper.OpenNoSourceLogFile();
         _loggingHelper.LogHeader("UNABLE TO PARSE PARAMETERS");
@@ -140,6 +135,7 @@ public class ParameterChecker
     }
 
 }
+
 
 public class Options
 {

@@ -15,7 +15,7 @@ namespace MDR_Harvester
             _och = och;
         }
 
-        public void StoreFullStudy(Study s, ISource source)
+        public void StoreFullStudy(Study s, Source source)
         {
             db_conn = source.db_conn;
             using NpgsqlConnection conn = new(db_conn);
@@ -132,7 +132,7 @@ namespace MDR_Harvester
         }
 
 
-        public void StoreFullObject(FullDataObject r, ISource source)
+        public void StoreFullObject(FullDataObject r, Source source)
         {
             db_conn = source.db_conn;
             using NpgsqlConnection conn = new(db_conn);

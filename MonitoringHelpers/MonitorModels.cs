@@ -4,7 +4,7 @@ using System;
 namespace MDR_Harvester
 {
     [Table("sf.source_parameters")]
-    public class Source : ISource
+    public class Source
     {
         public int? id { get; }
         public string? source_type { get; }

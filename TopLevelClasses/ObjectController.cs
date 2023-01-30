@@ -10,10 +10,10 @@ namespace MDR_Harvester
         private readonly IMonDataLayer _monDataLayer;
         private readonly IStorageDataLayer _storageDataLayer;
         private readonly IObjectProcessor _processor;
-        private readonly ISource _source;
+        private readonly Source _source;
 
         public ObjectController(ILoggingHelper loggingHelper, IMonDataLayer monDataLayer, IStorageDataLayer storageDataLayer,
-                                ISource source, IObjectProcessor processor)
+                                Source source, IObjectProcessor processor)
         {
             _loggingHelper = loggingHelper;
             _monDataLayer = monDataLayer;
@@ -28,9 +28,9 @@ namespace MDR_Harvester
             // First get the total number of records in the system for this source
             // Set up the outer limit and get the relevant records for each pass.
 
-            int source_id = _source.id.HasValue ? (int)_source.id : 0; 
+            int source_id = _source.id ?? 0; 
             int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvest_type_id);
-            int chunk = _source.harvest_chunk.HasValue ? (int)_source.harvest_chunk : 0;
+            int chunk = _source.harvest_chunk ?? 0;
             int k = 0;
             for (int m = 0; m < total_amount; m += chunk)
             {
@@ -39,14 +39,13 @@ namespace MDR_Harvester
                 IEnumerable<ObjectFileRecord> file_list = _monDataLayer
                         .FetchObjectFileRecordsByOffset(source_id, m, chunk, harvest_type_id);
 
-                int n = 0; string? filePath;
                 foreach (ObjectFileRecord rec in file_list)
                 {
                     // if (k > 50) break; // for testing...
 
-                    n++; k++;
-                    filePath = rec.local_path;
-                    if (File.Exists(filePath))
+                    k++;
+                    string? filePath = rec.local_path;
+                    if (filePath is not null && File.Exists(filePath))
                     {
                         string jsonString = File.ReadAllText(filePath);
                         FullDataObject? s = _processor.ProcessData(jsonString, rec.last_downloaded);

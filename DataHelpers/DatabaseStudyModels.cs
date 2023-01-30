@@ -55,31 +55,31 @@ namespace MDR_Harvester
     [Table("sd.studies")]
     public class StudyInDB
     {
-        public string? sd_sid { get; set; }
-        public string? display_title { get; set; }
-        public string? title_lang_code { get; set; }
+        private string? sd_sid { get; set; }
+        private string? display_title { get; set; }
+        private string? title_lang_code { get; set; }
 
-        public string? brief_description { get; set; }
-        public string? data_sharing_statement { get; set; }
-        public int? study_start_year { get; set; }
-        public int? study_start_month { get; set; }
+        private string? brief_description { get; set; }
+        private string? data_sharing_statement { get; set; }
+        private int? study_start_year { get; set; }
+        private int? study_start_month { get; set; }
 
-        public int? study_type_id { get; set; }
-        public string? study_type { get; set; }
-        public int? study_status_id { get; set; }
-        public string? study_status { get; set; }
-        public string? study_enrolment { get; set; }
-        public int? study_gender_elig_id { get; set; }
-        public string? study_gender_elig { get; set; }
+        private int? study_type_id { get; set; }
+        private string? study_type { get; set; }
+        private int? study_status_id { get; set; }
+        private string? study_status { get; set; }
+        private string? study_enrolment { get; set; }
+        private int? study_gender_elig_id { get; set; }
+        private string? study_gender_elig { get; set; }
 
-        public int? min_age { get; set; }
-        public int? min_age_units_id { get; set; }
-        public string? min_age_units { get; set; }
-        public int? max_age { get; set; }
-        public int? max_age_units_id { get; set; }
-        public string? max_age_units { get; set; }
+        private int? min_age { get; set; }
+        private int? min_age_units_id { get; set; }
+        private string? min_age_units { get; set; }
+        private int? max_age { get; set; }
+        private int? max_age_units_id { get; set; }
+        private string? max_age_units { get; set; }
 
-        public DateTime? datetime_of_data_fetch { get; set; }
+        private DateTime? datetime_of_data_fetch { get; set; }
 
         public StudyInDB(Study s)
         {
@@ -94,7 +94,6 @@ namespace MDR_Harvester
             study_type = s.study_type;
             study_status_id = s.study_status_id;
             study_status = s.study_status;
-
             study_enrolment = s.study_enrolment;
             study_gender_elig_id = s.study_gender_elig_id;
             study_gender_elig = s.study_gender_elig;
@@ -184,7 +183,7 @@ namespace MDR_Harvester
             sd_sid = _sd_sid;
             contrib_type_id = _contrib_type_id;
             contrib_type = _contrib_type;
-            is_individual = (_person_full_name == null) ? false : true;
+            is_individual = (_person_full_name != null);
             organisation_id = _organisation_id;
             organisation_name = _organisation_name;
             person_full_name = _person_full_name;

@@ -561,9 +561,7 @@ public class IdentifierHelpers
     }*/
 
 }
-
-
-
+/*
 public class IdentifierDetails
 {
     public int? id_type_id { get; set; }
@@ -579,6 +577,7 @@ public class IdentifierDetails
         id_org_id = _id_org_id;
         id_org = _id_org;
     }
+    */
     /*
     public IdentifierDetails(string? _id_type, string? _id_org, string _id_value)
     {
@@ -598,4 +597,4 @@ public class IdentifierDetails
         id_value = _id_value;
     }
     */
-}
+
