@@ -24,8 +24,8 @@ namespace MDR_Harvester
             {
                 if (i.resource_type_id == 11)  // just do the study docs for now (pdfs)
                 {
-                    string url_to_check = i.url;
-                    if (url_to_check != null && url_to_check != "")
+                    string? url_to_check = i.url;
+                    if (!string.IsNullOrEmpty(url_to_check))
                     {
                         HttpRequestMessage http_request = new HttpRequestMessage(HttpMethod.Head, url_to_check);
                         var result = await Client.SendAsync(http_request);

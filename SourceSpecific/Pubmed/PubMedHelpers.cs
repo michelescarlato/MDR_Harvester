@@ -182,9 +182,9 @@ internal static class PubMedHelpers
                 smonth = month;
                 emonth = month;
                 string rest = non_year_date[3..].Trim();
-                if (rest.IndexOf("-") != -1)
+                if (rest.IndexOf("-", StringComparison.Ordinal) != -1)
                 {
-                    int hyphen_pos = rest.IndexOf("-");
+                    int hyphen_pos = rest.IndexOf("-", StringComparison.Ordinal);
                     string s_day = rest[..hyphen_pos].Trim();
                     string e_day = rest[(hyphen_pos + 1)..];
                     if (Int32.TryParse(s_day, out int s_day_int) && (Int32.TryParse(e_day, out int e_day_int)))
@@ -200,7 +200,7 @@ internal static class PubMedHelpers
             return new SplitDateRange(pub_year, smonth, sday, pub_year, emonth, eday, true, ml_date_string);
         }
 
-        else if (non_year_date.IndexOf("-") != -1)
+        else if (non_year_date.IndexOf("-", StringComparison.Ordinal) != -1)
         {
             // Often two months separated by a hyphen, e.g."May-Jul".
 

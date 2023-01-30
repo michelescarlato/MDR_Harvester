@@ -35,6 +35,8 @@ IHost host = Host.CreateDefaultBuilder()
     services.AddSingleton<IMonDataLayer, MonDataLayer>();
     services.AddSingleton<IHarvester, Harvester>();
     services.AddSingleton<IStorageDataLayer, StorageDataLayer>();
+    services.AddSingleton<IStudyCopyHelpers, StudyCopyHelpers>();
+    services.AddSingleton<IObjectCopyHelpers, ObjectCopyHelpers>();
     services.AddSingleton<ITestingDataLayer, TestingDataLayer>();
     services.AddTransient<ISource, Source>();
 })
@@ -77,7 +79,12 @@ else
     catch (Exception e)
     {
         // If an error bubbles up to here there is an issue with the code.
+        // A file should normally have been created.
 
+        if (logging_helper.LogFilePath == "")
+        {
+            logging_helper.OpenNoSourceLogFile();
+        }
         logging_helper.LogHeader("UNHANDLED EXCEPTION");
         logging_helper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace);
         logging_helper.CloseLog();

@@ -39,11 +39,15 @@ public class MonDataLayer : IMonDataLayer
         builder.Database = "context";
         context_connString = builder.ConnectionString;
 
+        _logging_helper = logging_helper;
         _credentials = credentials;
     }
+    
 
-    public Credentials Credentials => (Credentials)_credentials;
-
+    public string GetConnectionString(string database_name, int harvest_type_id)
+    {
+        return _credentials.GetConnectionString(database_name, harvest_type_id);
+    }
 
     public bool SourceIdPresent(int source_id)
     {

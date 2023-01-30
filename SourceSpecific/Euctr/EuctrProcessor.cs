@@ -116,7 +116,7 @@ public class EUCTRProcessor : IStudyProcessor
         // may get funders or other supporting orgs.
 
         var sponsors = r.sponsors;
-        if (sponsors?.Any() == true)
+        if (sponsors?.Any() is true)
         {
             foreach (var dline in sponsors)
             {
@@ -124,7 +124,7 @@ public class EUCTRProcessor : IStudyProcessor
                 if (item_name == "Name of organisation providing support")
                 {
                     var values = dline.item_values;
-                    if (values?.Any() == true)
+                    if (values?.Any() is true)
                     {
                         string? org_value = values[0].value;
                         if (org_value.AppearsGenuineOrgName())
@@ -169,7 +169,7 @@ public class EUCTRProcessor : IStudyProcessor
 
         bool display_title_exists = false;
         var idents = r.identifiers;
-        if (idents?.Any() == true)
+        if (idents?.Any() is true)
         {
             string? second_language = "";
             foreach (var dline in idents)
@@ -184,7 +184,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // (GetLanguage... function beneath main ProcessData function).
 
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             string? member_state = values[0].value;
                             if (!string.IsNullOrEmpty(member_state))
@@ -201,7 +201,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // The first title is in English, any second in the country's own language/
 
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             int value_num = 0;
                             foreach (item_value v in values)
@@ -233,7 +233,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // The first title is in English, any second in the country's own language.
 
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             int value_num = 0;
                             foreach (item_value v in values)
@@ -272,7 +272,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // The first acronym uses English, the second the country's own language.
 
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             foreach (item_value v in values)
                             {
@@ -286,11 +286,11 @@ public class EUCTRProcessor : IStudyProcessor
                                     {
                                         if (acro_lc.EndsWith(" trial"))
                                         {
-                                            acronym = acronym[..acro_lc.LastIndexOf(" trial")];
+                                            acronym = acronym[..acro_lc.LastIndexOf(" trial", StringComparison.Ordinal)];
                                         }
                                         if (acro_lc.EndsWith(" study"))
                                         {
-                                            acronym = acronym[..acro_lc.LastIndexOf(" study")];
+                                            acronym = acronym[..acro_lc.LastIndexOf(" study", StringComparison.Ordinal)];
                                         }
                                         if (acro_lc.StartsWith("the "))
                                         {
@@ -316,7 +316,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // Number, if one present.
 
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             string? isrctn_id = values[0].value;
                             if (isrctn_id is not null && isrctn_id.ToLower().StartsWith("isrctn"))
@@ -333,7 +333,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // identifier: NCT Number if one present.
 
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             string? nct_id = values[0].value;
                             if (nct_id is not null && nct_id.ToLower().StartsWith("nct"))
@@ -349,7 +349,7 @@ public class EUCTRProcessor : IStudyProcessor
                     {
                         // identifier: WHO UTN Number, if one present.
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             string? who_id = values[0].value;
                             if (who_id is not null && who_id.ToLower().StartsWith("u1111"))
@@ -423,7 +423,7 @@ public class EUCTRProcessor : IStudyProcessor
         int study_iec_type = 0;
         
         var feats = r.features;
-        if (feats?.Any() == true)
+        if (feats?.Any() is true)
         {
             foreach (var dline in feats)
             {
@@ -435,7 +435,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // Condition(s) under study.
 
                         var values = dline.item_values;
-                        if (values?.Any() == true)
+                        if (values?.Any() is true)
                         {
                             foreach (var item_value in values)
                             {
@@ -458,7 +458,7 @@ public class EUCTRProcessor : IStudyProcessor
                         if (item_code == "E.2.1")
                         {
                             var values = dline.item_values;
-                            if (values?.Any() == true)
+                            if (values?.Any() is true)
                             {
                                 int indiv_value_num = 0;
                                 string? study_objectives = null;
@@ -497,7 +497,7 @@ public class EUCTRProcessor : IStudyProcessor
                         if (item_code == "E.5.1")
                         {
                             var values = dline.item_values;
-                            if (values?.Any() == true)
+                            if (values?.Any() is true)
                             {
                                 int indiv_value_num = 0;
                                 string? study_endpoints = null;
@@ -610,7 +610,7 @@ public class EUCTRProcessor : IStudyProcessor
         // eligibility
 
         var population = r.population;
-        if (population?.Any() == true)
+        if (population?.Any() is true)
         {
             var pgroups = new Dictionary<string, bool>
             {
@@ -794,7 +794,7 @@ public class EUCTRProcessor : IStudyProcessor
 
         List<IMP> imp_list = new();
         var imps = r.imps;
-        if (imps?.Any() == true)
+        if (imps?.Any() is true)
         {
             int current_num = 0;
             IMP? imp = null;
@@ -825,7 +825,7 @@ public class EUCTRProcessor : IStudyProcessor
                         {
                             // Trade name
                             var values = impLine.item_values;
-                            if (values?.Any() == true)
+                            if (values?.Any() is true)
                             {
                                 string? topic_name = values[0].value;
                                 string? name = topic_name?.ToLower();
@@ -843,7 +843,7 @@ public class EUCTRProcessor : IStudyProcessor
                         {
                             // Product name
                             var values = impLine.item_values;
-                            if (values?.Any() == true)
+                            if (values?.Any() is true)
                             {
                                 string? topic_name = values[0].value;
                                 string? name = topic_name?.ToLower();
@@ -861,7 +861,7 @@ public class EUCTRProcessor : IStudyProcessor
                         {
                             // INN
                             var values = impLine.item_values;
-                            if (values?.Any() == true)
+                            if (values?.Any() is true)
                             {
                                 string? topic_name = values[0].value;
                                 string? name = topic_name?.ToLower();
@@ -920,26 +920,24 @@ public class EUCTRProcessor : IStudyProcessor
         // Term captured for possible MESH / ICD equivalence.
 
         var meddra_terms = r.meddra_terms;
-        if (meddra_terms?.Any() == true)
+        if (meddra_terms?.Any() is true)
         {
             foreach (var t in meddra_terms)
             {
-                string? code = t.code;
-                string? term = t.term;
-                if (term is not null)
+                if (t.term is not null)
                 {
                     conditions.Add(new StudyCondition(sid, t.term, 16, t.code));
                 }
             }
         }
 
-
+        
         var cs = r.countries;
-        if (cs?.Any() == true)
+        if (cs?.Any() is true)
         {
             foreach (var cline in cs)
             {
-                string? country_name = cline.name?.Trim()?.ReplaceApos();
+                string? country_name = cline.name?.Trim().ReplaceApos();
                 string? country_status = cline.status?.Trim();
                 if (country_name is not null)
                 {
@@ -969,7 +967,12 @@ public class EUCTRProcessor : IStudyProcessor
 
         string object_title = "EU CTR registry entry";
         string object_display_title = s.display_title + " :: EU CTR registry entry";
-        SplitDate? entered_in_db = r.entered_in_db.GetDatePartsFromISOString();
+        SplitDate? entered_in_db = null;
+        if (r.entered_in_db is not null)
+        {
+            entered_in_db = r.entered_in_db.GetDatePartsFromISOString();
+        }
+
         int? registry_pub_year = (entered_in_db is not null) ? entered_in_db.year : s.study_start_year;
 
         // create hash Id for the data object
@@ -991,7 +994,7 @@ public class EUCTRProcessor : IStudyProcessor
         }
 
         // instance url 
-        string? details_url = r.details_url!; // cannot be null, else there wouyld be no data!
+        string details_url = r.details_url!; // cannot be null, else there would be no data!
         object_instances.Add(new ObjectInstance(sd_oid, 100123, "EU Clinical Trials Register",
             details_url, true, 35, "Web text"));
 
@@ -1010,11 +1013,19 @@ public class EUCTRProcessor : IStudyProcessor
 
             string? results_first_date = r.results_first_date;
             string? results_revision_date = r.results_revision_date;
+            SplitDate? results_date = null;
+            SplitDate? results_revision = null;
+            int? results_pub_year = null;
+            if (!string.IsNullOrEmpty(results_first_date))
+            {
+                results_date = results_first_date.GetDatePartsFromEUCTRString();
+                results_pub_year = results_date?.year;
+            }
 
-            SplitDate? results_date = results_first_date.GetDatePartsFromEUCTRString();
-            SplitDate? results_revision = results_revision_date.GetDatePartsFromEUCTRString();
-
-            int? results_pub_year = results_date?.year;
+            if (!string.IsNullOrEmpty(results_revision_date))
+            {
+                results_revision = results_revision_date.GetDatePartsFromEUCTRString();
+            }
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_pub_year,
                 23, "Text", 28, "Trial registry results summary", 100123,

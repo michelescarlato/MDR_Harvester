@@ -6,7 +6,7 @@ namespace MDR_Harvester.Who;
 
 public class WHOProcessor : IStudyProcessor
 {
-    ILoggingHelper _loggingHelper_helper;
+    private readonly ILoggingHelper _loggingHelper_helper;
 
     public WHOProcessor(ILoggingHelper loggingHelper_helper)
     {
@@ -101,14 +101,9 @@ public class WHOProcessor : IStudyProcessor
 
             if (scientific_title_present)
             {
-                if (scientific_title!.Length < 11)
-                {
-                    study_titles.Add(new StudyTitle(sid, scientific_title, 14, "Acronym or Abbreviation", true, source_string));
-                }
-                else
-                {
-                    study_titles.Add(new StudyTitle(sid, scientific_title, 16, "Registry scientific title", true, source_string));
-                }
+                study_titles.Add(scientific_title!.Length < 11
+                    ? new StudyTitle(sid, scientific_title, 14, "Acronym or Abbreviation", true, source_string)
+                    : new StudyTitle(sid, scientific_title, 16, "Registry scientific title", true, source_string));
 
                 s.display_title = scientific_title;
             }
@@ -121,16 +116,12 @@ public class WHOProcessor : IStudyProcessor
         {
             // Public title available 
 
-            if (public_title!.Length < 11)
-            {
-                study_titles.Add(new StudyTitle(sid, public_title, 14, "Acronym or Abbreviation", true, source_string));
-            }
-            else
-            {
-                study_titles.Add(new StudyTitle(sid, public_title, 15, "Registry public title", true, source_string));
-            }
+            study_titles.Add(public_title!.Length < 11
+                ? new StudyTitle(sid, public_title, 14, "Acronym or Abbreviation", true, source_string)
+                : new StudyTitle(sid, public_title, 15, "Registry public title", true, source_string));
 
-            if (scientific_title_present && scientific_title!.ToLower() != public_title!.ToLower())
+            if (scientific_title_present && 
+                    !String.Equals(scientific_title!, public_title, StringComparison.CurrentCultureIgnoreCase))
             {
                 study_titles.Add(new StudyTitle(sid, scientific_title, 16, "Registry scientific title", false, source_string));
             }
@@ -152,7 +143,7 @@ public class WHOProcessor : IStudyProcessor
             if (!interventions.ToLower().Contains("not applicable") && !interventions.ToLower().Contains("not selected")
                 && !(interventions.ToLower() == "n/a") && !(interventions.ToLower() == "na"))
             {
-                interventions = interventions?.StringClean();
+                interventions = interventions.StringClean();
                 if (!interventions!.ToLower().StartsWith("intervention"))
                 {
                     interventions = "Interventions: " + interventions;
@@ -168,7 +159,7 @@ public class WHOProcessor : IStudyProcessor
             if (!primary_outcome.ToLower().Contains("not applicable") && !primary_outcome.ToLower().Contains("not selected")
                 && !(primary_outcome.ToLower() == "n/a") && !(primary_outcome.ToLower() == "na"))
             {
-                primary_outcome = primary_outcome?.StringClean();
+                primary_outcome = primary_outcome.StringClean();
                 if (!primary_outcome!.ToLower().StartsWith("primary"))
                 {
                     primary_outcome = "Primary outcome(s): " + primary_outcome;
@@ -184,7 +175,7 @@ public class WHOProcessor : IStudyProcessor
             if (!design_string.ToLower().Contains("not applicable") && !design_string.ToLower().Contains("not selected")
                 && !(design_string.ToLower() == "n/a") && !(design_string.ToLower() == "na"))
             {
-                design_string = design_string?.StringClean();
+                design_string = design_string.StringClean();
                 if (!design_string!.ToLower().StartsWith("primary"))
                 {
                     design_string = "Study Design: " + design_string;
@@ -249,7 +240,7 @@ public class WHOProcessor : IStudyProcessor
             }
             else
             {
-                s.study_type = study_type; ;
+                s.study_type = study_type;
                 s.study_type_id = s.study_type.GetTypeId();
             }
         }
@@ -387,7 +378,7 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(funders))
         {
             string[] funder_names = funders.Split(";");  // can have multiple names separated by semi-colons
-            if (funder_names?.Any() == true)
+            if (funder_names.Any())
             {
                 foreach (string funder in funder_names)
                 {
@@ -420,19 +411,19 @@ public class WHOProcessor : IStudyProcessor
 
         // Study leads and Contacts.
 
-        string? study_lead = "";
+        string study_lead = "";
         string? s_givenname = r.scientific_contact_givenname;
         string? s_familyname = r.scientific_contact_familyname;
         string? s_affiliation = r.scientific_contact_affiliation;
         if (!string.IsNullOrEmpty(s_givenname) || !string.IsNullOrEmpty(s_familyname))
         {
-            string? full_name = (s_givenname + " " + s_familyname).Trim();
-            full_name = full_name?.ReplaceApos();
+            string full_name = (s_givenname + " " + s_familyname).Trim();
+            full_name = full_name.ReplaceApos()!;
             study_lead = full_name;  // for later comparison
 
             if (full_name.CheckPersonName())
             {
-                full_name = full_name.TidyPersonName();
+                full_name = full_name.TidyPersonName()!;
                 if (!string.IsNullOrEmpty(full_name))
                 {
                     s_affiliation = s_affiliation.TidyOrgName(sid);
@@ -449,7 +440,7 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(p_givenname) || !string.IsNullOrEmpty(p_familyname))
         {
             string? full_name = (p_givenname + " " + p_familyname).Trim();
-            full_name = full_name?.ReplaceApos();
+            full_name = full_name.ReplaceApos();
             if (full_name != study_lead)  // often duplicated
             {
                 {
@@ -468,7 +459,7 @@ public class WHOProcessor : IStudyProcessor
         // Study features.
 
         var study_feats = r.study_features;
-        if (study_feats?.Any() == true)
+        if (study_feats?.Any() is true)
         {
             foreach(var f in study_feats)
             { 
@@ -484,7 +475,7 @@ public class WHOProcessor : IStudyProcessor
         //study identifiers.
 
         var sids = r.secondary_ids;
-        if (sids?.Any() == true)
+        if (sids?.Any() is true)
         {
             foreach (var id in sids)
             {
@@ -535,7 +526,7 @@ public class WHOProcessor : IStudyProcessor
                     }
                     else
                     {
-                        if (sponsor_is_org == true)
+                        if (sponsor_is_org is true)
                         {
                             study_identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name));
                         }
@@ -552,7 +543,7 @@ public class WHOProcessor : IStudyProcessor
         // Study conditions.
 
         var condList = r.condition_list;
-        if (condList?.Any() == true)
+        if (condList?.Any() is true)
         {
             foreach (var cn in condList)
             {
@@ -592,7 +583,7 @@ public class WHOProcessor : IStudyProcessor
         {
             foreach (StudyCondition k in conditions)
             {
-                if (k is not null && k.original_value?.ToLower() == candidate_condition.ToLower())
+                if (k.original_value?.ToLower() == candidate_condition.ToLower())
                 {
                     return false;
                 }
@@ -700,16 +691,16 @@ public class WHOProcessor : IStudyProcessor
             if (prot_url.Contains("http") && !prot_url.Contains("clinicaltrials.gov"))
             {
                 // presumed to be a download or a web reference
-                string resource_type = "";
-                int resource_type_id = 0;
-                string url_link = "";
-                int url_start = prot_url.IndexOf("http");
+                string resource_type;
+                int resource_type_id;
+                string url_link;
+                int url_start = prot_url.IndexOf("http", StringComparison.Ordinal);
 
                 if (results_url_protocol.Contains(".pdf"))
                 {
                     resource_type = "PDF";
                     resource_type_id = 11;
-                    int pdf_end = prot_url.IndexOf(".pdf") + 4;
+                    int pdf_end = prot_url.IndexOf(".pdf", StringComparison.Ordinal) + 4;
                     url_link = results_url_protocol[url_start..pdf_end];
 
                 }
@@ -719,12 +710,12 @@ public class WHOProcessor : IStudyProcessor
                     resource_type_id = 16;
                     if (prot_url.Contains(".docx"))
                     {
-                        int docx_end = prot_url.IndexOf(".docx") + 5;
+                        int docx_end = prot_url.IndexOf(".docx", StringComparison.Ordinal) + 5;
                         url_link = results_url_protocol[url_start..docx_end];
                     }
                     else
                     {
-                        int doc_end = prot_url.IndexOf(".doc") + 4;
+                        int doc_end = prot_url.IndexOf(".doc", StringComparison.Ordinal) + 4;
                         url_link = results_url_protocol[url_start..doc_end];
                     }
                 }
@@ -737,7 +728,7 @@ public class WHOProcessor : IStudyProcessor
                 }
 
 
-                int object_type_id = 0; string object_type = "";
+                int object_type_id; string object_type;
                 if (prot_url.Contains("study protocol"))
                 {
                     object_type_id = 11;
@@ -770,14 +761,14 @@ public class WHOProcessor : IStudyProcessor
 
 
         var countryList = r.country_list;
-        if (countryList?.Any() == true)
+        if (countryList?.Any() is true)
         {
             foreach (var country in countryList)
             {
                 if (!string.IsNullOrEmpty(country))
                 {
-                    string country_name = country!;
-                    country_name = country_name.Trim().ReplaceApos();
+                    string country_name = country;
+                    country_name = country_name.Trim().ReplaceApos()!;
 
                     if (country_name.EndsWith(".") || country_name.EndsWith(",")
                         || country_name.EndsWith(")") || country_name.EndsWith("?")

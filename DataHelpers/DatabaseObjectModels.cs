@@ -1,8 +1,10 @@
-﻿using Dapper.Contrib.Extensions;
+﻿using System.Diagnostics.CodeAnalysis;
+using Dapper.Contrib.Extensions;
 
 
 namespace MDR_Harvester
 {
+    [SuppressMessage("ReSharper", "CollectionNeverUpdated.Global")]
     public class FullDataObject
     {
         public string? sd_oid { get; set; }
@@ -19,7 +21,6 @@ namespace MDR_Harvester
         public string? object_type { get; set; }
         public int? managing_org_id { get; set; }
         public string? managing_org { get; set; }
-        public string? managing_org_ror_id { get; set; }
         public string? lang_code { get; set; }
         public int? access_type_id { get; set; }
         public string? access_type { get; set; }
@@ -31,7 +32,6 @@ namespace MDR_Harvester
         public bool? add_study_topics { get; set; }
         public DateTime? datetime_of_data_fetch { get; set; }
         public JournalDetails? journal_details { get; set; }
-
         public List<ObjectDate>? object_dates { get; set; }
         public List<ObjectTitle>? object_titles { get; set; }
         public List<ObjectIdentifier>? object_identifiers { get; set; }
@@ -64,7 +64,6 @@ namespace MDR_Harvester
         public string? object_type { get; set; }
         public int? managing_org_id { get; set; }
         public string? managing_org { get; set; }
-        public string? managing_org_ror_id { get; set; }
         public string? lang_code { get; set; }
         public int? access_type_id { get; set; }
         public string? access_type { get; set; }
@@ -538,7 +537,8 @@ namespace MDR_Harvester
         public string? date_string;
 
         public SplitDateRange(int? _syear, int? _smonth, int? _sday,
-                         int? _eyear, int? _emonth, int? _eday, bool? _date_is_range, string? _date_string)
+                         int? _eyear, int? _emonth, int? _eday, 
+                         bool? _date_is_range, string? _date_string)
         {
             syear = _syear;
             smonth = _smonth;
@@ -567,7 +567,7 @@ namespace MDR_Harvester
 
     public class ObjectDescription
     {
-        public string? sd_oid { get; set; }
+        public string? sd_oid { get; init; }
         public int? description_type_id { get; set; }
         public string? description_type { get; set; }
         public string? label { get; set; }
@@ -588,10 +588,10 @@ namespace MDR_Harvester
         public ObjectDBLink(string? _sd_oid, int? _db_sequence, 
                            string? _db_name, string? _id_in_db)
         {
-            sd_oid = sd_oid;
-            db_sequence = db_sequence;
-            db_name = db_name;
-            id_in_db = id_in_db;
+            sd_oid = _sd_oid;
+            db_sequence = _db_sequence;
+            db_name = _db_name;
+            id_in_db = _id_in_db;
         }
     }
 

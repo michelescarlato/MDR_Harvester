@@ -43,7 +43,6 @@ namespace MDR_Harvester
               , object_type            VARCHAR         NULL
               , managing_org_id        INT             NULL
               , managing_org           VARCHAR         NULL
-              , managing_org_ror_id    VARCHAR         NULL
               , lang_code              VARCHAR         NULL
               , access_type_id         INT             NULL
               , access_type            VARCHAR         NULL

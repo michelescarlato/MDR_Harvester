@@ -106,7 +106,7 @@ public class PubmedProcessor : IObjectProcessor
 
         List<string> language_list = new();
         var languages = r.ArticleLangs;
-        if (languages?.Any() == true)
+        if (languages?.Any() is true)
         {
             string lang_list = "";
             foreach (string lang in languages)
@@ -322,7 +322,7 @@ public class PubmedProcessor : IObjectProcessor
         {
             foreach (ObjectTitle t in titles)
             {
-                if (t.is_default == true)
+                if (t.is_default is true)
                 {
                     default_title = t.title_text;
                     break;
@@ -336,9 +336,9 @@ public class PubmedProcessor : IObjectProcessor
         // as well as later (in creating citation string). The journal name
         // and issn numbers for electronic and / or paper versions are obtained.
 
-        JournalDetails jd = new(sdoid, journal_title);
+        JournalDetails jd = new(sdoid, journal_title ?? "");
         var issns = r.ISSNList;
-        if (issns?.Any() == true)
+        if (issns?.Any() is true)
         {
             foreach (var i in issns)
             {
@@ -375,14 +375,14 @@ public class PubmedProcessor : IObjectProcessor
         // DB_Accession_Number records.
 
         var databanklist =  r.DatabaseList;
-        if (databanklist?.Any() == true)
+        if (databanklist?.Any() is true)
         {
             int n = 0;
             foreach (var db in databanklist)
             {
                 string? bankname = db.DataBankName;
                 n++;
-                if (db.AccessionNumberList?.Any() == true)
+                if (db.AccessionNumberList?.Any() is true)
                 {
                     foreach (string str in db.AccessionNumberList)
                     {
@@ -451,7 +451,7 @@ public class PubmedProcessor : IObjectProcessor
 
         string electronic_date_string = "";
         var artedates = r.ArticleEDates;
-        if (artedates?.Any() == true)
+        if (artedates?.Any() is true)
         {
             foreach (var ad in artedates)
             {
@@ -481,7 +481,7 @@ public class PubmedProcessor : IObjectProcessor
        // Process History element with possible list of Pubmed dates.
 
         var history_dates = r.History;
-        if (history_dates?.Any() == true)
+        if (history_dates?.Any() is true)
         {
             string? pub_status = null;
             int date_type = 0;
@@ -547,7 +547,7 @@ public class PubmedProcessor : IObjectProcessor
         // Chemicals list - do these first as Mesh list often duplicates them.
 
         var chemicals_list = r.SubstanceList;
-        if (chemicals_list?.Any() == true)
+        if (chemicals_list?.Any() is true)
         {
             foreach (var ch in chemicals_list)
             {
@@ -566,7 +566,7 @@ public class PubmedProcessor : IObjectProcessor
         // Mesh headings list. N.B. MeSH Qualifiers are not collected.
 
         var mesh_headings_list = r.MeshList;
-        if (mesh_headings_list?.Any() == true)
+        if (mesh_headings_list?.Any() is true)
         {
             foreach (var mh in mesh_headings_list)
             {
@@ -603,7 +603,7 @@ public class PubmedProcessor : IObjectProcessor
         // Supplementary mesh list - rarely found.
 
         var suppmesh_list = r.SupplMeshList;
-        if (suppmesh_list?.Any() == true)
+        if (suppmesh_list?.Any() is true)
         {
             foreach (var sh in suppmesh_list)
             {
@@ -639,7 +639,7 @@ public class PubmedProcessor : IObjectProcessor
         // Keywords
 
         var keywords_lists = r.KeywordList;
-        if (keywords_lists?.Any() == true)
+        if (keywords_lists?.Any() is true)
         {
             string? this_owner = r.keywordOwner;
             int ct_id = (this_owner == "NOTNLM") ? 11 : 0;
@@ -655,7 +655,7 @@ public class PubmedProcessor : IObjectProcessor
 
         var locations = r.EReferences;
         string source_elocation_string = "";
-        if (locations?.Any() == true)
+        if (locations?.Any() is true)
         {
             foreach (EReference er in locations)
             {
@@ -690,7 +690,7 @@ public class PubmedProcessor : IObjectProcessor
         // Other ids.
 
         var other_ids = r.AdditionalIds;
-        if (other_ids?.Any() == true)
+        if (other_ids?.Any() is true)
         {
             foreach (var i in other_ids)
             {
@@ -730,7 +730,7 @@ public class PubmedProcessor : IObjectProcessor
         // particular type has not already been extracted.
 
         var article_ids = r.ArticleIds;
-        if (article_ids?.Any() == true)
+        if (article_ids?.Any() is true)
         {
             foreach (var artid in article_ids)
             {
@@ -916,7 +916,7 @@ public class PubmedProcessor : IObjectProcessor
         // splits the author information up into its constituent classes.
 
         var author_list = r.Creators;
-        if (author_list?.Any() == true)
+        if (author_list?.Any() is true)
         {
             foreach (var a in author_list)
             {
@@ -975,7 +975,7 @@ public class PubmedProcessor : IObjectProcessor
                 string? affil_organisation = null;
                 string? affiliation = null;
                 var affiliations = a.AffiliationInfo;
-                if (affiliations?.Any() == true)
+                if (affiliations?.Any() is true)
                 {
                     foreach (var aff in affiliations)
                     {
@@ -1193,7 +1193,7 @@ public class PubmedProcessor : IObjectProcessor
         // Comment corrections list.
 
         var comments_list = r.CorrectionsList;
-        if (comments_list?.Any() == true)
+        if (comments_list?.Any() is true)
         {
             foreach (var comm in comments_list)
             {
@@ -1210,7 +1210,7 @@ public class PubmedProcessor : IObjectProcessor
         // Publication types.
 
         var publication_type_list = r.ArticleTypes;
-        if (publication_type_list?.Any() == true)
+        if (publication_type_list?.Any() is true)
         {
             foreach (var pub in publication_type_list)
             {

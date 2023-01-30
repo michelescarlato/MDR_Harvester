@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Remove="MonitoringHelpers\loggingHelperHelper.cs" />
+    <Compile Remove="MonitoringHelpers\LoggerHelper.cs" />
   </ItemGroup>
 
   <ItemGroup>

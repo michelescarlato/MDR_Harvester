@@ -60,7 +60,7 @@ namespace MDR_Harvester
                             // (if not in test mode)
                             if (harvest_type_id != 3)
                             {
-                                _monDataLayer.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvest_id);
+                                _monDataLayer.UpdateFileRecLastHarvested(rec.id, _source.source_type!, harvest_id);
                             }
                         }
                     }

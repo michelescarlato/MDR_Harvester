@@ -515,9 +515,9 @@ public class DateHelpers
 
                         string rest = non_year_date.Substring(3).Trim();
 
-                        if (rest.IndexOf("-") != -1)
+                        if (rest.IndexOf("-", StringComparison.Ordinal) != -1)
                         {
-                            int hyphen_pos = rest.IndexOf("-");
+                            int hyphen_pos = rest.IndexOf("-", StringComparison.Ordinal);
                             string s_day = rest.Substring(0, hyphen_pos);
                             string e_day = rest.Substring(hyphen_pos + 1);
                             if (Int32.TryParse(s_day, out int s_day_int) && (Int32.TryParse(e_day, out int e_day_int)))
@@ -538,7 +538,7 @@ public class DateHelpers
                 {
                     // May be two months separated by a hyphen, e.g."May-Jul".
 
-                    int hyphen_pos = non_year_date.IndexOf("-");
+                    int hyphen_pos = non_year_date.IndexOf("-", StringComparison.Ordinal);
                     string s_month = non_year_date.Substring(0, hyphen_pos).Trim();
                     string e_month = non_year_date.Substring(hyphen_pos + 1).Trim();
                     s_month = s_month.Substring(0, 3);  // just get first 3 characters

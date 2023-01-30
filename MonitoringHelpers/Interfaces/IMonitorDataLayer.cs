@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿
 namespace MDR_Harvester
 {
     public interface IMonDataLayer
     {
-        Credentials Credentials { get; }
-
+        string GetConnectionString(string database_name, int harvest_type_id);
         int FetchFileRecordsCount(int source_id, string source_type, int harvest_type_id = 1, DateTime? cutoff_date = null);
         int FetchFullFileCount(int source_id, string source_type, int harvest_type_id);
         ObjectFileRecord? FetchObjectFileRecord(string sd_id, int source_id, string source_type);

@@ -13,7 +13,7 @@ public class LoggingHelper : ILoggingHelper
     private string _summaryLogfilePath = "";
     private StreamWriter? _sw;
     
-    public LoggingHelper(string sourceName)
+    public LoggingHelper()
     {
         IConfigurationRoot settings = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
@@ -94,14 +94,14 @@ public class LoggingHelper : ILoggingHelper
     public void LogStudyHeader(Options opts, string studyName)
     {
         int harvest_type = opts.harvest_type_id;
-        string dividerline = "";
+        string dividerline;
         if (opts.harvest_all_test_data || opts.setup_expected_data_only)
         {
             dividerline = new string('-', 70);
         }
         else
         {
-            dividerline = (harvest_type == 1 || harvest_type == 2) ? new string('=', 70) : new string('-', 70);
+            dividerline = harvest_type is 1 or 2 ? new string('=', 70) : new string('-', 70);
         }
         LogLine("");
         LogLine(dividerline);
@@ -140,7 +140,7 @@ public class LoggingHelper : ILoggingHelper
         Transmit("+++++++++++++++++++++++++++++++++++++++");
         Transmit(headerMessage);
         Transmit(errorMessage + "\n");
-        Transmit(stackTrace);
+        Transmit(stackTrace ?? "");
         Transmit("+++++++++++++++++++++++++++++++++++++++");
         Transmit("");
     }
@@ -164,7 +164,7 @@ public class LoggingHelper : ILoggingHelper
         LogLine("");
         LogLine("TABLE RECORD NUMBERS");
 
-        if (s.has_study_tables == true)
+        if (s.has_study_tables is true)
         {
             LogHeader("study tables");
             LogLine("");
@@ -173,17 +173,17 @@ public class LoggingHelper : ILoggingHelper
             LogLine(StudyTableSummary(db_conn, schema, "study_titles"));
 
             // these are database dependent
-            if (s.has_study_topics == true) LogLine(StudyTableSummary(db_conn, schema, "study_topics"));
-            if (s.has_study_features == true) LogLine(StudyTableSummary(db_conn, schema, "study_features"));
-            if (s.has_study_conditions == true) LogLine(StudyTableSummary(db_conn, schema, "study_conditions"));
-            if (s.has_study_iec == true) LogLine(StudyTableSummary(db_conn, schema, "study_iec"));
-            if (s.has_study_contributors == true) LogLine(StudyTableSummary(db_conn, schema, "study_contributors"));
-            if (s.has_study_references == true) LogLine(StudyTableSummary(db_conn, schema, "study_references"));
-            if (s.has_study_relationships == true) LogLine(StudyTableSummary(db_conn, schema, "study_relationships"));
-            if (s.has_study_links == true) LogLine(StudyTableSummary(db_conn, schema, "study_links"));
-            if (s.has_study_ipd_available == true) LogLine(StudyTableSummary(db_conn, schema, "study_ipd_available"));
-            if (s.has_study_countries == true) LogLine(StudyTableSummary(db_conn, schema, "study_countries"));
-            if (s.has_study_locations == true) LogLine(StudyTableSummary(db_conn, schema, "study_locations"));
+            if (s.has_study_topics is true) LogLine(StudyTableSummary(db_conn, schema, "study_topics"));
+            if (s.has_study_features is true) LogLine(StudyTableSummary(db_conn, schema, "study_features"));
+            if (s.has_study_conditions is true) LogLine(StudyTableSummary(db_conn, schema, "study_conditions"));
+            if (s.has_study_iec is true) LogLine(StudyTableSummary(db_conn, schema, "study_iec"));
+            if (s.has_study_contributors is true) LogLine(StudyTableSummary(db_conn, schema, "study_contributors"));
+            if (s.has_study_references is true) LogLine(StudyTableSummary(db_conn, schema, "study_references"));
+            if (s.has_study_relationships is true) LogLine(StudyTableSummary(db_conn, schema, "study_relationships"));
+            if (s.has_study_links is true) LogLine(StudyTableSummary(db_conn, schema, "study_links"));
+            if (s.has_study_ipd_available is true) LogLine(StudyTableSummary(db_conn, schema, "study_ipd_available"));
+            if (s.has_study_countries is true) LogLine(StudyTableSummary(db_conn, schema, "study_countries"));
+            if (s.has_study_locations is true) LogLine(StudyTableSummary(db_conn, schema, "study_locations"));
         }
 
         LogHeader("object tables");
@@ -195,11 +195,11 @@ public class LoggingHelper : ILoggingHelper
 
         // these are database dependent		
 
-        if (s.has_object_datasets == true) LogLine(ObjectTableSummary(db_conn, schema, "object_datasets"));
-        if (s.has_object_dates == true) LogLine(ObjectTableSummary(db_conn, schema, "object_dates"));
-        if (s.has_object_relationships == true) LogLine(ObjectTableSummary(db_conn, schema, "object_relationships"));
-        if (s.has_object_rights == true) LogLine(ObjectTableSummary(db_conn, schema, "object_rights"));
-        if (s.has_object_pubmed_set == true)
+        if (s.has_object_datasets is true) LogLine(ObjectTableSummary(db_conn, schema, "object_datasets"));
+        if (s.has_object_dates is true) LogLine(ObjectTableSummary(db_conn, schema, "object_dates"));
+        if (s.has_object_relationships is true) LogLine(ObjectTableSummary(db_conn, schema, "object_relationships"));
+        if (s.has_object_rights is true) LogLine(ObjectTableSummary(db_conn, schema, "object_rights"));
+        if (s.has_object_pubmed_set is true)
         {
             LogLine(ObjectTableSummary(db_conn, schema, "journal_details"));
             LogLine(ObjectTableSummary(db_conn, schema, "object_contributors"));

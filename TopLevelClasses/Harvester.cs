@@ -31,17 +31,17 @@ class Harvester : IHarvester
             foreach (int source_id in opts.source_ids!)
             {
                 // Obtain source details, augment with connection string for this database
-
+                
                 ISource source = _monDataLayer.FetchSourceParameters(source_id);
-                Credentials creds = _monDataLayer.Credentials;
-                source.db_conn = creds.GetConnectionString(source.database_name, opts.harvest_type_id);
+                string dbName = source.database_name!;
+                source.db_conn = _monDataLayer.GetConnectionString(dbName, opts.harvest_type_id);
 
-                // establish and begin the loggingHelper helper for this harvest
+                // Establish and begin the loggingHelper helper for this harvest
 
-                _logging_helper!.OpenLogFile(source.database_name);
+                _logging_helper.OpenLogFile(dbName);
                 _logging_helper.LogCommandLineParameters(opts);
                 _logging_helper.LogHeader("STARTING HARVESTER");
-                _logging_helper.LogStudyHeader(opts, "For source: " + source.id + ": " + source.database_name);
+                _logging_helper.LogStudyHeader(opts, "For source: " + source.id + ": " + dbName);
 
                 // Call the main routine to do the harvesting, if not just a context data update
 
@@ -80,7 +80,6 @@ class Harvester : IHarvester
     }
 
 
-
     private void HarvestData(ISource source, Options opts)
     {
         if (source.source_type == "test")
@@ -101,7 +100,7 @@ class Harvester : IHarvester
 
             // Construct the harvest_event record.
 
-            int source_id = source.id.HasValue ? (int)source.id : 0;
+            int source_id = source.id ?? 0;
             int harvest_id = _monDataLayer.GetNextHarvestEventId();
             HarvestEvent harvest = new(harvest_id, source_id, opts.harvest_type_id);
             _logging_helper.LogLine("Harvest event " + harvest_id.ToString() + " began");
@@ -115,7 +114,7 @@ class Harvester : IHarvester
 
             if (source.source_type == "study")
             {
-                if (source.uses_who_harvest == true)
+                if (source.uses_who_harvest is true)
                 {
                     study_processor = new WHOProcessor(_logging_helper);
                 }
@@ -151,8 +150,11 @@ class Harvester : IHarvester
                     }
                 }
 
-                StudyController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source, study_processor);
-                harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
+                if (study_processor is not null)
+                {
+                    StudyController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source, study_processor);
+                    harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
+                }
             }
             else
             {
@@ -166,8 +168,12 @@ class Harvester : IHarvester
                         }
                 }
 
-                ObjectController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source, object_processor);
-                harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
+                if (object_processor is not null)
+                {
+                    ObjectController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source,
+                        object_processor);
+                    harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
+                }
             }
 
             harvest.time_ended = DateTime.Now;

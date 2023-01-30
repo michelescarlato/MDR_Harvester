@@ -65,7 +65,7 @@ public class YodaProcessor : IStudyProcessor
         string? name_base = string.IsNullOrEmpty(name_base_title) ? yoda_title : name_base_title;
 
         var st_titles = r.study_titles;  
-        if (st_titles?.Any() == true)
+        if (st_titles?.Any() is true)
         {
             foreach (var t in st_titles)
             {
@@ -138,7 +138,7 @@ public class YodaProcessor : IStudyProcessor
         // Normally a protocol id will be the only addition (may be a duplicate of one already in the system).
 
         var study_idents = r.study_identifiers;  
-        if (study_idents?.Any() == true)
+        if (study_idents?.Any() is true)
         {
             foreach (var i in study_idents)
             {
@@ -190,7 +190,7 @@ public class YodaProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(compound_product_name))
         {
             string? productName = compound_product_name.Replace(((char)174).ToString(), ""); // drop reg mark
-            productName = productName?.CompressSpaces();
+            productName = productName.CompressSpaces();
             if (productName is not null)
             {
                 // see if already exists
@@ -220,7 +220,7 @@ public class YodaProcessor : IStudyProcessor
 
         // create study references (pmids)
         var refs = r.study_references;
-        if (refs?.Any() == true)
+        if (refs?.Any() is true)
         {
             foreach (var sr in refs)
             {
@@ -251,19 +251,18 @@ public class YodaProcessor : IStudyProcessor
 
         // then for each supp doc...
         var sds = r.supp_docs;
-        if (sds?.Any() == true)
+        if (sds?.Any() is true)
         {
             foreach (var sd in sds)
             {
-                // get object_type
-                int object_class_id = 0; string object_class = "";
-                int object_type_id = 0; string object_type = "";
+                // Get object_type.
+                
                 string? doc_name = sd.doc_name;
                 string? comment = sd.comment;
                 string? url = sd.url;
-
                 if (doc_name is not null)
-                {               
+                {
+                    int object_class_id; string object_class;
                     if (doc_name.Contains("Datasets"))
                     {
                         object_class_id = 14; object_class = "Datasets";
@@ -273,7 +272,7 @@ public class YodaProcessor : IStudyProcessor
                         object_class_id = 23; object_class = "Text";
                     }
 
-                    Tuple<int, string>? obtype = doc_name switch
+                    Tuple<int, string>? objectType = doc_name switch
                     {
                         "Collected Datasets" => new Tuple<int, string>(80, "Individual participant data"),
                         "Analysis Datasets" => new Tuple<int, string>(51, "IPD final analysis datasets (full study population)"),
@@ -286,10 +285,10 @@ public class YodaProcessor : IStudyProcessor
                         _ => null
                     };
 
-                    if (obtype is not null)
+                    if (objectType is not null)
                     {
-                        object_type_id = obtype.Item1;
-                        object_type = obtype.Item2;
+                        int object_type_id = objectType.Item1;
+                        string object_type = objectType.Item2;
 
                         object_title = doc_name;
                         object_display_title = name_base + " :: " + object_type;
@@ -303,21 +302,19 @@ public class YodaProcessor : IStudyProcessor
 
                             // create instance as resource exists
                             // get file type from link if possible
-                            int resource_type_id = 0; string resource_type = "";
-                            if (url.ToLower().EndsWith(".pdf"))
+                            int resource_type_id = 0; string resource_type = "Not yet known";
+                            if (url is not null)
                             {
-                                resource_type_id = 11;
-                                resource_type = "PDF";
-                            }
-                            else if (url.ToLower().EndsWith(".xls"))
-                            {
-                                resource_type_id = 18;
-                                resource_type = "Excel Spreadsheet(s)";
-                            }
-                            else
-                            {
-                                resource_type_id = 0;
-                                resource_type = "Not yet known";
+                                if (url.ToLower().EndsWith(".pdf"))
+                                {
+                                    resource_type_id = 11;
+                                    resource_type = "PDF";
+                                }
+                                else if (url.ToLower().EndsWith(".xls") || url.ToLower().EndsWith(".xlsx"))
+                                {
+                                    resource_type_id = 18;
+                                    resource_type = "Excel Spreadsheet(s)";
+                                }
                             }
                             object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda", url, true, resource_type_id, resource_type));
                         }

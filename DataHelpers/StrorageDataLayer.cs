@@ -1,341 +1,217 @@
 ﻿using Dapper.Contrib.Extensions;
-using Microsoft.Extensions.Configuration;
 using Npgsql;
-using PostgreSQLCopyHelper;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace MDR_Harvester
 {
     public class StorageDataLayer : IStorageDataLayer
     {
+        private readonly IStudyCopyHelpers _sch ;
+        private readonly IObjectCopyHelpers _och;
         private string? db_conn;
+
+        public StorageDataLayer(IStudyCopyHelpers sch, IObjectCopyHelpers och)
+        {
+            _sch = sch;
+            _och = och;
+        }
 
         public void StoreFullStudy(Study s, ISource source)
         {
             db_conn = source.db_conn;
-            StudyCopyHelpers sch = new StudyCopyHelpers();
-            ObjectCopyHelpers och = new ObjectCopyHelpers();
-
-            // store study
+            using NpgsqlConnection conn = new(db_conn);
+            conn.Open();          
+            
+            // Store study.
+            
             StudyInDB st_db = new StudyInDB(s);
-            using (var conn = new NpgsqlConnection(db_conn))
-            {
-                conn.Insert<StudyInDB>(st_db);
-            }
+            conn.Insert(st_db);
 
-            // store study attributes
-            // these common to all databases
+            // Store study attributes
+            // These common to all databases.
 
             if (s.identifiers?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_ids_helper.SaveAll(conn, s.identifiers);
-                }
+                _sch.studyIdentifiersHelper.SaveAll(conn, s.identifiers);
             }
 
             if (s.titles?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_titles_helper.SaveAll(conn, s.titles);
-                }
+                _sch.studyTitlesHelper.SaveAll(conn, s.titles);
             }
 
-            // these are database dependent
+            // These are database dependent.
 
-            if (source.has_study_topics == true && s.topics?.Count > 0)
+            if (source.has_study_topics is true && s.topics?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_topics_helper.SaveAll(conn, s.topics);
-                }
+                _sch.studyTopicsHelper.SaveAll(conn, s.topics);
             }
 
-            if (source.has_study_features == true && s.features?.Count > 0)
+            if (source.has_study_features is true && s.features?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_features_helper.SaveAll(conn, s.features);
-                }
+                _sch.studyFeaturesHelper.SaveAll(conn, s.features);
             }
 
-            if (source.has_study_conditions == true && s.conditions?.Count > 0)
+            if (source.has_study_conditions is true && s.conditions?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_conditions_helper.SaveAll(conn, s.conditions);
-                }
+                _sch.studyConditionsHelper.SaveAll(conn, s.conditions);
             }
 
-            if (source.has_study_iec == true && s.iec?.Count > 0)
+            if (source.has_study_iec is true && s.iec?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_iec_helper.SaveAll(conn, s.iec);
-                }
+                _sch.studyIECHelper.SaveAll(conn, s.iec);
             }
 
-            if (source.has_study_contributors == true && s.contributors?.Count > 0)
+            if (source.has_study_contributors is true && s.contributors?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_contributors_helper.SaveAll(conn, s.contributors);
-                }
+                _sch.studyContributorsHelper.SaveAll(conn, s.contributors);
             }
 
-            if (source.has_study_references == true && s.references?.Count > 0)
+            if (source.has_study_references is true && s.references?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_references_helper.SaveAll(conn, s.references);
-                }
+                _sch.studyReferencesHelper.SaveAll(conn, s.references);
             }
 
-            if (source.has_study_relationships == true && s.relationships?.Count > 0)
+            if (source.has_study_relationships is true && s.relationships?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_relationships_helper.SaveAll(conn, s.relationships);
-                }
+                _sch.studyRelationshipsHelper.SaveAll(conn, s.relationships);
             }
 
-            if (source.has_study_countries == true && s.countries?.Count > 0)
+            if (source.has_study_countries is true && s.countries?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_countries_helper.SaveAll(conn, s.countries);
-                }
+                _sch.studyCountriesHelper.SaveAll(conn, s.countries);
             }
 
-            if (source.has_study_locations == true && s.sites?.Count > 0)
+            if (source.has_study_locations is true && s.sites?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_locations_helper.SaveAll(conn, s.sites);
-                }
+                _sch.studyLocationsHelper.SaveAll(conn, s.sites);
             }
 
-
-            if (source.has_study_links == true && s.studylinks?.Count > 0)
+            if (source.has_study_links is true && s.studylinks?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_links_helper.SaveAll(conn, s.studylinks);
-                }
+                _sch.studyLinksHelper.SaveAll(conn, s.studylinks);
             }
 
-            if (source.has_study_ipd_available == true && s.ipd_info?.Count > 0)
+            if (source.has_study_ipd_available is true && s.ipd_info?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    sch.study_avail_ipd_helper.SaveAll(conn, s.ipd_info);
-                }
+                _sch.studyAvailIPDHelper.SaveAll(conn, s.ipd_info);
             }
 
-
-            // store linked data objects 
+            // Store linked data objects 
 
             if (s.data_objects?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.data_objects_helper.SaveAll(conn, s.data_objects);
-                }
+                _och.dataObjectsHelper.SaveAll(conn, s.data_objects);
             }
             
-            // store data object attributes
+            // Store data object attributes
             // these common to all databases
 
             if (s.object_instances?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_instances_helper.SaveAll(conn, s.object_instances);
-                }
+                _och.objectInstancesHelper.SaveAll(conn, s.object_instances);
             }
 
             if (s.object_titles?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_titles_helper.SaveAll(conn, s.object_titles);
-                }
+                _och.objectTitlesHelper.SaveAll(conn, s.object_titles);
             }
             
-            // these are database dependent		
+            // These are database dependent		
             
-            if (source.has_object_datasets == true && s.object_datasets?.Count > 0)
+            if (source.has_object_datasets is true && s.object_datasets?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_datasets_helper.SaveAll(conn, s.object_datasets);
-                }
+                _och.objectDatasetsHelper.SaveAll(conn, s.object_datasets);
             }
 
-            if (source.has_object_dates == true && s.object_dates?.Count > 0)
+            if (source.has_object_dates is true && s.object_dates?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_dates_helper.SaveAll(conn, s.object_dates);
-                }
+                _och.objectDatesHelper.SaveAll(conn, s.object_dates);
             }
+            
+            conn.Close();
         }
 
 
         public void StoreFullObject(FullDataObject r, ISource source)
         {
             db_conn = source.db_conn;
-            ObjectCopyHelpers och = new ObjectCopyHelpers();
-
+            using NpgsqlConnection conn = new(db_conn);
+            conn.Open();      
+            
             DataObject d = new DataObject(r);
-            using (var conn = new NpgsqlConnection(db_conn))
-            {
-                conn.Insert<DataObject>(d);
-            }
+            conn.Insert(d);
 
             if (r.object_instances?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_instances_helper.SaveAll(conn, r.object_instances);
-                }
+                _och.objectInstancesHelper.SaveAll(conn, r.object_instances);
             }
 
             if (r.object_titles?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_titles_helper.SaveAll(conn, r.object_titles);
-                }
+                _och.objectTitlesHelper.SaveAll(conn, r.object_titles);
             }
 
             // these are database dependent		
 
-            if (source.has_object_dates == true && r.object_dates?.Count > 0)
+            if (source.has_object_dates is true && r.object_dates?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_dates_helper.SaveAll(conn, r.object_dates);
-                }
+                _och.objectDatesHelper.SaveAll(conn, r.object_dates);
             }
 
-            if (source.has_object_relationships == true && r.object_relationships?.Count > 0)
+            if (source.has_object_relationships is true && r.object_relationships?.Count > 0)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_relationships_helper.SaveAll(conn, r.object_relationships);
-                }
+                _och.objectRelationshipsHelper.SaveAll(conn, r.object_relationships);
             }
 
-            if (source.has_object_rights == true && r.object_rights?.Any() == true)
+            if (source.has_object_rights is true && r.object_rights?.Any() is true)
             {
-                using (var conn = new NpgsqlConnection(db_conn))
-                {
-                    conn.Open();
-                    och.object_rights_helper.SaveAll(conn, r.object_rights);
-                }
+                _och.objectRightsHelper.SaveAll(conn, r.object_rights);
             }
 
-            if (source.has_object_pubmed_set == true)
+            if (source.has_object_pubmed_set is true)
             {
-                if (r.object_contributors?.Any() == true)
+                if (r.object_contributors?.Any() is true)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Open();
-                        och.object_contributors_helper.SaveAll(conn, r.object_contributors);
-                    }
+                    _och.objectContributorsHelper.SaveAll(conn, r.object_contributors);
                 }
 
-                if (r.object_topics?.Any() == true)
+                if (r.object_topics?.Any() is true)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Open();
-                        och.object_topics_helper.SaveAll(conn, r.object_topics);
-                    }
+                    _och.objectTopicsHelper.SaveAll(conn, r.object_topics);
                 }
 
-                if (r.object_comments?.Any() == true)
+                if (r.object_comments?.Any() is true)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Open();
-                        och.object_comments_helper.SaveAll(conn, r.object_comments);
-                    }
+                    _och.objectCommentsHelper.SaveAll(conn, r.object_comments);
                 }
 
-                if (r.object_descriptions?.Any() == true)
+                if (r.object_descriptions?.Any() is true)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Open();
-                        och.object_descriptions_helper.SaveAll(conn, r.object_descriptions);
-                    }
+                    _och.objectDescriptionsHelper.SaveAll(conn, r.object_descriptions);
                 }
 
-                if (r.object_identifiers?.Any() == true)
+                if (r.object_identifiers?.Any() is true)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Open();
-                        och.object_identifiers_helper.SaveAll(conn, r.object_identifiers);
-                    }
+                    _och.objectIdentifiersHelper.SaveAll(conn, r.object_identifiers);
                 }
 
-                if (r.object_db_ids?.Any() == true)
+                if (r.object_db_ids?.Any() is true)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Open();
-                        och.object_db_links_helper.SaveAll(conn, r.object_db_ids);
-                    }
+                    _och.objectDbLinksHelper.SaveAll(conn, r.object_db_ids);
                 }
 
-                if (r.object_pubtypes?.Any() == true)
+                if (r.object_pubtypes?.Any() is true)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Open();
-                        och.publication_types_helper.SaveAll(conn, r.object_pubtypes);
-                    }
+                    _och.objectPubTypesHelper.SaveAll(conn, r.object_pubtypes);
                 }
-
 
                 if (r.journal_details != null)
                 {
-                    using (var conn = new NpgsqlConnection(db_conn))
-                    {
-                        conn.Insert<JournalDetails>(r.journal_details);
-                    }
+                    conn.Insert(r.journal_details);
                 }
-
             }
+            
+            conn.Close();  
         }
     }
 }

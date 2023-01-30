@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace MDR_Harvester.Ctg
 {
     internal class CTGHelpers
@@ -16,7 +11,7 @@ namespace MDR_Harvester.Ctg
 
             IdentifierDetails id = new IdentifierDetails(null, id_type, null, id_org, id_value);
 
-            if (id_org == null || id_org == "Other" || id_org == "Alias Study Number")
+            if (id_org is null or "Other" or "Alias Study Number")
             {
                 id.id_org_id = 12;
                 id.id_org = "No organisation name provided in source data";
@@ -33,8 +28,6 @@ namespace MDR_Harvester.Ctg
                 id.id_type_id = 90;
                 id.id_type = "Other";
             }
-
-
 
             else if (id_type == "U.S. NIH Grant/Contract")
             {
@@ -63,143 +56,146 @@ namespace MDR_Harvester.Ctg
                 id.id_type_id = 11;
                 id.id_type = "Trial Registry ID";
 
-                string idorg = id_org.ToLower();
-
-                if (idorg.Contains("who") || idorg.Contains("utn")
-                    || idorg.Contains("ictrp") || idorg.Contains("universal"))
+                if (id_org != null)
                 {
-                    // UTN number - check for ictrp before checking ctrp
-                    id.id_org_id = 100115;
-                    id.id_org = "International Clinical Trials Registry Platform";
-                }
+                    string idorg = id_org.ToLower();
 
-                else if (idorg.Contains("ctrp") || idorg.Contains("pdq") || idorg.Contains("nci"))
-                {
-                    // NCI CTRP programme
-                    id.id_org_id = 100162;
-                    id.id_org = "National Cancer Institute";
-                    id.id_type_id = 39;
-                    id.id_type = "NIH CTRP ID";
-                }
+                    if (idorg.Contains("who") || idorg.Contains("utn")
+                                              || idorg.Contains("ictrp") || idorg.Contains("universal"))
+                    {
+                        // UTN number - check for ictrp before checking ctrp
+                        id.id_org_id = 100115;
+                        id.id_org = "International Clinical Trials Registry Platform";
+                    }
 
-                else if (idorg.Contains("daids"))
-                {
-                    // NAID programme
-                    id.id_org_id = 100168;
-                    id.id_org = "National Institute of Allergy and Infectious Diseases";
-                    id.id_type_id = 40;
-                    id.id_type = "DAIDS ID";
-                }
+                    else if (idorg.Contains("ctrp") || idorg.Contains("pdq") || idorg.Contains("nci"))
+                    {
+                        // NCI CTRP programme
+                        id.id_org_id = 100162;
+                        id.id_org = "National Cancer Institute";
+                        id.id_type_id = 39;
+                        id.id_type = "NIH CTRP ID";
+                    }
 
-                else if (idorg.Contains("japic") || idorg.Contains("cti"))
-                {
-                    // japanese registry
-                    id.id_org_id = 100157;
-                    id.id_org = "Japan Pharmaceutical Information Center";
-                }
+                    else if (idorg.Contains("daids"))
+                    {
+                        // NAID programme
+                        id.id_org_id = 100168;
+                        id.id_org = "National Institute of Allergy and Infectious Diseases";
+                        id.id_type_id = 40;
+                        id.id_type = "DAIDS ID";
+                    }
 
-                else if (idorg.Contains("umin"))
-                {
-                    // japanese registry
-                    id.id_org_id = 100156;
-                    id_org = "University Hospital Medical Information Network CTR";
-                }
+                    else if (idorg.Contains("japic") || idorg.Contains("cti"))
+                    {
+                        // japanese registry
+                        id.id_org_id = 100157;
+                        id.id_org = "Japan Pharmaceutical Information Center";
+                    }
 
-                else if (idorg.Contains("isrctn"))
-                {
-                    // isrctn registry
-                    id.id_org_id = 100126;
-                    id.id_org = "ISRCTN";
-                }
+                    else if (idorg.Contains("umin"))
+                    {
+                        // japanese registry
+                        id.id_org_id = 100156;
+                        id_org = "University Hospital Medical Information Network CTR";
+                    }
 
-                else if (idorg.Contains("india") || id_org.Contains("ctri"))
-                {
-                    // indian registry
-                    id.id_org_id = 100121;
-                    id.id_org = "Clinical Trials Registry - India";
-                    id.id_value = id.id_value.Replace("/", "-"); // slashes in id causes problems for derived paths
-                }
+                    else if (idorg.Contains("isrctn"))
+                    {
+                        // isrctn registry
+                        id.id_org_id = 100126;
+                        id.id_org = "ISRCTN";
+                    }
 
-                else if (idorg.Contains("eudract"))
-                {
-                    // EU CTR
-                    id.id_org_id = 100123;
-                    id.id_org = "EU Clinical Trials Register";
-                }
+                    else if (idorg.Contains("india") || id_org.Contains("ctri"))
+                    {
+                        // indian registry
+                        id.id_org_id = 100121;
+                        id.id_org = "Clinical Trials Registry - India";
+                        id.id_value = id.id_value!.Replace("/", "-"); // slashes in id causes problems for derived paths
+                    }
 
-                else if (idorg.Contains("drks") || idorg.Contains("german") || idorg.Contains("deutsch"))
-                {
-                    // German registry
-                    id.id_org_id = 100124;
-                    id.id_org = "Deutschen Register Klinischer Studien";
-                }
+                    else if (idorg.Contains("eudract"))
+                    {
+                        // EU CTR
+                        id.id_org_id = 100123;
+                        id.id_org = "EU Clinical Trials Register";
+                    }
 
-                else if (idorg.Contains("nederlands") || idorg.Contains("dutch"))
-                {
-                    // Dutch registry
-                    id.id_org_id = 100132;
-                    id.id_org = "The Netherlands National Trial Register";
-                }
+                    else if (idorg.Contains("drks") || idorg.Contains("german") || idorg.Contains("deutsch"))
+                    {
+                        // German registry
+                        id.id_org_id = 100124;
+                        id.id_org = "Deutschen Register Klinischer Studien";
+                    }
 
-                else if (idorg.Contains("ansm") || idorg.Contains("agence") || idorg.Contains("rcb"))
-                {
-                    // French asnsm number
-                    id.id_org_id = 101408;
-                    id.id_org = "Agence Nationale de Sécurité du Médicament";
-                    id.id_type_id = 41;
-                    id.id_type = "Regulatory Body ID";
-                }
+                    else if (idorg.Contains("nederlands") || idorg.Contains("dutch"))
+                    {
+                        // Dutch registry
+                        id.id_org_id = 100132;
+                        id.id_org = "The Netherlands National Trial Register";
+                    }
 
-                else if (idorg.Contains("iras") || idorg.Contains("hra"))
-                {
-                    // uk IRAS number
-                    id.id_org_id = 101409;
-                    id.id_org = "Health Research Authority";
-                    id.id_type_id = 41;
-                    id.id_type = "Regulatory Body ID";
-                }
+                    else if (idorg.Contains("ansm") || idorg.Contains("agence") || idorg.Contains("rcb"))
+                    {
+                        // French asnsm number
+                        id.id_org_id = 101408;
+                        id.id_org = "Agence Nationale de Sécurité du Médicament";
+                        id.id_type_id = 41;
+                        id.id_type = "Regulatory Body ID";
+                    }
 
-                else if (idorg.Contains("anzctr") || idorg.Contains("australian"))
-                {
-                    // australian registry
-                    id.id_org_id = 100116;
-                    id.id_org = "Australian New Zealand Clinical Trials Registry";
-                }
+                    else if (idorg.Contains("iras") || idorg.Contains("hra"))
+                    {
+                        // uk IRAS number
+                        id.id_org_id = 101409;
+                        id.id_org = "Health Research Authority";
+                        id.id_type_id = 41;
+                        id.id_type = "Regulatory Body ID";
+                    }
 
-                else if (idorg.Contains("chinese"))
-                {
-                    // chinese registry
-                    id.id_org_id = 100118;
-                    id.id_org = "Chinese Clinical Trial Register";
-                }
+                    else if (idorg.Contains("anzctr") || idorg.Contains("australian"))
+                    {
+                        // australian registry
+                        id.id_org_id = 100116;
+                        id.id_org = "Australian New Zealand Clinical Trials Registry";
+                    }
 
-                else if (idorg.Contains("thai"))
-                {
-                    // thai registry
-                    id.id_org_id = 100131;
-                    id.id_org = "Thai Clinical Trials Register";
-                }
+                    else if (idorg.Contains("chinese"))
+                    {
+                        // chinese registry
+                        id.id_org_id = 100118;
+                        id.id_org = "Chinese Clinical Trial Register";
+                    }
 
-                else if (idorg == "jhmirb" || idorg == "jhm irb")
-                {
-                    // ethics approval number
-                    id.id_org_id = 100190;
-                    id.id_org = "Johns Hopkins University";
-                    id.id_type_id = 12;
-                    id.id_type = "Ethics Review ID";
-                }
+                    else if (idorg.Contains("thai"))
+                    {
+                        // thai registry
+                        id.id_org_id = 100131;
+                        id.id_org = "Thai Clinical Trials Register";
+                    }
 
-                else if (idorg.ToLower().Contains("ethics") || idorg == "Independent Review Board" || idorg.Contains("IRB"))
-                {
-                    // ethics approval number
-                    id.id_type_id = 12;
-                    id.id_type = "Ethics Review ID";
+                    else if (idorg == "jhmirb" || idorg == "jhm irb")
+                    {
+                        // ethics approval number
+                        id.id_org_id = 100190;
+                        id.id_org = "Johns Hopkins University";
+                        id.id_type_id = 12;
+                        id.id_type = "Ethics Review ID";
+                    }
+
+                    else if (idorg.ToLower().Contains("ethics") || idorg == "Independent Review Board" || idorg.Contains("IRB"))
+                    {
+                        // ethics approval number
+                        id.id_type_id = 12;
+                        id.id_type = "Ethics Review ID";
+                    }
                 }
             }
 
-            if (id.id_type_id == 1 || id.id_type_id == 90)
+            if (id.id_type_id is 1 or 90)
             {
-                if (id_org != null)
+                if (id_org is not null)
                 {
                     if (id_org == "UTN")
                     {

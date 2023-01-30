@@ -565,7 +565,7 @@ internal static class IsrctnExtensions
             {
                 for (int j = 0; j < titles.Count; j++)
                 {
-                    if (titles[j].title_text?.Contains(object_display_title) == true)
+                    if (titles[j].title_text?.Contains(object_display_title) is true)
                     {
                         num_of_this_type++;
                     }

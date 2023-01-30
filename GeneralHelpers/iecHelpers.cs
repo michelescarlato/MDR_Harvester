@@ -20,15 +20,11 @@ public class IECHelpers
             List<Criterion> cr = new();
 
             int single_crit = type == "inclusion" ? 1 : 2;
-            int all_crit = single_crit + 10;
-            int pre_crit = single_crit + 100;
             int post_crit = single_crit + 200;
             int grp_hdr = single_crit + 300;
             int no_sep = single_crit + 1000;
 
             string single_type = type + " criterion";
-            string all_crit_type = type + " criteria (as one statement)";
-            string pre_crit_type = type + " criteria prefix statement";
             string post_crit_type = type + " criteria supplementary statement";
             string grp_hdr_type = type + " criteria group heading";
             string no_sep_type = type + " with no separator";
@@ -67,14 +63,14 @@ public class IECHelpers
                 Regex recrit1 = new Regex(@"^\d{1,2}\.");
 
                 int level = 0;
-                string hdr_name = "";
+                string hdr_name;
                 string old_hdr_name = "none";
-                string regex_pattern, leader, clipped_line =  "";
+                string regex_pattern, leader, clipped_line;
                 List<Level> levels = new(){new Level("none", 0)}; 
                
                 for (int i = 0; i < lines.Length; i++)
                 {
-                    string? this_line = lines[i].TrimPlus()!;
+                    string this_line = lines[i].TrimPlus()!;
                     if (!string.IsNullOrEmpty(this_line)
                         && !this_line.Contains(new string('_', 4)))
                     {
@@ -254,59 +250,58 @@ public class IECHelpers
                 for (int i = cr.Count - 1; i >= 0; i--)
                 {
                     bool transfer_crit = true;
-                    if (cr[i].CritTypeId == grp_hdr
-                        && i < cr.Count - 1 && i > 0
-                        && !cr[i].CritText.EndsWith(':'))
+                    string? thisText = cr[i].CritText;
+                    if (!string.IsNullOrEmpty(thisText))
                     {
-                        // Does the following entry have an indentation
-                        // level greater than the header? if not it is 
-                        // probably not a 'true' header. Add it to the 
-                        // preceding entry...
-                        // 
-                        // (N.B. Initial cr[0] is not checked, nor is 
-                        // the last cr entry).
-
-                        if (cr[i].IndentLevel >= cr[i + 1].IndentLevel)
+                        if (cr[i].CritTypeId == grp_hdr 
+                            && i < cr.Count - 1 && i > 0
+                            && !thisText.EndsWith(':'))
                         {
-                            // Almost certainly a spurious \n in the
-                            // original string rather than a genuine header.
+                            // Does the following entry have an indentation level greater than the header? 
+                            // if not it is probably not a 'true' header. Add it to the preceding entry...
+                            // (N.B. Initial cr[0] is not checked, nor is the last cr entry).
 
-                            cr[i - 1].CritText += " " + cr[i].CritText;
-                            cr[i - 1].CritText = cr[i - 1].CritText?.Replace("  ", " ");
-                            transfer_crit = false;
+                            if (cr[i].IndentLevel >= cr[i + 1].IndentLevel)
+                            {
+                                // Almost certainly a spurious \n in the
+                                // original string rather than a genuine header.
+
+                                cr[i - 1].CritText += " " + thisText;
+                                cr[i - 1].CritText = cr[i - 1].CritText?.Replace("  ", " ");
+                                transfer_crit = false;
+                            }
                         }
-                    }
 
-                    if (cr[i].CritTypeId == post_crit && !string.IsNullOrEmpty(cr[i].CritText)
-                            && !cr[i].CritText!.EndsWith(':')
-                            && !cr[i].CritText!.StartsWith('*')
-                            && !cr[i].CritText!.ToLower().StartsWith("note")
-                            && !cr[i].CritText!.ToLower().StartsWith("for further details")
-                            && !cr[i].CritText!.ToLower().StartsWith("for more information"))
-                    {
-                        // Almost always is a spurious supplement.
-                        // Whether should be joined depends on whether there is an initial
-                        // lower case or upper case letter... 
-
-                        char init = cr[i].CritText![0];
-                        if (char.ToLower(init) == init)
+                        if (cr[i].CritTypeId == post_crit && !thisText.EndsWith(':')
+                             && !thisText.StartsWith('*')
+                             && !thisText.ToLower().StartsWith("note")
+                             && !thisText.ToLower().StartsWith("for further details")
+                             && !thisText.ToLower().StartsWith("for more information"))
                         {
-                            cr[i - 1].CritText += " " + cr[i].CritText;
-                            cr[i - 1].CritText = cr[i - 1].CritText?.Replace("  ", " ");
-                            transfer_crit = false;
-                        }
-                        else
-                        {
-                            cr[i].CritTypeId = single_crit;
-                            cr[i].CritType = single_type;
-                            cr[i].IndentLevel = cr[i - 1].IndentLevel;
-                            cr[i].LevelSeqNum = cr[i - 1].LevelSeqNum + 1;
-                        }
-                    }
+                            // Almost always is a spurious supplement.
+                            // Whether should be joined depends on whether there is an initial
+                            // lower case or upper case letter... 
 
-                    if (transfer_crit)
-                    {
-                        cr2.Add(cr[i]);
+                            char init = cr[i].CritText![0];
+                            if (char.ToLower(init) == init)
+                            {
+                                cr[i - 1].CritText += " " + thisText;
+                                cr[i - 1].CritText = cr[i - 1].CritText?.Replace("  ", " ");
+                                transfer_crit = false;
+                            }
+                            else
+                            {
+                                cr[i].CritTypeId = single_crit;
+                                cr[i].CritType = single_type;
+                                cr[i].IndentLevel = cr[i - 1].IndentLevel;
+                                cr[i].LevelSeqNum = cr[i - 1].LevelSeqNum + 1;
+                            }
+                        }
+
+                        if (transfer_crit)
+                        {
+                            cr2.Add(cr[i]);
+                        }
                     }
                 }
 

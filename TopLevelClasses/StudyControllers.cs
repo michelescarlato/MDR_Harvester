@@ -1,9 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
-using System.Xml;
-
-namespace MDR_Harvester;
+﻿namespace MDR_Harvester;
 
 public class StudyController
 {
@@ -61,7 +56,7 @@ public class StudyController
                         // (if not in test mode)
                         if (harvestTypeId != 3)
                         {
-                            _monDataLayer.UpdateFileRecLastHarvested(rec.id, _source.source_type, harvestId);
+                            _monDataLayer.UpdateFileRecLastHarvested(rec.id, _source.source_type!, harvestId);
                         }
                     }
                 }

@@ -1,12 +1,10 @@
 ﻿using Dapper.Contrib.Extensions;
-using System;
-using System.Collections.Generic;
 
 namespace MDR_Harvester
 {
     public class Study
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public string? display_title { get; set; }
         public string? title_lang_code { get; set; }
 
@@ -57,7 +55,7 @@ namespace MDR_Harvester
     [Table("sd.studies")]
     public class StudyInDB
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public string? display_title { get; set; }
         public string? title_lang_code { get; set; }
 
@@ -113,7 +111,7 @@ namespace MDR_Harvester
 
     public class StudyTitle
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public string? title_text { get; set; }
         public int? title_type_id { get; set; }
         public string? title_type { get; set; }
@@ -122,7 +120,7 @@ namespace MDR_Harvester
         public bool? is_default { get; set; }
         public string? comments { get; set; }
 
-        public StudyTitle(string _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, bool? _is_default)
+        public StudyTitle(string? _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, bool? _is_default)
         {
             sd_sid = _sd_sid;
             title_text = _title_text;
@@ -133,7 +131,7 @@ namespace MDR_Harvester
             is_default = _is_default;
         }
 
-        public StudyTitle(string _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, bool? _is_default, string? _comments)
+        public StudyTitle(string? _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, bool? _is_default, string? _comments)
         {
             sd_sid = _sd_sid;
             title_text = _title_text;
@@ -145,7 +143,7 @@ namespace MDR_Harvester
             comments = _comments;
         }
 
-        public StudyTitle(string _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, string? _lang_code, 
+        public StudyTitle(string? _sd_sid, string? _title_text, int? _title_type_id, string? _title_type, string? _lang_code, 
                                int? _lang_usage_id, bool? _is_default, string? _comments)
         {
             sd_sid = _sd_sid;
@@ -162,7 +160,7 @@ namespace MDR_Harvester
 
     public class StudyContributor
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public int? contrib_type_id { get; set; }
         public string? contrib_type { get; set; }
         public bool? is_individual { get; set; }
@@ -179,7 +177,7 @@ namespace MDR_Harvester
 
         
 
-        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+        public StudyContributor(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
                                 int? _organisation_id, string? _organisation_name, string? _person_full_name,
                                 string? _person_affiliation)
         {
@@ -195,7 +193,7 @@ namespace MDR_Harvester
 
         // adding personal contributor, usually from CTG
         
-        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+        public StudyContributor(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
                                 string? _person_full_name,
                                 string? _person_affiliation, string? _affil_organisation_name)
         {
@@ -210,7 +208,7 @@ namespace MDR_Harvester
 
         // adding organisational contributor
         
-        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+        public StudyContributor(string?_sd_sid, int? _contrib_type_id, string? _contrib_type,
                                 int? _organisation_id, string? _organisation_name)
         {
             sd_sid = _sd_sid;
@@ -223,7 +221,7 @@ namespace MDR_Harvester
 
         // adding contact from ISRCTN
 
-        public StudyContributor(string _sd_sid, int? _contrib_type_id, string? _contrib_type,
+        public StudyContributor(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
                                 string? _person_given_name, string? _person_family_name,
                                 string? _person_full_name, string? _orcid_id, string? _person_affiliation)
         {
@@ -262,7 +260,7 @@ namespace MDR_Harvester
 
     public class StudyReference
     {
-        public string sd_sid { get; set; }
+        public string? sd_sid { get; set; }
         public string? pmid { get; set; }
         public string? citation { get; set; }
         public string? doi { get; set; }
@@ -270,7 +268,7 @@ namespace MDR_Harvester
         public string? type { get; set; }
         public string? comments { get; set; }
 
-        public StudyReference(string _sd_sid, string? _pmid, string? _citation, string? _doi, string? _comments)
+        public StudyReference(string? _sd_sid, string? _pmid, string? _citation, string? _doi, string? _comments)
         {
             sd_sid = _sd_sid;
             pmid = _pmid;
@@ -279,7 +277,7 @@ namespace MDR_Harvester
             comments = _comments;
         }
 
-        public StudyReference(string _sd_sid, string? _pmid, string? _citation, 
+        public StudyReference(string? _sd_sid, string? _pmid, string? _citation, 
                               string? _doi, int? _type_id, string? _type, string? _comments)
         {
             sd_sid = _sd_sid;
@@ -307,7 +305,7 @@ namespace MDR_Harvester
 
         public StudyIdentifier() { }
 
-        public StudyIdentifier(string _sd_sid, string? _identifier_value,
+        public StudyIdentifier(string? _sd_sid, string? _identifier_value,
             int? _identifier_type_id, string? _identifier_type,
             int? _identifier_org_id, string? _identifier_org)
         {
@@ -319,7 +317,7 @@ namespace MDR_Harvester
             identifier_org = _identifier_org;
         }
         
-        public StudyIdentifier(string _sd_sid, string? _identifier_value,
+        public StudyIdentifier(string? _sd_sid, string? _identifier_value,
             int? _identifier_type_id, string? _identifier_type,
             int? _identifier_org_id, string? _identifier_org,
             string? _identifier_date, string? _identifier_link)
@@ -350,7 +348,7 @@ namespace MDR_Harvester
 
         // used for a mesh coded topic (no qualifiers for study topic codes)
 
-        public StudyTopic(string _sd_sid, int? _topic_type_id, string?_topic_type,
+        public StudyTopic(string? _sd_sid, int? _topic_type_id, string?_topic_type,
                      bool? _mesh_coded, string? _mesh_code, string? _mesh_value)
         {
             sd_sid = _sd_sid;
@@ -366,7 +364,7 @@ namespace MDR_Harvester
 
         // non mesh coded topic - topic type and name only
 
-        public StudyTopic(string _sd_sid, int? _topic_type_id, 
+        public StudyTopic(string? _sd_sid, int? _topic_type_id, 
                           string? _topic_type, string? _topic_value)
         {
             sd_sid = _sd_sid;
@@ -379,7 +377,7 @@ namespace MDR_Harvester
 
         // non mesh coded topic - but coded using another system - comments also possible
 
-        public StudyTopic(string _sd_sid, int? _topic_type_id, string? _topic_type,
+        public StudyTopic(string? _sd_sid, int? _topic_type_id, string? _topic_type,
                           string? _topic_value, int? _original_ct_id, 
                           string? _original_ct_code)
         {
@@ -423,7 +421,7 @@ namespace MDR_Harvester
         public int? feature_value_id { get; set; }
         public string? feature_value { get; set; }
 
-        public StudyFeature(string _sd_sid, int? _feature_type_id, string? _feature_type, int? _feature_value_id, string? _feature_value)
+        public StudyFeature(string? _sd_sid, int? _feature_type_id, string? _feature_type, int? _feature_value_id, string? _feature_value)
         {
             sd_sid = _sd_sid;
             feature_type_id = _feature_type_id;

@@ -116,9 +116,9 @@ public class BioLinccProcessor : IStudyProcessor
                     // perhaps full month year - e.g. "December 2008..."
                     // Get first word
                     // Is it a month name? - if so, store the number 
-                    if (study_period.IndexOf(" ") != -1)
+                    if (study_period.IndexOf(" ", StringComparison.Ordinal) != -1)
                     {
-                        int spacepos = study_period.IndexOf(" ");
+                        int spacepos = study_period.IndexOf(" ", StringComparison.Ordinal);
                         string month_name = study_period[..spacepos];
                         if (Enum.TryParse<MonthsFull>(month_name, out MonthsFull month_enum))
                         {
@@ -149,7 +149,7 @@ public class BioLinccProcessor : IStudyProcessor
 
         // If there is a NCT ID (there usually is...).
         var registry_ids = r.registry_ids;
-        if (registry_ids?.Any() == true)
+        if (registry_ids?.Any() is true)
         {
             foreach (var rid in registry_ids)
             {
@@ -174,7 +174,7 @@ public class BioLinccProcessor : IStudyProcessor
         }
 
         var rel_studies = r.related_studies;
-        if (rel_studies?.Any() == true)
+        if (rel_studies?.Any() is true)
         {
             foreach (var relstudy in rel_studies)
             {
@@ -324,7 +324,7 @@ public class BioLinccProcessor : IStudyProcessor
         }
 
         var primary_docs = r.primary_docs;
-        if (primary_docs?.Any() == true)
+        if (primary_docs?.Any() is true)
         {
             foreach (var doc in primary_docs)
             {
@@ -371,7 +371,7 @@ public class BioLinccProcessor : IStudyProcessor
 
 
         var assoc_docs = r.assoc_docs;
-        if (assoc_docs?.Any() == true)
+        if (assoc_docs?.Any() is true)
         {
             foreach (var doc in assoc_docs)
             {

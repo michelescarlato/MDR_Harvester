@@ -347,7 +347,7 @@ internal class WhoHelpers
 
         else if (processed_id.StartsWith("HREC"))
         {
-            if (sponsor_is_org == true)
+            if (sponsor_is_org is true)
             {
                 return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", null, sponsor_name);
             }
@@ -363,7 +363,7 @@ internal class WhoHelpers
             // ??? change type and keep sponsor
             processed_id = processed_id.Replace("Human Research Ethics Committee (HREC):", "");
 
-            if (sponsor_is_org == true)
+            if (sponsor_is_org is true)
             {
                 return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", null, sponsor_name);
             }
@@ -396,7 +396,7 @@ internal class WhoHelpers
 
         else
         {
-            if (sponsor_is_org == true)
+            if (sponsor_is_org is true)
             {
                 return new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name);
             }
@@ -426,7 +426,7 @@ internal class WhoHelpers
             }
             else
             {
-                if (sponsor_is_org == true)
+                if (sponsor_is_org is true)
                 {
                     return new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name);
                 }
@@ -464,7 +464,7 @@ internal class WhoHelpers
         }
         else
         {
-            if (sponsor_is_org == true)
+            if (sponsor_is_org is true)
             {
                 return new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name);
             }

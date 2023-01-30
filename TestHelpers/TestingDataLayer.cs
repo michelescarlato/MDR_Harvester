@@ -5,10 +5,9 @@ namespace MDR_Harvester;
 
 public class TestingDataLayer : ITestingDataLayer
 {
-    ICredentials _credentials;
-    NpgsqlConnectionStringBuilder builder;
-    private string _db_conn;
-    LoggingHelper _loggingHelper;
+    private readonly ICredentials _credentials;
+    private readonly string _db_conn;
+    private readonly ILoggingHelper _loggingHelper;
 
     /// <summary>
     /// Constructor is used to build the connection string, 
@@ -16,24 +15,20 @@ public class TestingDataLayer : ITestingDataLayer
     /// from the app settings, themselves derived from a json file.
     /// </summary>
     /// 
-    public TestingDataLayer(ICredentials credentials)
+    public TestingDataLayer(ICredentials credentials, ILoggingHelper loggingHelper)
     {
-        builder = new NpgsqlConnectionStringBuilder();
+        NpgsqlConnectionStringBuilder builder = new();
 
         builder.Host = credentials.Host;
         builder.Username = credentials.Username;
         builder.Password = credentials.Password;
 
-        builder.Database = "test";
+        builder.Database = "test";  
         _db_conn = builder.ConnectionString;
 
         _credentials = credentials;
-
-        
+        _loggingHelper = loggingHelper;
     }
-
-    public Credentials Credentials => (Credentials)_credentials;
-
 
     public int EstablishExpectedData()
     {
@@ -85,7 +80,7 @@ public class TestingDataLayer : ITestingDataLayer
     {
         TransferSDDataBuilder tdb = new TransferSDDataBuilder(source);
 
-        if (source.has_study_tables == true)
+        if (source.has_study_tables is true)
         {
             tdb.DeleteExistingStudyData();
             tdb.TransferStudyData();  
@@ -97,7 +92,6 @@ public class TestingDataLayer : ITestingDataLayer
         _loggingHelper.LogLine("New object SD test data for source " + source.id + " added to CompSD");
     }
 
-
     public IEnumerable<int> ObtainTestSourceIDs()
     {
         string sql_string = @"select distinct source_id 
@@ -106,10 +100,8 @@ public class TestingDataLayer : ITestingDataLayer
                                  select distinct source_id 
                                  from expected.source_objects;";
 
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            return conn.Query<int>(sql_string);
-        }
+        using var conn = new NpgsqlConnection(_db_conn);
+        return conn.Query<int>(sql_string);
     }
 
 }

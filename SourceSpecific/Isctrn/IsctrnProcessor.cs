@@ -2,7 +2,6 @@
 using System.Text.Json;
 using MDR_Harvester.Extensions;
 using MDR_Harvester.Isctrn;
-using Microsoft.Extensions.FileProviders.Physical;
 
 namespace MDR_Harvester.Isrctn;
 
@@ -110,7 +109,7 @@ public class IsrctnProcessor : IStudyProcessor
                 {
                     hypothesis = "Study hypothesis: " + hypothesis;
                 }
-                s.brief_description = hypothesis ?? "";
+                s.brief_description = hypothesis;
             }
             if (poutcome != "" && !poutcome.ToLower().StartsWith("not provided"))
             {
@@ -223,7 +222,7 @@ public class IsrctnProcessor : IStudyProcessor
 
         var sponsors = r.sponsors;
         string? sponsor_name = null;    // For later use
-        if (sponsors?.Any() == true)
+        if (sponsors?.Any() is true)
         {
             foreach (var stSponsor in sponsors)
             {
@@ -234,14 +233,14 @@ public class IsrctnProcessor : IStudyProcessor
                     contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, orgname));
                 }
             }
-            if (contributors.Any() == true)
+            if (contributors.Any())
             {
                 sponsor_name = contributors[0].organisation_name;
             }
         }
 
         var funders = r.funders;
-        if (funders?.Any() == true)
+        if (funders?.Any() is true)
         {
             foreach (var funder in funders)
             {
@@ -252,7 +251,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                     bool add_funder = true;
                     funder_name = funder_name.TidyOrgName(sid);
-                    if (contributors!.Count > 0)
+                    if (contributors.Count > 0)
                     {
                         foreach (var c in contributors)
                         {
@@ -266,7 +265,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                     if (add_funder)
                     {
-                        contributors!.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
+                        contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
                     }
                 }
             }
@@ -275,20 +274,20 @@ public class IsrctnProcessor : IStudyProcessor
         // Individual contacts.
 
         var contacts = r.contacts;
-        if (contacts?.Any() == true)
+        if (contacts?.Any() is true)
         {
             foreach (var contact in contacts)
             {
                 string? cType = contact.contactType;
-                string? givenName = contact.forename.TidyPersonName();
-                string? familyName = contact.surname.TidyPersonName();
+                string givenName = contact.forename.TidyPersonName() ?? "";
+                string familyName = contact.surname.TidyPersonName() ?? "";
                 string? affil = contact.address;
                 string? orcid = contact.orcid.TidyORCIDId();
-                string full_name = (givenName ?? "" + " " + familyName ?? "").Trim();
+                string full_name = (givenName + " " + familyName).Trim();
 
-                int contrib_type_id;
-                string? contrib_type;
-                if (cType == "Scientific" || cType == "Principal Investigator")
+                int contrib_type_id = 0;
+                string? contrib_type = cType;
+                if (cType is "Scientific" or "Principal Investigator")
                 {
                     contrib_type_id = 51;
                     contrib_type = "Study Lead";
@@ -297,11 +296,6 @@ public class IsrctnProcessor : IStudyProcessor
                 {
                     contrib_type_id = 56;
                     contrib_type = "Public contact";
-                }
-                else
-                {
-                    contrib_type_id = 0;
-                    contrib_type = cType;
                 }
 
                 contributors?.Add(new StudyContributor(sid, contrib_type_id, contrib_type, givenName,
@@ -313,11 +307,11 @@ public class IsrctnProcessor : IStudyProcessor
         // Check if a group has been inserted as an individual,
         // or an individual has been inserted as a group.
 
-        if (contributors.Count > 0)
+        if (contributors?.Count > 0)
         {
             foreach (StudyContributor sc in contributors)
             {
-                if (sc.is_individual == true)
+                if (sc.is_individual is true)
                 {
                     if (sc.person_full_name.IsAnOrganisation())
                     {
@@ -346,7 +340,7 @@ public class IsrctnProcessor : IStudyProcessor
         identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", 100126, "ISRCTN", reg_date?.date_string, null));
 
         var idents = r.identifiers;
-        if (idents?.Any() == true)
+        if (idents?.Any() is true)
         {
             foreach (var ident in idents)
             {
@@ -774,7 +768,7 @@ public class IsrctnProcessor : IStudyProcessor
         // as part of the download process
 
         var country_list = r.recruitmentCountries;
-        if (country_list?.Any() == true)
+        if (country_list?.Any() is true)
         {
             foreach (string c in country_list)
             {
@@ -783,7 +777,7 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
         var locations = r.centres;
-        if (locations?.Any() == true)
+        if (locations?.Any() is true)
         {
             foreach (var loc in locations)
             {
@@ -803,7 +797,7 @@ public class IsrctnProcessor : IStudyProcessor
             s.data_sharing_statement = ipd_ss;
         }
         var data_policies = r.dataPolicies;
-        if (data_policies?.Any() == true)
+        if (data_policies?.Any() is true)
         {
             foreach (string policy in data_policies)
             {
@@ -869,8 +863,8 @@ public class IsrctnProcessor : IStudyProcessor
             if (PIS_details.Contains("<a href"))
             {
                 // PIS note includes an href to a web address
-                int ref_start = PIS_details.IndexOf("href=") + 6;
-                int ref_end = PIS_details.IndexOf("\"", ref_start + 1);
+                int ref_start = PIS_details.IndexOf("href=", StringComparison.Ordinal) + 6;
+                int ref_end = PIS_details.IndexOf("\"", ref_start + 1, StringComparison.Ordinal);
                 string href = PIS_details[ref_start..ref_end];
 
                 // first check link does not provide a 404 - to be re-implemented
@@ -929,7 +923,7 @@ public class IsrctnProcessor : IStudyProcessor
         // Local filers are often PIS, but may be result summaries and oher objects.
 
         var outputs = r.outputs;
-        if(outputs?.Any() == true)
+        if(outputs?.Any() is true)
         {
             foreach (var op in outputs)
             {
@@ -988,7 +982,8 @@ public class IsrctnProcessor : IStudyProcessor
 
                             if (external_url.Contains("list_uids="))
                             {
-                                string poss_pmid = external_url[(external_url.IndexOf("list_uids=") + 10)..];
+                                string poss_pmid = external_url[(external_url
+                                                   .IndexOf("list_uids=", StringComparison.Ordinal) + 10)..];
                                 if (int.TryParse(poss_pmid, out pmid))
                                 {
                                     pmid_found = true;
@@ -996,7 +991,8 @@ public class IsrctnProcessor : IStudyProcessor
                             }
                             else if (external_url.Contains("termtosearch="))
                             {
-                                string poss_pmid = external_url[(external_url.IndexOf("termtosearch=") + 13)..];
+                                string poss_pmid = external_url[(external_url
+                                                  .IndexOf("termtosearch=", StringComparison.Ordinal) + 13)..];
                                 if (int.TryParse(poss_pmid, out pmid))
                                 {
                                     pmid_found = true;
@@ -1004,7 +1000,8 @@ public class IsrctnProcessor : IStudyProcessor
                             }
                             else if (external_url.Contains("term="))
                             {
-                                string poss_pmid = external_url[(external_url.IndexOf("term=") + 5)..];
+                                string poss_pmid = external_url[(external_url
+                                                  .IndexOf("term=", StringComparison.Ordinal) + 5)..];
                                 if (int.TryParse(poss_pmid, out pmid))
                                 {
                                     pmid_found = true;
@@ -1013,10 +1010,14 @@ public class IsrctnProcessor : IStudyProcessor
                             else
                             {
                                 // 'just' /<pubmed_id> at the end ...
-                                string poss_pmid = external_url[(external_url.LastIndexOf("/") + 1)..];
-                                if (int.TryParse(poss_pmid, out pmid))
+                                int pubmed_pos = external_url.LastIndexOf("/", StringComparison.Ordinal);
+                                if (pubmed_pos != -1)
                                 {
-                                    pmid_found = true;
+                                    string poss_pmid = external_url[(pubmed_pos + 1)..];
+                                    if (int.TryParse(poss_pmid, out pmid))
+                                    {
+                                        pmid_found = true;
+                                    }
                                 }
                             }
 
@@ -1031,23 +1032,6 @@ public class IsrctnProcessor : IStudyProcessor
                         }
                         else
                         {
-                            // A reference to an unpublished article, or an
-                            // article in an non pubmed journmal, or a web-page
-                            // Add as a 'Web text' object.
-                            
-                            if (external_url.Contains("doi"))
-                            {
-                                string doi = "";
-                                if (external_url.IndexOf("doi.org/") != -1)
-                                {
-                                    doi = external_url[(external_url.IndexOf("doi.org/") + 8)..];
-                                }
-                                else if (external_url.IndexOf("/10.") != -1)
-                                {
-                                    doi = external_url[(external_url.IndexOf("/10.") + 1)..];
-                                }
-                            }
-
                             // Almost certainly an object / resource within a web page or as an
                             // unpublished web document. Create a data object record of this type,
                             // but ignore results records likely to be found in other sources.
@@ -1055,21 +1039,30 @@ public class IsrctnProcessor : IStudyProcessor
                             if (!external_url.Contains("www.clinicaltrialsregister.eu") &&
                                 !external_url.Contains("www.clinicaltrialsregister.eu"))
                             {
+                                // Use object type as name and add any version
+                                // to name if one present. Then construct 
+                                // display title and the sd_oid
+                                
                                 string object_name = object_type;
                                 if (!string.IsNullOrEmpty(op.version))
                                 {
-                                    object_name += op.version;
+                                    object_name += " " + op.version;
                                 }
 
                                 object_display_title = s.display_title + " :: " + object_name;
-                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_type;
+                                sd_oid = sid + " :: " + object_type_id + " :: " + object_type;
 
+                                // Check the sd_oid has not been created before, and add
+                                // a differentiating suffix if that is the case.
+                                
                                 int next_num = checkOID(sd_oid, data_objects);
                                 if (next_num > 0)
                                 {
                                     sd_oid += "_" + next_num.ToString();
                                     object_display_title += "_" + next_num.ToString();
                                 }
+                                
+                                // Get the date if possible, and get the doi if present.
 
                                 SplitDate? dt_created = null;
                                 if (!string.IsNullOrEmpty(op.dateCreated))
@@ -1078,22 +1071,20 @@ public class IsrctnProcessor : IStudyProcessor
                                 }
 
                                 DataObject d_obj = new(sd_oid, sid, object_type, object_display_title,
-                                    dt_created?.year,
-                                    object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN",
-                                    11,
-                                    download_datetime);
+                                    dt_created?.year, object_class_id, object_class, object_type_id, 
+                                    object_type, 100126, "ISRCTN", 11, download_datetime);
                                 d_obj.version = op.version;
                                 
                                 string doi = "";
                                 if (external_url.Contains("doi"))
                                 {
-                                    if (external_url.IndexOf("doi.org/") != -1)
+                                    if (external_url.IndexOf("doi.org/", StringComparison.Ordinal) != -1)
                                     {
-                                        doi = external_url[(external_url.IndexOf("doi.org/") + 8)..];
+                                        doi = external_url[(external_url.IndexOf("doi.org/", StringComparison.Ordinal) + 8)..];
                                     }
-                                    else if (external_url.IndexOf("/10.") != -1)
+                                    else if (external_url.IndexOf("/10.", StringComparison.Ordinal) != -1)
                                     {
-                                        doi = external_url[(external_url.IndexOf("/10.") + 1)..];
+                                        doi = external_url[(external_url.IndexOf("/10.", StringComparison.Ordinal) + 1)..];
                                     }
                                 }
 
@@ -1228,7 +1219,7 @@ public class IsrctnProcessor : IStudyProcessor
         {
             foreach (DataObject d_o in data_objects)
             {
-                if (d_o.sd_oid.StartsWith(sd_oid))
+                if (d_o.sd_oid!.StartsWith(sd_oid))
                 {
                     next_num++;
                 }
