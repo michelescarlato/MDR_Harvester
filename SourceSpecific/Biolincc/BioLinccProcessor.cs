@@ -1,5 +1,4 @@
 ﻿using MDR_Harvester.Extensions;
-using MDR_Harvester.Pubmed;
 using System.Text.Json;
 
 

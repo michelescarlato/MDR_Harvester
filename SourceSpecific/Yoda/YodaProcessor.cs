@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.Text.Json;
 
-
 namespace MDR_Harvester.Yoda; 
 
 public class YodaProcessor : IStudyProcessor

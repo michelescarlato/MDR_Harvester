@@ -41,6 +41,26 @@ internal static class PubMedHelpers
         return to_add;
     }
 
+    internal static bool IsAnOrganisation(this string? fullname)
+    {
+        if (string.IsNullOrEmpty(fullname))
+        {
+            return false;
+        }
+        else
+        {
+            bool is_org = false;
+            string fname = fullname.ToLower();
+            if (fname.Contains(" group") || fname.StartsWith("group") ||
+                fname.Contains(" assoc") || fname.Contains(" team") ||
+                fname.Contains("collab") || fname.Contains("network"))
+            {
+                is_org = true;
+            }
+
+            return is_org;
+        }
+    }
 
     internal static SplitDate? GetSplitDateFromNumericDate(int? year, int? month, int? day)
     {

@@ -1,7 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using MDR_Harvester.Extensions;
-
-namespace MDR_Harvester.Euctr;
+﻿namespace MDR_Harvester.Euctr;
 
 public static class EuctrExtensions
 {

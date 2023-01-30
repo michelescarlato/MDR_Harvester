@@ -1,25 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MDR_Harvester.Isrctn;
-
-public class AdditionalFile
-{
-    public string sd_sid { get; set; }
-    public string item_name { get; set; }
-    public string item_value { get; set; }
-
-    public AdditionalFile(string _sd_sid, string _item_name, string _item_value)
-    {
-        sd_sid = _sd_sid;
-        item_name = _item_name;
-        item_value = _item_value;
-    }
-}
-
+﻿namespace MDR_Harvester.Isrctn;
 
 public class ISCTRN_Record
 {

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MDR_Harvester.Yoda;
+﻿namespace MDR_Harvester.Yoda;
 
 public class Yoda_Record
 {

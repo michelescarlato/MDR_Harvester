@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MDR_Harvester.Who;
+﻿namespace MDR_Harvester.Who;
 
 public class Who_Record
 {

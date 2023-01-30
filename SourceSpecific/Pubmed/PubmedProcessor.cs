@@ -1,9 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Data;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using MDR_Harvester.Biolincc;
-using MDR_Harvester.Ctg;
+﻿using System.Text.Json;
 using MDR_Harvester.Extensions;
 
 namespace MDR_Harvester.Pubmed;

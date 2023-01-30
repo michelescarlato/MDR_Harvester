@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using System.Text.Json;
 using MDR_Harvester.Extensions;
-using MDR_Harvester.Isctrn;
 
 namespace MDR_Harvester.Isrctn;
 
