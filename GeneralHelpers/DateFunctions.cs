@@ -202,7 +202,7 @@ public static class DateStrinExtensions
             return null;
         }
         
-       // check format and possible alternative.
+        // check format and possible alternative.
 
         if (Regex.Match(dateString, @"^\d{8}$").Success)
         {

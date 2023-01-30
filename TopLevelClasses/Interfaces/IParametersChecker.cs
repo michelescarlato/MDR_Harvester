@@ -1,10 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿namespace MDR_Harvester;
 
-namespace MDR_Harvester
+internal interface IParameterChecker
 {
-    internal interface IParameterChecker
-    {
-        Options ObtainParsedArguments(string[] args);
-        bool ValidArgumentValues(Options opts);
-    }
+    Options ObtainParsedArguments(string[] args);
+    bool ValidArgumentValues(Options opts);
 }

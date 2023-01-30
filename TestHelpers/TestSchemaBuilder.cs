@@ -1,7 +1,6 @@
 ﻿using Dapper;
 using Npgsql;
 
-
 namespace MDR_Harvester;
 
 public class TestSchemaBuilder
@@ -13,15 +12,13 @@ public class TestSchemaBuilder
         _db_conn = db_conn;
     }
 
-
-    public void Execute_SQL(string sql_string)
+    private void Execute_SQL(string sql_string)
     {
         using (var conn = new NpgsqlConnection(_db_conn))
         {
             conn.Execute(sql_string);
         }
     }
-
 
     public void SetUpMonSchema()
     {
@@ -129,21 +126,16 @@ public class TestSchemaBuilder
 
     public void TearDownForeignSchema()
     {
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            string sql_string = @"DROP USER MAPPING IF EXISTS FOR CURRENT_USER
+        using var conn = new NpgsqlConnection(_db_conn);
+        string sql_string = @"DROP USER MAPPING IF EXISTS FOR CURRENT_USER
                      SERVER mon;";
-            conn.Execute(sql_string);
+        conn.Execute(sql_string);
 
-            sql_string = @"DROP SERVER IF EXISTS mon CASCADE;";
-            conn.Execute(sql_string);
+        sql_string = @"DROP SERVER IF EXISTS mon CASCADE;";
+        conn.Execute(sql_string);
 
-            sql_string = @"DROP SCHEMA IF EXISTS mon_sf cascade;";
-            conn.Execute(sql_string);
-
-
-        }
-
+        sql_string = @"DROP SCHEMA IF EXISTS mon_sf cascade;";
+        conn.Execute(sql_string);
     }
 }
 

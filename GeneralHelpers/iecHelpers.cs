@@ -1,8 +1,6 @@
 ﻿using System.Text.RegularExpressions;
-using MDR_Harvester.Extensions;
 
-namespace MDR_Harvester;
-
+namespace MDR_Harvester.Extensions;
 
 public class IECHelpers
 {

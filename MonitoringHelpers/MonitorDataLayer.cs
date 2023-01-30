@@ -1,11 +1,6 @@
 ﻿using Dapper;
 using Dapper.Contrib.Extensions;
-using Microsoft.Extensions.Configuration;
 using Npgsql;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 
 namespace MDR_Harvester;
 
@@ -17,13 +12,9 @@ public class MonDataLayer : IMonDataLayer
     private readonly string connString;
     private readonly string context_connString;
     
-
-    /// <summary>
-    /// Constructor is used to build the connection string, 
-    /// using a credentials object that has the relevant credentials 
-    /// from the app settings, themselves derived from a json file.
-    /// </summary>
-    /// 
+    // Constructor is used to build the connection string, 
+    // using a credentials object that has the relevant credentials 
+    // from the app settings, themselves derived from a json file.
 
     public MonDataLayer(ILoggingHelper logging_helper, ICredentials credentials)
     {

@@ -133,6 +133,5 @@ class TransferSDDataBuilder
         using var conn = new NpgsqlConnection(_db_conn);
         return conn.Execute(sql_string);
     }
-
 }
 

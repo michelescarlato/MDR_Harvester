@@ -1,9 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿
+namespace MDR_Harvester;
 
-namespace MDR_Harvester
+interface IHarvester
 {
-    interface IHarvester
-    {
-        int Run(Options opts);
-    }
+    int Run(Options opts);
 }

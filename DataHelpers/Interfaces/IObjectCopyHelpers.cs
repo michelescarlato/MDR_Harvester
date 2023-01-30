@@ -17,6 +17,4 @@ public interface IObjectCopyHelpers
     public PostgreSQLCopyHelper<ObjectTopic> objectTopicsHelper { get; }
     public PostgreSQLCopyHelper<ObjectRight> objectRightsHelper { get; }
     public PostgreSQLCopyHelper<ObjectRelationship> objectRelationshipsHelper { get; }
-    
-    
 }

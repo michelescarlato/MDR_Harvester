@@ -2,7 +2,6 @@
 using Dapper;
 using Npgsql;
 
-
 namespace MDR_Harvester;
 
 public class LoggingHelper : ILoggingHelper

@@ -1,11 +1,7 @@
-﻿using PostgreSQLCopyHelper;
-using System.Collections.Generic;
+﻿namespace MDR_Harvester;
 
-namespace MDR_Harvester
+public interface IStorageDataLayer
 {
-    public interface IStorageDataLayer
-    {
-        void StoreFullStudy(Study s, Source source);
-        void StoreFullObject(FullDataObject b, Source source);
-    }
+    void StoreFullStudy(Study s, Source source);
+    void StoreFullObject(FullDataObject b, Source source);
 }

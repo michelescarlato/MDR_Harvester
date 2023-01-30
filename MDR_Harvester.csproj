@@ -12,6 +12,8 @@
     <Compile Remove="MonitoringHelpers\LoggerHelper.cs" />
     <Compile Remove="GeneralHelpers\IdentifierFunctions.cs" />
     <Compile Remove="MonitoringHelpers\Interfaces\ISource.cs" />
+    <Compile Remove="GeneralHelpers\MD5Functions.cs" />
+    <Compile Remove="GeneralHelpers\HtmlFunctions.cs" />
   </ItemGroup>
 
   <ItemGroup>
