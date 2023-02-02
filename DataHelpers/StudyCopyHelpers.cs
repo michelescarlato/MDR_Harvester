@@ -51,29 +51,25 @@ public class StudyCopyHelpers : IStudyCopyHelpers
         .MapVarchar("icd_code", x => x.icd_code)
         .MapVarchar("icd_name", x => x.icd_name);
 
-    public PostgreSQLCopyHelper<StudyIEC> studyIECHelper { get; } = 
-        new PostgreSQLCopyHelper<StudyIEC>("sd", "study_iec")
-        .MapVarchar("sd_sid", x => x.sd_sid)
-        .MapInteger("seq_num", x => x.seq_num)
-        .MapVarchar("leader", x => x.leader)
-        .MapInteger("indent_level", x => x.indent_level)
-        .MapInteger("level_seq_num", x => x.level_seq_num)
-        .MapInteger("iec_type_id", x => x.iec_type_id)
-        .MapVarchar("iec_type", x => x.iec_type)
-        .MapVarchar("iec_text", x => x.iec_text);
-
-    public PostgreSQLCopyHelper<StudyContributor> studyContributorsHelper { get; } = 
-        new PostgreSQLCopyHelper<StudyContributor>("sd", "study_contributors")
+    public PostgreSQLCopyHelper<StudyPerson> studyPeopleHelper { get; } = 
+        new PostgreSQLCopyHelper<StudyPerson>("sd", "study_people")
         .MapVarchar("sd_sid", x => x.sd_sid)
         .MapInteger("contrib_type_id", x => x.contrib_type_id)
         .MapVarchar("contrib_type", x => x.contrib_type)
-        .MapBoolean("is_individual", x => x.is_individual)
-        .MapInteger("person_id", x => x.person_id)
         .MapVarchar("person_given_name", x => x.person_given_name)
         .MapVarchar("person_family_name", x => x.person_family_name)
         .MapVarchar("person_full_name", x => x.person_full_name)
         .MapVarchar("orcid_id", x => x.orcid_id)
         .MapVarchar("person_affiliation", x => x.person_affiliation)
+        .MapInteger("organisation_id", x => x.organisation_id)
+        .MapVarchar("organisation_name", x => x.organisation_name)
+        .MapVarchar("organisation_ror_id", x => x.organisation_ror_id);
+    
+    public PostgreSQLCopyHelper<StudyOrganisation> studyOrganisationsHelper { get; } = 
+        new PostgreSQLCopyHelper<StudyOrganisation>("sd", "study_organisations")
+        .MapVarchar("sd_sid", x => x.sd_sid)
+        .MapInteger("contrib_type_id", x => x.contrib_type_id)
+        .MapVarchar("contrib_type", x => x.contrib_type)
         .MapInteger("organisation_id", x => x.organisation_id)
         .MapVarchar("organisation_name", x => x.organisation_name)
         .MapVarchar("organisation_ror_id", x => x.organisation_ror_id);

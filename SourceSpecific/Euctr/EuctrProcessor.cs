@@ -2,7 +2,6 @@
 using System.Text.Json;
 using MDR_Harvester.Extensions;
 
-
 namespace MDR_Harvester.Euctr;
 
 public class EUCTRProcessor : IStudyProcessor
@@ -30,7 +29,8 @@ public class EUCTRProcessor : IStudyProcessor
 
         List<StudyIdentifier> identifiers = new();
         List<StudyTitle> titles = new();
-        List<StudyContributor> contributors = new();
+        List<StudyOrganisation> organisations = new();
+        List<StudyPerson> people = new();
         List<StudyTopic> topics = new();
         List<StudyFeature> features = new();
         List<StudyCountry> countries = new();
@@ -56,7 +56,7 @@ public class EUCTRProcessor : IStudyProcessor
         s.sd_sid = sid;
         s.datetime_of_data_fetch = download_datetime;
 
-        // By defintion with the EU CTR. all studies
+        // By definition with the EU CTR. all studies
         // are interventional trials. Status must be
         // derived.
 
@@ -102,11 +102,11 @@ public class EUCTRProcessor : IStudyProcessor
             if (!string.IsNullOrEmpty(lc_sponsor) && lc_sponsor.Length > 1
                                                   && lc_sponsor != "dr" && lc_sponsor != "no profit")
             {
-                contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, sponsor_name));
+                organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, sponsor_name));
             }
         }
 
-        // may get funders or other supporting orgs.
+        // may get funders or other supporting organisations.
 
         var sponsors = r.sponsors;
         if (sponsors?.Any() is true)
@@ -131,7 +131,7 @@ public class EUCTRProcessor : IStudyProcessor
                                 if (!string.IsNullOrEmpty(lc_funder) && lc_funder.Length > 1
                                                                      && lc_funder != "dr" && lc_funder != "no profit")
                                 {
-                                    contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder));
+                                    organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder));
                                 }
                             }
                         }
@@ -365,12 +365,12 @@ public class EUCTRProcessor : IStudyProcessor
             // No public title has been stored, so
             // use the registry title - should always be one.
 
-            for (int k = 0; k < titles.Count; k++)
+            foreach (var t in titles)
             {
-                if (titles[k].title_type_id == 16)
+                if (t.title_type_id == 16)
                 {
-                    titles[k].is_default = true;
-                    s.display_title = titles[k].title_text;
+                    t.is_default = true;
+                    s.display_title = t.title_text;
                     display_title_exists = true;
                     break;
                 }
@@ -381,12 +381,12 @@ public class EUCTRProcessor : IStudyProcessor
         {
             // Unlikely, but just in case - use an acronym.
 
-            for (int k = 0; k < titles.Count; k++)
+            foreach (var t in titles)
             {
-                if (titles[k].title_type_id == 14)
+                if (t.title_type_id == 14)
                 {
-                    titles[k].is_default = true;
-                    s.display_title = titles[k].title_text;
+                    t.is_default = true;
+                    s.display_title = t.title_text;
                     display_title_exists = true;
                     break;
                 }
@@ -620,11 +620,11 @@ public class EUCTRProcessor : IStudyProcessor
                 { "includes_men", false },
             };
 
-            foreach (var dline in population)
+            foreach (var d_line in population)
             {
                 // Each line indicates which of the age / gender groups should be set as true.
 
-                string? item_code = dline.item_code;
+                string? item_code = d_line.item_code;
                 string group_type = item_code switch
                 {
                     "F.1.1" => "includes_under18",
@@ -702,16 +702,16 @@ public class EUCTRProcessor : IStudyProcessor
             else
             {
                 // Some under 18s included
-                // First identify the situation where unbder-18s, adults and elderly are all included
-                // corresponds to no age restictions
+                // First identify the situation where under-18s, adults and elderly are all included
+                // corresponds to no age restrictions
 
                 if (pgroups["includes_under18"] && pgroups["includes_adults"] && pgroups["includes_elderly"])
                 {
-                    // Leave minb and max ages blank
+                    // Leave min and max ages blank
                 }
                 else
                 {
-                    // First try and obtain a minimiuum age.
+                    // First try and obtain a minimum age.
                     // Start with the youngest included and work up.
 
                     if (pgroups["includes_in_utero"] || pgroups["includes_preterm"] || pgroups["includes_newborns"])
@@ -739,7 +739,7 @@ public class EUCTRProcessor : IStudyProcessor
                         s.min_age_units_id = 17;
                     }
 
-                    // Then try and obtain a maximiuum age.
+                    // Then try and obtain a maximum age.
                     // Start with the oldest included and work down.
 
                     if (pgroups["includes_adults"])
@@ -823,8 +823,8 @@ public class EUCTRProcessor : IStudyProcessor
                                 string? topic_name = values[0].value;
                                 string? name = topic_name?.ToLower();
                                 if (!string.IsNullOrEmpty(name) && name != "not available"
-                                                                && name != "n/a" && name != "na" &&
-                                                                name != "not yet extablished")
+                                     && name != "n/a" && name != "na" &&
+                                     name != "not yet established" && name != "not yet extablished")
                                 {
                                     imp.trade_name = topic_name!.Replace(((char)174).ToString(), ""); // drop reg mark
                                 }
@@ -841,8 +841,8 @@ public class EUCTRProcessor : IStudyProcessor
                                 string? topic_name = values[0].value;
                                 string? name = topic_name?.ToLower();
                                 if (!string.IsNullOrEmpty(name) && name != "not available"
-                                                                && name != "n/a" && name != "na" &&
-                                                                name != "not yet extablished")
+                                     && name != "n/a" && name != "na" &&
+                                     name != "not yet established" && name != "not yet extablished")
                                 {
                                     imp.product_name = topic_name!.Replace(((char)174).ToString(), ""); // drop reg mark
                                 }
@@ -859,8 +859,8 @@ public class EUCTRProcessor : IStudyProcessor
                                 string? topic_name = values[0].value;
                                 string? name = topic_name?.ToLower();
                                 if (!string.IsNullOrEmpty(name) && name != "not available"
-                                                                && name != "n/a" && name != "na" &&
-                                                                name != "not yet extablished")
+                                     && name != "n/a" && name != "na" &&
+                                     name != "not yet established" && name != "not yet extablished")
                                 {
                                     imp.inn = topic_name!;
                                 }
@@ -1131,21 +1131,30 @@ public class EUCTRProcessor : IStudyProcessor
         }
 
 
-        // edit contributors - try to ensure properly categorised
-
-        if (contributors.Count > 0)
+        // Eit contributors - try to ensure properly categorised.
+        // All contributors originally down as organisations
+        // Try and see if some are actually people
+        
+        List<StudyOrganisation> orgs2 = new();
+        if (organisations.Count > 0)
         {
-            foreach (StudyContributor sc in contributors)
-            {
-                // all contributors originally down as organisations
-                // try and see if some are actually people
-
-                string? orgname = sc.organisation_name?.ToLower();
-                if (orgname is not null && orgname.CheckIfIndividual())
+            foreach (StudyOrganisation g in organisations)
+            { 
+                bool add = true;
+                string? orgname = g.organisation_name?.ToLower();
+                if (orgname is not null && orgname.IsAnIndividual())
                 {
-                    sc.person_full_name = sc.organisation_name.TidyPersonName();
-                    sc.organisation_name = null;
-                    sc.is_individual = true;
+                    string? person_full_name = g.organisation_name.TidyPersonName();
+                    if (person_full_name is not null)
+                    {
+                        people.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
+                            null, null, g.organisation_name));
+                        add = false;
+                    }
+                }
+                if (add)
+                {
+                    orgs2.Add(g);
                 }
             }
         }
@@ -1155,7 +1164,8 @@ public class EUCTRProcessor : IStudyProcessor
 
         s.identifiers = identifiers;
         s.titles = titles;
-        s.contributors = contributors;
+        s.organisations = orgs2;
+        s.people = people;
         s.topics = topics;
         s.features = features;
         s.countries = countries;

@@ -263,7 +263,7 @@ internal class CTGHelpers
     }
 }
 
-internal static class IsrctnExtensions
+internal static class CtgExtensions
 {
     internal static bool IsAnIndividual(this string? orgname)
     {

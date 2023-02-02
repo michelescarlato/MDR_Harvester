@@ -8,7 +8,8 @@ public interface IObjectCopyHelpers
     public PostgreSQLCopyHelper<ObjectTitle> objectTitlesHelper { get; }
     public PostgreSQLCopyHelper<ObjectInstance> objectInstancesHelper { get; }
     public PostgreSQLCopyHelper<ObjectDate> objectDatesHelper { get; }
-    public PostgreSQLCopyHelper<ObjectContributor> objectContributorsHelper { get; }
+    public PostgreSQLCopyHelper<ObjectOrganisation> objectOrganisationsHelper { get; }
+    public PostgreSQLCopyHelper<ObjectPerson> objectPeopleHelper { get; }
     public PostgreSQLCopyHelper<ObjectIdentifier>objectIdentifiersHelper { get; }
     public PostgreSQLCopyHelper<ObjectDescription> objectDescriptionsHelper { get; }
     public PostgreSQLCopyHelper<ObjectDBLink> objectDbLinksHelper { get; }

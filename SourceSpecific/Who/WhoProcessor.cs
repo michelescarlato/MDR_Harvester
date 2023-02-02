@@ -29,10 +29,11 @@ public class WHOProcessor : IStudyProcessor
         // get date retrieved in object fetch
         // transfer to study and data object records
 
-        List<StudyIdentifier> study_identifiers = new();
-        List<StudyTitle> study_titles = new();
-        List<StudyFeature> study_features = new();
-        List<StudyContributor> study_contributors = new();
+        List<StudyIdentifier> identifiers = new();
+        List<StudyTitle> titles = new();
+        List<StudyFeature> features = new();
+        List<StudyOrganisation> organisations = new();
+        List<StudyPerson> people = new();
         List<StudyCountry> countries = new();
         List<StudyCondition> conditions = new();
         List<StudyIEC> iec = new();
@@ -67,7 +68,7 @@ public class WHOProcessor : IStudyProcessor
             registration_date = r.date_registration.GetDatePartsFromISOString();
         }
 
-        study_identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", source_id,
+        identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", source_id,
                                     source_name, registration_date?.date_string, null));
 
         // Obtain piublic and scientific titles. In some cases these are acronyms.
@@ -94,7 +95,7 @@ public class WHOProcessor : IStudyProcessor
 
             if (scientific_title_present)
             {
-                study_titles.Add(scientific_title!.Length < 11
+                titles.Add(scientific_title!.Length < 11
                     ? new StudyTitle(sid, scientific_title, 14, "Acronym or Abbreviation", true, source_string)
                     : new StudyTitle(sid, scientific_title, 16, "Registry scientific title", true, source_string));
 
@@ -109,14 +110,14 @@ public class WHOProcessor : IStudyProcessor
         {
             // Public title available 
 
-            study_titles.Add(public_title!.Length < 11
+            titles.Add(public_title!.Length < 11
                 ? new StudyTitle(sid, public_title, 14, "Acronym or Abbreviation", true, source_string)
                 : new StudyTitle(sid, public_title, 15, "Registry public title", true, source_string));
 
             if (scientific_title_present && 
                     !String.Equals(scientific_title!, public_title, StringComparison.CurrentCultureIgnoreCase))
             {
-                study_titles.Add(new StudyTitle(sid, scientific_title, 16, "Registry scientific title", false, source_string));
+                titles.Add(new StudyTitle(sid, scientific_title, 16, "Registry scientific title", false, source_string));
             }
 
             s.display_title = public_title;
@@ -357,12 +358,12 @@ public class WHOProcessor : IStudyProcessor
                   || sponsor_name.ToLower().StartsWith("professor ")))
                 {
                     sponsor_is_org = false;
-                    study_contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", sponsor_name, null, null));
+                    people.Add(new StudyPerson(sid, 54, "Trial Sponsor",null, null, sponsor_name, null, null));
                 }
                 else
                 {
                     sponsor_is_org = true;
-                    study_contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, sponsor_name));
+                    organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, sponsor_name));
                 }
             }
         }
@@ -394,7 +395,7 @@ public class WHOProcessor : IStudyProcessor
                         }
                         else
                         {
-                            study_contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
+                            organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
                         }
                     }
                 }
@@ -421,7 +422,7 @@ public class WHOProcessor : IStudyProcessor
                 {
                     s_affiliation = s_affiliation.TidyOrgName(sid);
                     string? affil_org = s_affiliation?.ExtractOrganisation(sid);
-                    study_contributors.Add(new StudyContributor(sid, 51, "Study Lead", full_name, s_affiliation, affil_org));
+                    people.Add(new StudyPerson(sid, 51, "Study Lead", full_name, s_affiliation, null, affil_org));
                 }
             }
         }
@@ -442,7 +443,7 @@ public class WHOProcessor : IStudyProcessor
                     {
                         p_affiliation = p_affiliation.TidyOrgName(sid);
                         string? affil_org = p_affiliation?.ExtractOrganisation(sid);
-                        study_contributors.Add(new StudyContributor(sid, 56, "Public Contact", full_name, p_affiliation, affil_org));
+                        people.Add(new StudyPerson(sid, 56, "Public Contact", full_name, p_affiliation, null, affil_org));
                     }
                 }
             }
@@ -460,7 +461,7 @@ public class WHOProcessor : IStudyProcessor
                 string? ftype = f.ftype;
                 int? fvalue_id = f.fvalue_id;
                 string? fvalue = f.fvalue;
-                study_features.Add(new StudyFeature(sid, ftype_id, ftype, fvalue_id, fvalue));
+                features.Add(new StudyFeature(sid, ftype_id, ftype, fvalue_id, fvalue));
             }
         }
 
@@ -479,16 +480,16 @@ public class WHOProcessor : IStudyProcessor
                 {
                     if (sec_id_source == 102000)
                     {
-                        study_identifiers.Add(new StudyIdentifier(sid, processed_id, 41, "Regulatory Body ID", 102000, "Anvisa (Brazil)"));
+                        identifiers.Add(new StudyIdentifier(sid, processed_id, 41, "Regulatory Body ID", 102000, "Anvisa (Brazil)"));
                     }
                     else if (sec_id_source == 102001)
                     {
-                        study_identifiers.Add(new StudyIdentifier(sid, processed_id, 12, "Ethics Review ID", 102001, "Comitê de Ética em Pesquisa (local) (Brazil)"));
+                        identifiers.Add(new StudyIdentifier(sid, processed_id, 12, "Ethics Review ID", 102001, "Comitê de Ética em Pesquisa (local) (Brazil)"));
                     }
                     else
                     {
                         source_name = wh.GetSourceName(sec_id_source);
-                        study_identifiers.Add(new StudyIdentifier(sid, processed_id, 11, "Trial Registry ID", sec_id_source, source_name));
+                        identifiers.Add(new StudyIdentifier(sid, processed_id, 11, "Trial Registry ID", sec_id_source, source_name));
                     }
                 }
 
@@ -499,33 +500,34 @@ public class WHOProcessor : IStudyProcessor
                         || sponsor_name_lower == "none" || sponsor_name_lower == "not available"
                         || sponsor_name_lower == "no sponsor" || sponsor_name == "-" || sponsor_name == "--")
                     {
-                        study_identifiers.Add(new StudyIdentifier(sid, processed_id, 1, "Type not provided", 12, "No organisation name provided in source data"));
+                        identifiers.Add(new StudyIdentifier(sid, processed_id, 1, "Type not provided", 12, "No organisation name provided in source data"));
                     }
                     else if (source_id == 100116)
                     {
-                        study_identifiers.Add(wh.GetANZIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
+                        identifiers.Add(wh.GetANZIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
                     }
                     else if (source_id == 100118)
                     {
                         StudyIdentifier? si = wh.GetChineseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name);
                         if (si is not null)
                         {
-                            study_identifiers.Add(si);
+                            identifiers.Add(si);
                         }
                     }
                     else if (source_id == 100127)
                     {
-                        study_identifiers.Add(wh.GetJapaneseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
+                        identifiers.Add(wh.GetJapaneseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
                     }
                     else
                     {
                         if (sponsor_is_org is true)
                         {
-                            study_identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name));
+                            identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name));
                         }
                         else
                         {
-                            study_identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, "No organisation name provided in source data"));
+                            identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, 
+                                             "No organisation name provided in source data"));
                         }
                     }
                 }
@@ -830,53 +832,64 @@ public class WHOProcessor : IStudyProcessor
 
 
         // Edit contributors - try to ensure properly categorised
-             
-        if (study_contributors.Count > 0)
+        // check if a group inserted as an individual, and then
+        // check if an individual added as a group.
+        
+        List<StudyPerson> people2 = new();
+        if (people.Count > 0)
         {
-            foreach (StudyContributor sc in study_contributors)
+            bool add = true;
+            foreach (StudyPerson p in people)
             {
-                if (sc.is_individual is not null)
+                string? full_name = p.person_full_name?.ToLower();
+                if (full_name is not null && full_name.IsAnOrganisation())
                 {
-                    if ((bool)sc.is_individual)
+                    string? organisation_name = p.person_full_name.TidyOrgName(sid);
+                    if (organisation_name is not null)
                     {
-                        // check if a group inserted as an individual.
-
-                        string? fullname = sc.person_full_name?.ToLower();
-                        if (fullname is not null)
-                        {
-                            if (wh.CheckIfOrganisation(fullname))
-                            {
-                                sc.organisation_name = sc.person_full_name.TidyOrgName(sid);
-                                sc.person_full_name = null;
-                                sc.is_individual = false;
-                            }
-                        }
+                        organisations.Add(new StudyOrganisation(sid, p.contrib_type_id, p.contrib_type,
+                            null, organisation_name));
+                        add = false;
                     }
-                    else
+                }
+                if (add)
+                {
+                    people2.Add(p);
+                }
+            }
+        }
+        
+        List<StudyOrganisation> orgs2 = new();
+        if (organisations.Count > 0)
+        {
+            foreach (StudyOrganisation g in organisations)
+            {
+                bool add = true;
+                string? orgname = g.organisation_name?.ToLower();
+                if (orgname is not null && orgname.IsAnIndividual())
+                {
+                    string? person_full_name = g.organisation_name.TidyPersonName();
+                    if (person_full_name is not null)
                     {
-                        // identify individuals down as organisations.
-
-                        string? orgname = sc.organisation_name?.ToLower();
-                        if (orgname is not null)
-                        {
-                            if (wh.CheckIfIndividual(orgname))
-                            {
-                                sc.person_full_name = sc.organisation_name.TidyPersonName();
-                                sc.organisation_name = null;
-                                sc.is_individual = true;
-                            }
-                        }
+                        people2.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
+                            null, null, g.organisation_name));
+                        add = false;
                     }
+                }
+                if (add)
+                {
+                    orgs2.Add(g);
                 }
             }
         }
 
 
         // add in the study properties
-        s.identifiers = study_identifiers;
-        s.titles = study_titles;
-        s.features = study_features;
-        s.contributors = study_contributors;
+        s.identifiers = identifiers;
+        s.titles = titles;
+        s.features = features;
+        s.people = people2;
+        s.organisations = orgs2;
         s.countries = countries;
         s.conditions = conditions;
         s.iec = iec;

@@ -99,10 +99,10 @@ class Harvester
 
             // Construct the harvest_event record.
 
-            int source_id = source.id ?? 0;
+            int source_id = source.id;
             int harvest_id = _monDataLayer.GetNextHarvestEventId();
             HarvestEvent harvest = new(harvest_id, source_id, opts.harvest_type_id);
-            _loggingHelper.LogLine("Harvest event " + harvest_id.ToString() + " began");
+            _loggingHelper.LogLine("Harvest event " + harvest_id + " began");
 
             // Harvest the data from the local JSON files.
 

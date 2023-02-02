@@ -32,7 +32,8 @@ public class Study
 
     public List<StudyIdentifier>? identifiers { get; set; }
     public List<StudyTitle>? titles { get; set; }
-    public List<StudyContributor>? contributors { get; set; }
+    public List<StudyPerson>? people { get; set; }
+    public List<StudyOrganisation>? organisations { get; set; }
     public List<StudyReference>? references { get; set; }
     public List<StudyTopic>? topics { get; set; }
     public List<StudyFeature>? features { get; set; }
@@ -157,13 +158,11 @@ public class StudyTitle
 }
 
 
-public class StudyContributor
+public class StudyPerson
 {
     public string? sd_sid { get; set; }
     public int? contrib_type_id { get; set; }
     public string? contrib_type { get; set; }
-    public bool? is_individual { get; set; }
-    public int? person_id { get; set; }
     public string? person_given_name { get; set; }
     public string? person_family_name { get; set; }
     public string? person_full_name { get; set; }
@@ -173,67 +172,73 @@ public class StudyContributor
     public string? organisation_name { get; set; }
     public string? organisation_ror_id { get; set; }
 
-
-    
-
-    public StudyContributor(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
-                            int? _organisation_id, string? _organisation_name, string? _person_full_name,
-                            string? _person_affiliation)
-    {
-        sd_sid = _sd_sid;
-        contrib_type_id = _contrib_type_id;
-        contrib_type = _contrib_type;
-        is_individual = (_person_full_name != null);
-        organisation_id = _organisation_id;
-        organisation_name = _organisation_name;
-        person_full_name = _person_full_name;
-        person_affiliation = _person_affiliation;
-    }
-
-    // adding personal contributor, usually from CTG
-    
-    public StudyContributor(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
-                            string? _person_full_name,
-                            string? _person_affiliation, string? _affil_organisation_name)
-    {
-        sd_sid = _sd_sid;
-        contrib_type_id = _contrib_type_id;
-        contrib_type = _contrib_type;
-        is_individual = true;
-        person_full_name = _person_full_name;
-        person_affiliation = _person_affiliation;
-        organisation_name = _affil_organisation_name;
-    }
-
-    // adding organisational contributor
-    
-    public StudyContributor(string?_sd_sid, int? _contrib_type_id, string? _contrib_type,
+    public StudyPerson(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
+                            string? _person_full_name, string? _person_affiliation,
                             int? _organisation_id, string? _organisation_name)
     {
         sd_sid = _sd_sid;
         contrib_type_id = _contrib_type_id;
         contrib_type = _contrib_type;
-        is_individual = false;
+        person_full_name = _person_full_name;
+        person_affiliation = _person_affiliation;
         organisation_id = _organisation_id;
         organisation_name = _organisation_name;
     }
 
+    /*
+    // adding personal contributor, usually from CTG
+    
+    public StudyPerson(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
+                            string? _person_full_name, string? _person_affiliation, 
+                            string? _affil_organisation_name)
+    {
+        sd_sid = _sd_sid;
+        contrib_type_id = _contrib_type_id;
+        contrib_type = _contrib_type;
+        person_full_name = _person_full_name;
+        person_affiliation = _person_affiliation;
+        organisation_name = _affil_organisation_name;
+    }
+    */
+
     // adding contact from ISRCTN
 
-    public StudyContributor(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
+    public StudyPerson(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
                             string? _person_given_name, string? _person_family_name,
                             string? _person_full_name, string? _orcid_id, string? _person_affiliation)
     {
         sd_sid = _sd_sid;
         contrib_type_id = _contrib_type_id;
         contrib_type = _contrib_type;
-        is_individual = true;
         person_given_name = _person_given_name;
         person_family_name = _person_family_name;
         person_full_name = _person_full_name;
         orcid_id = _orcid_id;
         person_affiliation = _person_affiliation;
         
+    }
+
+}
+
+public class StudyOrganisation
+{
+    public string? sd_sid { get; set; }
+    public int? contrib_type_id { get; set; }
+    public string? contrib_type { get; set; }
+    public int? organisation_id { get; set; }
+    public string? organisation_name { get; set; }
+    public string? organisation_ror_id { get; set; }
+  
+    // adding organisational contributor
+    
+    public StudyOrganisation(string?_sd_sid, int? _contrib_type_id, string? _contrib_type,
+                            int? _organisation_id, string? _organisation_name)
+    {
+        sd_sid = _sd_sid;
+        contrib_type_id = _contrib_type_id;
+        contrib_type = _contrib_type;
+        organisation_id = _organisation_id;
+        organisation_name = _organisation_name;
     }
 
 }

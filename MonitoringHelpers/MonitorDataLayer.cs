@@ -28,7 +28,7 @@ public class MonDataLayer : IMonDataLayer
         string sql_string = $"Select id from sf.source_parameters where id = {source_id}";
         using NpgsqlConnection Conn = new(connString);
         int res = Conn.QueryFirstOrDefault<int>(sql_string);
-        return (res == 0) ? false : true;
+        return (res != 0);
     }
      
 
@@ -95,7 +95,6 @@ public class MonDataLayer : IMonDataLayer
         {
             sql_string += " and for_testing = true";
         }
-
         using NpgsqlConnection Conn = new(connString);
         return Conn.ExecuteScalar<int>(sql_string);
     }

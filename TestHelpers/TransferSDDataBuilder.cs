@@ -12,12 +12,8 @@ class TransferSDDataBuilder
     public TransferSDDataBuilder(Source source)
     {
         _source = source;
-        if (source.id.HasValue)
-        {
-            // as it always should have..
-            _source_id = (int)source.id!;           
-            _db_conn = source.db_conn ?? "";
-        }
+        _source_id = (int)source.id!;           
+        _db_conn = source.db_conn ?? "";
     }
 
 
@@ -34,7 +30,8 @@ class TransferSDDataBuilder
 
             if (_source.has_study_topics is true) DeleteData(_source_id, "study_topics");
             if (_source.has_study_features is true) DeleteData(_source_id, "study_features");
-            if (_source.has_study_contributors is true) DeleteData(_source_id, "study_contributors");
+            if (_source.has_study_people is true) DeleteData(_source_id, "study_people");
+            if (_source.has_study_organisations is true) DeleteData(_source_id, "study_organisations");
             if (_source.has_study_references is true) DeleteData(_source_id, "study_references");
             if (_source.has_study_relationships is true) DeleteData(_source_id, "study_relationships");
             if (_source.has_study_links is true) DeleteData(_source_id, "study_links");
@@ -89,7 +86,8 @@ class TransferSDDataBuilder
 
         if (_source.has_study_topics is true) stt.TransferStudyTopics();
         if (_source.has_study_features is true) stt.TransferStudyFeatures();
-        if (_source.has_study_contributors is true) stt.TransferStudyContributors();
+        if (_source.has_study_people is true) stt.TransferStudyPeople();
+        if (_source.has_study_organisations is true) stt.TransferStudyOrganisations();
         if (_source.has_study_references is true) stt.TransferStudyReferences();
         if (_source.has_study_relationships is true) stt.TransferStudyRelationships();
         if (_source.has_study_links is true) stt.TransferStudyLinks();

@@ -38,7 +38,8 @@ public class FullDataObject
     public List<ObjectPublicationType>? object_pubtypes { get; set; }
     public List<ObjectDescription>? object_descriptions { get; set; }
     public List<ObjectInstance>? object_instances { get; set; }
-    public List<ObjectContributor>? object_contributors { get; set; }
+    public List<ObjectOrganisation>? object_organisations { get; set; }
+    public List<ObjectPerson>? object_people { get; set; }
     public List<ObjectComment>? object_comments { get; set; }
     public List<ObjectRelationship>? object_relationships { get; set; }
     public List<ObjectRight>? object_rights { get; set; }
@@ -677,13 +678,11 @@ public class ObjectTopic
 }
 
   
-public class ObjectContributor
+public class ObjectPerson
 {
     public string? sd_oid { get; set; }
     public int? contrib_type_id { get; set; }
     public string? contrib_type { get; set; }
-    public bool? is_individual { get; set; }
-    public int? person_id { get; set; }
     public string? person_given_name { get; set; }
     public string? person_family_name { get; set; }
     public string? person_full_name { get; set; }
@@ -693,22 +692,20 @@ public class ObjectContributor
     public string? organisation_name { get; set; }
     public string? organisation_ror_id { get; set; }
 
-    public ObjectContributor(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
-                            int? _organisation_id, string? _organisation_name, string? _person_full_name,
-                            string? _person_affiliation)
+    public ObjectPerson(string? _sd_oid, int? _contrib_type_id, string? _contrib_type, string? _person_full_name,
+                               string? _person_affiliation, int? _organisation_id, string? _organisation_name)
     {
         sd_oid = _sd_oid;
         contrib_type_id = _contrib_type_id;
         contrib_type = _contrib_type;
-        is_individual = (_person_full_name != null);
+        person_full_name = _person_full_name;
+        person_affiliation = _person_affiliation;        
         organisation_id = _organisation_id;
         organisation_name = _organisation_name;
-        person_full_name = _person_full_name;
-        person_affiliation = _person_affiliation;
     }
 
-
-    public ObjectContributor(string? _sd_oid, int? _contrib_type_id, string? _contrib_type, 
+/*
+    public ObjectPerson(string? _sd_oid, int? _contrib_type_id, string? _contrib_type, 
                              string? _person_given_name, string? _person_family_name, 
                              string? _person_full_name, string? _orcid_id, string? _person_affiliation, 
                              string? _organisation_name)
@@ -716,7 +713,6 @@ public class ObjectContributor
         sd_oid = _sd_oid;
         contrib_type_id = _contrib_type_id;
         contrib_type = _contrib_type;
-        is_individual = (_person_full_name != null);
         person_given_name = _person_given_name;
         person_family_name = _person_family_name;
         person_full_name = _person_full_name;
@@ -724,9 +720,9 @@ public class ObjectContributor
         person_affiliation = _person_affiliation;
         organisation_name = _organisation_name;
     }
+*/
 
-
-    public ObjectContributor(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
+    public ObjectPerson(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
                             string? _person_given_name, string? _person_family_name, string? _person_full_name,
                             string? _orcid_id, string? _person_affiliation, 
                             int? _organisation_id, string? _organisation_name)
@@ -734,12 +730,32 @@ public class ObjectContributor
         sd_oid = _sd_oid;
         contrib_type_id = _contrib_type_id;
         contrib_type = _contrib_type;
-        is_individual = (_person_full_name == null) ? false : true;
         person_given_name = _person_given_name;
         person_family_name = _person_family_name;
         person_full_name = _person_full_name;
         orcid_id = _orcid_id;
         person_affiliation = _person_affiliation;
+        organisation_id = _organisation_id;
+        organisation_name = _organisation_name;
+    }
+}
+
+
+public class ObjectOrganisation
+{
+    public string? sd_oid { get; set; }
+    public int? contrib_type_id { get; set; }
+    public string? contrib_type { get; set; }
+    public int? organisation_id { get; set; }
+    public string? organisation_name { get; set; }
+    public string? organisation_ror_id { get; set; }
+
+    public ObjectOrganisation(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
+                            int? _organisation_id, string? _organisation_name)
+    {
+        sd_oid = _sd_oid;
+        contrib_type_id = _contrib_type_id;
+        contrib_type = _contrib_type;
         organisation_id = _organisation_id;
         organisation_name = _organisation_name;
     }

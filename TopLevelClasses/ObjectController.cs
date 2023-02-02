@@ -24,7 +24,7 @@ public class ObjectController
         // First get the total number of records in the system for this source
         // Set up the outer limit and get the relevant records for each pass.
 
-        int source_id = _source.id ?? 0; 
+        int source_id = _source.id; 
         int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvest_type_id);
         int chunk = _source.harvest_chunk ?? 0;
         int k = 0;

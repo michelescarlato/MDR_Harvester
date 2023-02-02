@@ -29,8 +29,8 @@ public class CTGProcessor : IStudyProcessor
 
         List<StudyIdentifier> identifiers = new();
         List<StudyTitle> titles = new();
-        List<StudyContributor> contributors = new();
-        List<StudyContributor> contributors2 = new();
+        List<StudyOrganisation> organisations = new();
+        List<StudyPerson> people = new();
         List<StudyReference> references = new();
         List<StudyLink> studylinks = new();
         List<AvailableIPD> ipd_info = new();
@@ -50,9 +50,9 @@ public class CTGProcessor : IStudyProcessor
 
         CTGHelpers ih = new();
 
-        Protocolsection? p = r.ProtocolSection;
-        Identificationmodule? IdentificationModule = p?.IdentificationModule;
-        Statusmodule? StatusModule = p?.StatusModule;
+        Protocolsection? ps = r.ProtocolSection;
+        Identificationmodule? IdentificationModule = ps?.IdentificationModule;
+        Statusmodule? StatusModule = ps?.StatusModule;
 
         if (IdentificationModule is null || StatusModule is null)
         {
@@ -71,14 +71,14 @@ public class CTGProcessor : IStudyProcessor
         s.sd_sid = sid;
         s.datetime_of_data_fetch = download_datetime;
 
-        Sponsorcollaboratorsmodule? SponsorCollaboratorsModule = p?.SponsorCollaboratorsModule;
-        Descriptionmodule? DescriptionModule = p?.DescriptionModule;
-        Conditionsmodule? ConditionsModule = p?.ConditionsModule;
-        Designmodule? DesignModule = p?.DesignModule;
-        Eligibilitymodule? EligibilityModule = p?.EligibilityModule;
-        Contactslocationsmodule? ContactsLocationsModule = p?.ContactsLocationsModule;
-        Referencesmodule? ReferencesModule = p?.ReferencesModule;
-        Ipdsharingstatementmodule? IPDSharingModule = p?.IPDSharingStatementModule;
+        Sponsorcollaboratorsmodule? SponsorCollaboratorsModule = ps?.SponsorCollaboratorsModule;
+        Descriptionmodule? DescriptionModule = ps?.DescriptionModule;
+        Conditionsmodule? ConditionsModule = ps?.ConditionsModule;
+        Designmodule? DesignModule = ps?.DesignModule;
+        Eligibilitymodule? EligibilityModule = ps?.EligibilityModule;
+        Contactslocationsmodule? ContactsLocationsModule = ps?.ContactsLocationsModule;
+        Referencesmodule? ReferencesModule = ps?.ReferencesModule;
+        Ipdsharingstatementmodule? IPDSharingModule = ps?.IPDSharingStatementModule;
 
         Documentsection? d = r.DocumentSection;
         Largedocumentmodule? LargeDocumentModule = d?.LargeDocumentModule;
@@ -337,7 +337,7 @@ public class CTGProcessor : IStudyProcessor
                     {
                         sponsor_name = "(sponsor name redacted in registry record)";
                     }
-                    contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, sponsor_name));
+                    organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, sponsor_name));
                 }
             }
 
@@ -392,14 +392,14 @@ public class CTGProcessor : IStudyProcessor
 
                                 if (rp_type == "Principal Investigator")
                                 {
-                                    contributors.Add(new StudyContributor(sid, 51, "Study Lead",
-                                                    rp_name, rp_affil, affil_organisation));
+                                    people.Add(new StudyPerson(sid, 51, "Study Lead", 
+                                                    rp_name, rp_affil, null, affil_organisation));
                                 }
 
                                 if (rp_type == "Sponsor-Investigator")
                                 {
-                                    contributors.Add(new StudyContributor(sid, 70, "Sponsor-investigator",
-                                                    rp_name, rp_affil, affil_organisation));
+                                    people.Add(new StudyPerson(sid, 70, "Sponsor-investigator",
+                                                    rp_name, rp_affil, null, affil_organisation));
                                 }
                             }
                         }
@@ -419,7 +419,7 @@ public class CTGProcessor : IStudyProcessor
                         if (collab_candidate.AppearsGenuineOrgName())
                         {
                             string? collab_name = collab_candidate?.TidyOrgName(sid);
-                            contributors.Add(new StudyContributor(sid, 69, "Collaborating organisation", null, collab_name));
+                            organisations.Add(new StudyOrganisation(sid, 69, "Collaborating organisation", null, collab_name));
                         }
                     }
                 }
@@ -565,25 +565,13 @@ public class CTGProcessor : IStudyProcessor
                 var design_info = DesignModule.DesignInfo;
                 if (design_info is not null)
                 {
-                    string? design_allocation = design_info.DesignAllocation;
-                    if (design_allocation is null)
-                    {
-                        design_allocation = "Not provided";
-                    }
+                    string design_allocation = design_info.DesignAllocation ?? "Not provided";
                     features.Add(new StudyFeature(sid, 22, "allocation type", design_allocation.GetAllocationTypeId(), design_allocation));
 
-                    string? design_intervention_model = design_info.DesignInterventionModel;
-                    if (design_intervention_model is null)
-                    {
-                        design_intervention_model = "Not provided";
-                    }
+                    string design_intervention_model = design_info.DesignInterventionModel ?? "Not provided";
                     features.Add(new StudyFeature(sid, 23, "intervention model", design_intervention_model.GetDesignTypeId(), design_intervention_model));
 
-                    string? design_primary_purpose = design_info.DesignPrimaryPurpose;
-                    if (design_primary_purpose is null)
-                    {
-                        design_primary_purpose = "Not provided";
-                    }
+                    string design_primary_purpose = design_info.DesignPrimaryPurpose ?? "Not provided";
                     features.Add(new StudyFeature(sid, 21, "primary purpose", design_primary_purpose.GetPrimaryPurposeId(), design_primary_purpose));
 
                     var masking_details = design_info.DesignMaskingInfo;
@@ -653,11 +641,7 @@ public class CTGProcessor : IStudyProcessor
                 var biospec_details = DesignModule.BioSpec;
                 if (biospec_details is not null)
                 {
-                    string? biospec_retention = biospec_details.BioSpecRetention;
-                    if (biospec_retention is null)
-                    {
-                        biospec_retention = "Not provided";
-                    }
+                    string biospec_retention = biospec_details.BioSpecRetention ?? "Not provided";
                     features.Add(new StudyFeature(sid, 32, "biospecimens retained", 
                         biospec_retention.GetSpecimenRetentionId(), biospec_retention));
                 }
@@ -683,12 +667,7 @@ public class CTGProcessor : IStudyProcessor
 
         if (EligibilityModule != null)
         {
-            s.study_gender_elig = EligibilityModule.Gender;
-            if (s.study_gender_elig is null)
-            {
-                s.study_gender_elig = "Not provided";
-            }
- 
+            s.study_gender_elig = EligibilityModule.Gender ?? "Not provided";
             if (s.study_gender_elig == "All")
             {
                 s.study_gender_elig = "Both";
@@ -762,8 +741,8 @@ public class CTGProcessor : IStudyProcessor
                                     }
                                 }
 
-                                contributors.Add(new StudyContributor(sid, 51, "Study Lead",
-                                                    official_name, official_affiliation, affil_organisation));
+                                people.Add(new StudyPerson(sid, 51, "Study Lead",
+                                                    official_name, official_affiliation, null, affil_organisation));
                             }
                         }
                     }
@@ -901,13 +880,10 @@ public class CTGProcessor : IStudyProcessor
 
         int object_type_id;
         string object_type = "";
-        int object_class_id;
-        string object_class;
         int title_type_id;
         string title_type;
 
         string title_base;
-        string url;
 
         // this used for specific additional objects from GSK
         string gsk_access_details = "Following receipt of a signed Data Sharing Agreement (DSA), ";
@@ -972,7 +948,7 @@ public class CTGProcessor : IStudyProcessor
                 update_post.year, update_post.month, update_post.day, update_post.date_string));
         }
 
-        url = "https://clinicaltrials.gov/ct2/show/study/" + sid;
+        string url = "https://clinicaltrials.gov/ct2/show/study/" + sid;
         object_instances.Add(new ObjectInstance(sd_oid, 100120, "ClinicalTrials.gov", url, true,
                                     39, "Web text with XML or JSON via API"));
 
@@ -1071,7 +1047,7 @@ public class CTGProcessor : IStudyProcessor
                             }
 
                             // Check here not a previous data object of the same type.
-                            // It may have the same url. If so ignore it (to be implemeneted).
+                            // It may have the same url. If so ignore it (to be implemented).
                             // If it appears to be different, add a suffix to the data object name
 
                             int next_num = CheckObjectName(object_titles, object_display_title);
@@ -1150,11 +1126,13 @@ public class CTGProcessor : IStudyProcessor
             }
 
 
-            // some of the available ipd may be turnable into data objects available, either
+            // some of the available ipd may be transformable into data objects available, either
             // directly or after review of requests
             // Others will need to be stored as records for future processing
 
             var avail_ipd_list = ReferencesModule.AvailIPDList;
+            int object_class_id;
+            string object_class;
             if (avail_ipd_list is not null)
             {
                 var avail_ipd_items = avail_ipd_list.AvailIPD;
@@ -1712,103 +1690,103 @@ public class CTGProcessor : IStudyProcessor
             }
         }
 
-
-        // edit contributors - try to ensure properly categorised
-        if (contributors.Count > 0)
+       
+        // Edit contributors - try to ensure properly categorised
+        // check if a group inserted as an individual, and then
+        // check if an individual added as a group.
+        
+        List<StudyPerson> people2 = new();
+        if (people.Count > 0)
         {
-            foreach (StudyContributor sc in contributors)
+            bool add = true;
+            foreach (StudyPerson p in people)
             {
-                if (sc.is_individual is not null)
+                string? full_name = p.person_full_name?.ToLower();
+                if (full_name is not null && full_name.IsAnOrganisation())
                 {
-                    if ((bool)sc.is_individual)
+                    string? organisation_name = p.person_full_name.TidyOrgName(sid);
+                    if (organisation_name is not null)
                     {
-                        // check if a group inserted as an individual
-
-                        string? fullname = sc.person_full_name?.ToLower();
-                        if (fullname is not null)
-                        {
-                            if (fullname.IsAnOrganisation())
-                            {
-                                sc.organisation_name = sc.person_full_name.TidyOrgName(sid);
-                                sc.person_full_name = null;
-                                sc.is_individual = false;
-                            }
-                        }
+                        organisations.Add(new StudyOrganisation(sid, p.contrib_type_id, p.contrib_type,
+                            null, organisation_name));
+                        add = false;
                     }
-                    else
-                    {
-                        // identify individuals down as organisations
-
-                        string? orgname = sc.organisation_name?.ToLower();
-                        if (orgname is not null)
-                        {
-                            if (orgname.IsAnIndividual())
-                            {
-                                sc.person_full_name = sc.organisation_name.TidyPersonName();
-                                sc.organisation_name = null;
-                                sc.is_individual = true;
-
-                                // Change to a sponsor investigator (was a sponsor)
-                                sc.contrib_type_id = 70;
-                                sc.contrib_type = "Sponsor-investigator";
-                            }
-                            else if (orgname is "sponsor" or "company internal")
-                            {
-                                // seems to be unique to Clinical Trials.gov
-                                sc.organisation_name = sponsor_name;
-                            }
-                        }
-                    }
+                }
+                if (add)
+                {
+                    people2.Add(p);
                 }
             }
-
-            // try to identify repeated individuals...
-            // can happen as people are put in under different categories
-
-            int n = 0;
-            foreach (StudyContributor sc in contributors)
+        }
+        
+        List<StudyOrganisation> orgs2 = new();
+        if (organisations.Count > 0)
+        {
+            foreach (StudyOrganisation g in organisations)
             {
-                bool add_sc = true;
-                if (sc.is_individual is true)
+                bool add = true;
+                string? orgname = g.organisation_name?.ToLower();
+                if (orgname is not null && orgname.IsAnIndividual())
                 {
-                    n++;
-                    if (n > 1)
+                    string? person_full_name = g.organisation_name.TidyPersonName();
+                    if (person_full_name is not null)
                     {
-                        foreach (StudyContributor sc2 in contributors2)
-                        {
-                            if (sc.person_full_name == sc2.person_full_name)
-                            {
-                                add_sc = false;
-
-                                // but retain this info if needed / possible
-
-                                if (string.IsNullOrEmpty(sc2.person_affiliation)
-                                    && !string.IsNullOrEmpty(sc.person_affiliation))
-                                {
-                                    sc2.person_affiliation = sc.person_affiliation;
-                                }
-                                if (string.IsNullOrEmpty(sc2.organisation_name)
-                                    && !string.IsNullOrEmpty(sc.organisation_name))
-                                {
-                                    sc2.organisation_name = sc.organisation_name;
-                                }
-                                break;
-                            }
-                        }
+                        people2.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
+                            null, null, g.organisation_name));
+                        add = false;
                     }
                 }
-
-                if (add_sc)
+                if (add)
                 {
-                    contributors2.Add(sc);
+                    orgs2.Add(g);
                 }
             }
         }
 
+        List<StudyPerson> people3 = new();
+        // try to identify repeated individuals...
+        // can happen as people are put in under different categories
+
+        int n = 0;
+        foreach (StudyPerson p2 in people2)
+        {
+            bool add_person = true;
+            n++;
+            if (n > 1)
+            {
+                foreach (StudyPerson p3 in people3)
+                {
+                    if (p2.person_full_name?.ToLower() == p3.person_full_name?.ToLower())
+                    {
+                        add_person = false;
+
+                        // but retain this info if needed / possible
+
+                        if (string.IsNullOrEmpty(p3.person_affiliation)
+                            && !string.IsNullOrEmpty(p2.person_affiliation))
+                        {
+                            p3.person_affiliation = p2.person_affiliation;
+                        }
+                        if (string.IsNullOrEmpty(p3.organisation_name)
+                            && !string.IsNullOrEmpty(p2.organisation_name))
+                        {
+                            p3.organisation_name = p2.organisation_name;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (add_person)
+            {
+                people3.Add(p2);
+            }
+        }
 
         s.identifiers = identifiers;
         s.titles = titles;
-        s.contributors = contributors2;
+        s.people = people3;
+        s.organisations = orgs2;
         s.references = references;
         s.studylinks = studylinks;
         s.ipd_info = ipd_info;

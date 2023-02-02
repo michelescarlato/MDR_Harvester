@@ -3,7 +3,7 @@
 internal static class PubMedHelpers
 {
     // Two check routines that scan previously extracted Identifiers or Dates, to 
-    // indicate if the input Id / Date type has already beenm extracted.
+    // indicate if the input Id / Date type has already been extracted.
 
     internal static bool IdNotPresent(List<ObjectIdentifier> ids, int id_type, string id_value)
     {
@@ -41,6 +41,7 @@ internal static class PubMedHelpers
         return to_add;
     }
 
+    
     internal static bool IsAnOrganisation(this string? fullname)
     {
         if (string.IsNullOrEmpty(fullname))
@@ -62,6 +63,7 @@ internal static class PubMedHelpers
         }
     }
 
+    
     internal static SplitDate? GetSplitDateFromNumericDate(int? year, int? month, int? day)
     {
         if (!year.HasValue)
@@ -254,7 +256,7 @@ internal static class PubMedHelpers
     }
 
 
-    internal static string GetCitationName(List<ObjectContributor> authors, int author_pos)
+    internal static string GetCitationName(List<ObjectPerson> authors, int author_pos)
     {
         string given_name = authors[author_pos].person_given_name ?? "";
         string initials = given_name == "" ? "" : given_name[..1].ToUpper() + "";

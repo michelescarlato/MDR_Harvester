@@ -32,7 +32,7 @@ public class BioLinccProcessor : IStudyProcessor
         List<StudyTitle> titles = new();
         List<StudyIdentifier> identifiers = new();
         List<StudyReference> references = new();
-        List<StudyContributor> contributors = new();
+        List<StudyOrganisation> organisations = new();
         List<StudyRelationship> relationships = new();
 
         List<DataObject> data_objects = new();
@@ -162,7 +162,7 @@ public class BioLinccProcessor : IStudyProcessor
         string? sponsor_name = r.sponsor_name;
         if (sponsor_name is not null)
         {
-            contributors.Add(new StudyContributor(sid, 54, "Trial sponsor", sponsor_id, sponsor_name));
+            organisations.Add(new StudyOrganisation(sid, 54, "Trial sponsor", sponsor_id, sponsor_name));
         }
 
         var rel_studies = r.related_studies;
@@ -170,7 +170,7 @@ public class BioLinccProcessor : IStudyProcessor
         {
             foreach (var relstudy in rel_studies)
             {
-                // relationshiup is simply 'is related' as no further information is provided
+                // relationship is simply 'is related' as no further information is provided
 
                 string? related_study = relstudy.link_text;
                 relationships.Add(new StudyRelationship(sid, 27,
@@ -415,7 +415,7 @@ public class BioLinccProcessor : IStudyProcessor
         s.titles = titles;
         s.identifiers = identifiers;
         s.references = references2;
-        s.contributors = contributors;
+        s.organisations = organisations;
 
         s.data_objects = data_objects;
         s.object_datasets = object_datasets;

@@ -30,7 +30,8 @@ public class IsrctnProcessor : IStudyProcessor
 
         List<StudyIdentifier> identifiers = new();
         List<StudyTitle> titles = new();
-        List<StudyContributor> contributors = new();
+        List<StudyOrganisation> organisations = new();
+        List<StudyPerson> people = new();
         List<StudyReference> references = new();
         List<StudyTopic> topics = new();
         List<StudyFeature> features = new();
@@ -223,12 +224,12 @@ public class IsrctnProcessor : IStudyProcessor
                 if (org.AppearsGenuineOrgName())
                 {
                     string? orgname = org.TidyOrgName(sid);
-                    contributors.Add(new StudyContributor(sid, 54, "Trial Sponsor", null, orgname));
+                    organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, orgname));
                 }
             }
-            if (contributors.Any())
+            if (organisations.Any())
             {
-                sponsor_name = contributors[0].organisation_name;
+                sponsor_name = organisations[0].organisation_name;
             }
         }
 
@@ -244,9 +245,9 @@ public class IsrctnProcessor : IStudyProcessor
 
                     bool add_funder = true;
                     funder_name = funder_name.TidyOrgName(sid);
-                    if (contributors.Count > 0)
+                    if (organisations.Count > 0)
                     {
-                        foreach (var c in contributors)
+                        foreach (var c in organisations)
                         {
                             if (funder_name == c.organisation_name)
                             {
@@ -258,7 +259,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                     if (add_funder)
                     {
-                        contributors.Add(new StudyContributor(sid, 58, "Study Funder", null, funder_name));
+                        organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
                     }
                 }
             }
@@ -291,7 +292,7 @@ public class IsrctnProcessor : IStudyProcessor
                     contrib_type = "Public contact";
                 }
 
-                contributors?.Add(new StudyContributor(sid, contrib_type_id, contrib_type, givenName,
+                people.Add(new StudyPerson(sid, contrib_type_id, contrib_type, givenName,
                                                         familyName, full_name, orcid, affil));
             }
         }
@@ -300,28 +301,62 @@ public class IsrctnProcessor : IStudyProcessor
         // Check if a group has been inserted as an individual,
         // or an individual has been inserted as a group.
 
-        if (contributors?.Count > 0)
+        
+        // Edit contributors - try to ensure properly categorised
+        // check if a group inserted as an individual, and then
+        // check if an individual added as a group.
+        
+        List<StudyPerson> people2 = new();
+        if (people.Count > 0)
         {
-            foreach (StudyContributor sc in contributors)
+            bool add = true;
+            foreach (StudyPerson p in people)
             {
-                if (sc.is_individual is true)
+                string? full_name = p.person_full_name?.ToLower();
+                if (full_name is not null)
                 {
-                    if (sc.person_full_name.IsAnOrganisation())
+                    if (full_name.IsAnOrganisation())
                     {
-                        sc.organisation_name = sc.person_full_name.TidyOrgName(sid);
-                        sc.person_full_name = null;
-                        sc.is_individual = false;
+                        string? organisation_name = p.person_full_name.TidyOrgName(sid);
+                        if (organisation_name is not null)
+                        {
+                            organisations.Add(new StudyOrganisation(sid, p.contrib_type_id, p.contrib_type,
+                                null, organisation_name));
+                            add = false;
+                        }
+                    }
+                }
+                if (add)
+                {
+                    people2.Add(p);
+                }
+            }
+        }
+        
+        List<StudyOrganisation> orgs2 = new();
+        if (organisations.Count > 0)
+        {
+            foreach (StudyOrganisation g in organisations)
+            {
+                bool add = true;
+                string? org_name = g.organisation_name?.ToLower();
+                if (org_name is not null)
+                {
+                    if (org_name.IsAnIndividual())
+                    {
+                        string? person_full_name = g.organisation_name.TidyPersonName();
+                        if (person_full_name is not null)
+                        {
+                            people2.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
+                                null, null, g.organisation_name));
+                            add = false;
+                        }
                     }
                 }
 
-                if (sc.is_individual == false)
+                if (add)
                 {
-                    if (sc.organisation_name.IsAnIndividual())
-                    {
-                        sc.person_full_name = sc.organisation_name.TidyPersonName();
-                        sc.organisation_name = null;
-                        sc.is_individual = true;
-                    }
+                    orgs2.Add(g);
                 }
             }
         }
@@ -1187,7 +1222,8 @@ public class IsrctnProcessor : IStudyProcessor
 
         s.identifiers = identifiers;
         s.titles = titles;
-        s.contributors = contributors;
+        s.organisations = orgs2;
+        s.people = people2;
         s.references = references;
         s.topics = topics;
         s.features = features;

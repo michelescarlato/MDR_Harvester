@@ -137,16 +137,14 @@ public class ObjectTableBuilder
     }
 
 
-    public void create_table_object_contributors()
+    public void create_table_object_people()
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_contributors;
-        CREATE TABLE sd.object_contributors(
+        string sql_string = @"DROP TABLE IF EXISTS sd.object_people;
+        CREATE TABLE sd.object_people(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , contrib_type_id        INT             NULL
           , contrib_type           VARCHAR         NULL
-          , is_individual          BOOLEAN         NULL
-          , person_id              INT             NULL
           , person_given_name      VARCHAR         NULL
           , person_family_name     VARCHAR         NULL
           , person_full_name       VARCHAR         NULL
@@ -156,7 +154,25 @@ public class ObjectTableBuilder
           , organisation_name      VARCHAR         NULL
           , organisation_ror_id    VARCHAR         NULL
         );
-        CREATE INDEX object_contributors_sd_oid ON sd.object_contributors(sd_oid);";
+        CREATE INDEX object_people_sd_oid ON sd.object_people(sd_oid);";
+
+        Execute_SQL(sql_string);
+    }
+    
+    
+    public void create_table_object_organisations()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sd.object_organisations;
+        CREATE TABLE sd.object_organisations(
+            id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+          , sd_oid                 VARCHAR        NOT NULL
+          , contrib_type_id        INT             NULL
+          , contrib_type           VARCHAR         NULL
+          , organisation_id        INT             NULL
+          , organisation_name      VARCHAR         NULL
+          , organisation_ror_id    VARCHAR         NULL
+        );
+        CREATE INDEX object_organisations_sd_oid ON sd.object_organisations(sd_oid);";
 
         Execute_SQL(sql_string);
     }

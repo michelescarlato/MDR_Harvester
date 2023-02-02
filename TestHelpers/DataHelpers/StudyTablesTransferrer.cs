@@ -14,7 +14,6 @@ class StudyTablesTransferrer
         _db_conn = db_conn;
     }
 
-
     private void Execute_SQL(string sql_string)
     {
         using (var conn = new NpgsqlConnection(_db_conn))
@@ -23,7 +22,6 @@ class StudyTablesTransferrer
         }
     }
     
-
     public void TransferStudies()
     {
         string sql_string = @"INSERT INTO sdcomp.studies (source_id, sd_sid, display_title,
@@ -104,17 +102,31 @@ class StudyTablesTransferrer
     }
 
 
-    public void TransferStudyContributors()
+    public void TransferStudyPeople()
     {
-        string sql_string = @"INSERT INTO sdcomp.study_contributors(source_id, sd_sid, 
-        contrib_type_id, contrib_type, is_individual, 
+        string sql_string = @"INSERT INTO sdcomp.study_people(source_id, sd_sid, 
+        contrib_type_id, contrib_type, 
         person_id, person_given_name, person_family_name, person_full_name,
         orcid_id, person_affiliation, organisation_id, 
         organisation_name, organisation_ror_id, record_hash)
         SELECT " + _source_id + @", sd_sid,
-        contrib_type_id, contrib_type, is_individual, 
+        contrib_type_id, contrib_type, 
         person_id, person_given_name, person_family_name, person_full_name,
         orcid_id, person_affiliation, organisation_id, 
+        organisation_name, organisation_ror_id, record_hash
+        FROM sd.study_contributors";
+
+        Execute_SQL(sql_string);
+
+    }
+    
+    public void TransferStudyOrganisations()
+    {
+        string sql_string = @"INSERT INTO sdcomp.study_organisations(source_id, sd_sid, 
+        contrib_type_id, contrib_type, organisation_id, 
+        organisation_name, organisation_ror_id, record_hash)
+        SELECT " + _source_id + @", sd_sid,
+        contrib_type_id, contrib_type, organisation_id, 
         organisation_name, organisation_ror_id, record_hash
         FROM sd.study_contributors";
 

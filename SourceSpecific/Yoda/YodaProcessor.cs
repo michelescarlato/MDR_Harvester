@@ -33,7 +33,7 @@ public class YodaProcessor : IStudyProcessor
         List<StudyIdentifier> identifiers = new();
         List<StudyTitle> titles = new();
         List<StudyReference> references = new();
-        List<StudyContributor> contributors = new();
+        List<StudyOrganisation> organisations = new();
         List<StudyTopic> topics = new();
         List<StudyCondition> conditions = new();
 
@@ -150,7 +150,7 @@ public class YodaProcessor : IStudyProcessor
         }
 
         // study contributors
-        // only sponsor knowm, and only relevant for non registered studies (others will  
+        // only sponsor known, and only relevant for non registered studies (others will  
         // have the sponsor identified in registered study entry).
         // If study registered elsewhere sponsor details wil be ignored during the aggregation.
 
@@ -167,7 +167,7 @@ public class YodaProcessor : IStudyProcessor
             sponsor_org_id = null;
             sponsor_org = "No organisation name provided in source data";
         }
-        contributors.Add(new StudyContributor(sid, 54, "Study Sponsor", sponsor_org_id, sponsor_org));
+        organisations.Add(new StudyOrganisation(sid, 54, "Study Sponsor", sponsor_org_id, sponsor_org));
 
         // study topics.
 
@@ -341,7 +341,7 @@ public class YodaProcessor : IStudyProcessor
         s.identifiers = identifiers;
         s.titles = titles;
         s.references = references;
-        s.contributors = contributors;
+        s.organisations = organisations;
         s.topics = topics;
         s.conditions = conditions;
 

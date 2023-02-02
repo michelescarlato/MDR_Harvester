@@ -1,7 +1,5 @@
 ﻿using Dapper;
 using Npgsql;
-
-
 namespace MDR_Harvester;
 
 public class StudyTableBuilder
@@ -131,17 +129,14 @@ public class StudyTableBuilder
         Execute_SQL(sql_string);
     }
 
-
-    public void create_table_study_contributors()
+    public void create_table_study_people()
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_contributors;
-        CREATE TABLE sd.study_contributors(
+        string sql_string = @"DROP TABLE IF EXISTS sd._study_people;
+        CREATE TABLE sd._study_people(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , contrib_type_id        INT             NULL
           , contrib_type           VARCHAR         NULL
-          , is_individual          BOOLEAN         NULL
-          , person_id              INT             NULL
           , person_given_name      VARCHAR         NULL
           , person_family_name     VARCHAR         NULL
           , person_full_name       VARCHAR         NULL
@@ -151,7 +146,24 @@ public class StudyTableBuilder
           , organisation_name      VARCHAR         NULL
           , organisation_ror_id    VARCHAR         NULL
         );
-        CREATE INDEX study_contributors_sd_sid ON sd.study_contributors(sd_sid);";
+        CREATE INDEX _study_people_sd_sid ON sd._study_people(sd_sid);";
+
+        Execute_SQL(sql_string);
+    }
+    
+    public void create_table_study_organisations()
+    {
+        string sql_string = @"DROP TABLE IF EXISTS sd.study_organisations;
+        CREATE TABLE sd.study_organisations(
+            id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+          , sd_sid                 VARCHAR         NOT NULL
+          , contrib_type_id        INT             NULL
+          , contrib_type           VARCHAR         NULL
+          , organisation_id        INT             NULL
+          , organisation_name      VARCHAR         NULL
+          , organisation_ror_id    VARCHAR         NULL
+        );
+        CREATE INDEX study_organisations_sd_sid ON sd.study_organisations(sd_sid);";
 
         Execute_SQL(sql_string);
     }
@@ -208,29 +220,6 @@ public class StudyTableBuilder
           , feature_value          VARCHAR         NULL
         );
         CREATE INDEX study_features_sid ON sd.study_features(sd_sid);";
-
-        Execute_SQL(sql_string);
-    }
-
-
-    public void create_table_study_iec()
-    {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_iec;
-        CREATE TABLE sd.study_iec(
-            id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
-          , sd_sid                 VARCHAR         NOT NULL
-          , seq_num                INT             NULL
-          , leader                 VARCHAR         NOT NULL
-          , indent_level           INT             NULL
-          , level_seq_num          INT             NULL
-          , iec_type_id            INT             NULL
-          , iec_type               VARCHAR         NULL
-          , iec_text               VARCHAR         NULL
-          , iec_class_id           INT             NULL
-          , iec_class              VARCHAR         NULL
-          , iec_parsed_text        VARCHAR         NULL
-        );
-        CREATE INDEX study_iec_sid ON sd.study_iec(sd_sid);";
 
         Execute_SQL(sql_string);
     }
@@ -304,4 +293,53 @@ public class StudyTableBuilder
 
         Execute_SQL(sql_string);
     }
+    
+    private void create_iec_table(string table_name)
+    {
+        string sql_string = $@"DROP TABLE IF EXISTS sd.{table_name};
+        CREATE TABLE sd.{table_name}(
+            id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+          , sd_sid                 VARCHAR         NOT NULL
+          , seq_num                INT             NULL
+          , leader                 VARCHAR         NOT NULL
+          , indent_level           INT             NULL
+          , level_seq_num          INT             NULL
+          , iec_type_id            INT             NULL
+          , iec_type               VARCHAR         NULL
+          , iec_text               VARCHAR         NULL
+          , iec_class_id           INT             NULL
+          , iec_class              VARCHAR         NULL
+          , iec_parsed_text        VARCHAR         NULL
+        );
+        CREATE INDEX {table_name}_sid ON sd.{table_name}(sd_sid);";
+
+        Execute_SQL(sql_string);
+    }
+
+    public void create_table_study_iec()
+    {
+        create_iec_table("study_iec");
+    }
+    
+    public void create_table_study_iec_by_year_groups()
+    {
+        create_iec_table("study_iec_pre12");
+        create_iec_table("study_iec_13to19");
+        create_iec_table("study_iec_20on");
+    }
+
+    public void create_table_study_iec_by_years()
+    {
+        create_iec_table("study_iec_null");
+        create_iec_table("study_iec_pre06");
+        create_iec_table("study_iec_0608");
+        create_iec_table("study_iec_0910");
+        create_iec_table("study_iec_1112");
+        create_iec_table("study_iec_1314");
+        for (int i = 15; i < 30; i++)
+        {
+            create_iec_table($"study_iec_{i}");
+        }
+    }
+    
 }

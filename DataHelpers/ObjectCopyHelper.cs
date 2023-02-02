@@ -96,13 +96,11 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapVarchar("date_as_string", x => x.date_as_string)
         .MapVarchar("details", x => x.details);
 
-    public PostgreSQLCopyHelper<ObjectContributor> objectContributorsHelper { get; } = 
-        new PostgreSQLCopyHelper<ObjectContributor>("sd", "object_contributors")
+    public PostgreSQLCopyHelper<ObjectPerson> objectPeopleHelper { get; } = 
+        new PostgreSQLCopyHelper<ObjectPerson>("sd", "object_people")
         .MapVarchar("sd_oid", x => x.sd_oid)
         .MapInteger("contrib_type_id", x => x.contrib_type_id)
         .MapVarchar("contrib_type", x => x.contrib_type)
-        .MapBoolean("is_individual", x => x.is_individual)
-        .MapInteger("person_id", x => x.person_id)
         .MapVarchar("person_given_name", x => x.person_given_name)
         .MapVarchar("person_family_name", x => x.person_family_name)
         .MapVarchar("person_full_name", x => x.person_full_name)
@@ -112,6 +110,15 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapVarchar("organisation_name", x => x.organisation_name)
         .MapVarchar("organisation_ror_id", x => x.organisation_ror_id);
 
+    public PostgreSQLCopyHelper<ObjectOrganisation> objectOrganisationsHelper { get; } = 
+        new PostgreSQLCopyHelper<ObjectOrganisation>("sd", "object_organisations")
+        .MapVarchar("sd_oid", x => x.sd_oid)
+        .MapInteger("contrib_type_id", x => x.contrib_type_id)
+        .MapVarchar("contrib_type", x => x.contrib_type)
+        .MapInteger("organisation_id", x => x.organisation_id)
+        .MapVarchar("organisation_name", x => x.organisation_name)
+        .MapVarchar("organisation_ror_id", x => x.organisation_ror_id);
+                
     public PostgreSQLCopyHelper<ObjectIdentifier>objectIdentifiersHelper { get; } = 
         new PostgreSQLCopyHelper<ObjectIdentifier>("sd", "object_identifiers")
         .MapVarchar("sd_oid", x => x.sd_oid)

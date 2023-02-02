@@ -1,5 +1,6 @@
 ﻿using Dapper.Contrib.Extensions;
 using Npgsql;
+using PostgreSQLCopyHelper;
 
 namespace MDR_Harvester;
 
@@ -19,10 +20,10 @@ public class StorageDataLayer : IStorageDataLayer
     {
         db_conn = source.db_conn;
         using NpgsqlConnection conn = new(db_conn);
-        conn.Open();          
-        
+        conn.Open();
+
         // Store study.
-        
+
         StudyInDB st_db = new StudyInDB(s);
         conn.Insert(st_db);
 
@@ -58,12 +59,17 @@ public class StorageDataLayer : IStorageDataLayer
 
         if (source.has_study_iec is true && s.iec?.Count > 0)
         {
-            _sch.studyIECHelper.SaveAll(conn, s.iec);
+            StoreIEC(conn, source.study_iec_storage_type!, s.iec, s.study_start_year);
         }
 
-        if (source.has_study_contributors is true && s.contributors?.Count > 0)
+        if (source.has_study_organisations is true && s.organisations?.Count > 0)
         {
-            _sch.studyContributorsHelper.SaveAll(conn, s.contributors);
+            _sch.studyOrganisationsHelper.SaveAll(conn, s.organisations);
+        }
+
+        if (source.has_study_people is true && s.people?.Count > 0)
+        {
+            _sch.studyPeopleHelper.SaveAll(conn, s.people);
         }
 
         if (source.has_study_references is true && s.references?.Count > 0)
@@ -96,15 +102,14 @@ public class StorageDataLayer : IStorageDataLayer
             _sch.studyAvailIPDHelper.SaveAll(conn, s.ipd_info);
         }
 
-        // Store linked data objects 
+        // Store linked data objects.
 
         if (s.data_objects?.Count > 0)
         {
             _och.dataObjectsHelper.SaveAll(conn, s.data_objects);
         }
-        
-        // Store data object attributes
-        // these common to all databases
+
+        // Store data object attributes - these common to all databases.
 
         if (s.object_instances?.Count > 0)
         {
@@ -115,9 +120,9 @@ public class StorageDataLayer : IStorageDataLayer
         {
             _och.objectTitlesHelper.SaveAll(conn, s.object_titles);
         }
-        
-        // These are database dependent		
-        
+
+        // These are database dependent.	
+
         if (source.has_object_datasets is true && s.object_datasets?.Count > 0)
         {
             _och.objectDatasetsHelper.SaveAll(conn, s.object_datasets);
@@ -127,8 +132,77 @@ public class StorageDataLayer : IStorageDataLayer
         {
             _och.objectDatesHelper.SaveAll(conn, s.object_dates);
         }
-        
         conn.Close();
+    }
+
+
+    private void StoreIEC(NpgsqlConnection conn, string storage_type, 
+                        List<StudyIEC> iec, int? study_start_year)
+    {
+        string target_table = "";        
+        if (storage_type == "Single Table")
+        {
+            target_table = "study_iec";
+        }
+        else if (storage_type == "By Year Groupings")
+        {
+            if (study_start_year is null || study_start_year < 2012)
+            {
+                target_table = "study_iec_pre12";
+            }
+            else if (study_start_year >= 2013 && study_start_year <= 2019)
+            {
+                target_table = "study_iec_13to19";
+            }
+            else
+            {
+                target_table = "study_iec_20on";
+            }
+        }
+        else if (storage_type == "By Years")
+        {
+            if (study_start_year is null || study_start_year > 2030)
+            {
+                target_table = "study_iec_null";
+            }
+            else if (study_start_year < 2006)
+            {
+                target_table = "study_iec_pre06";
+            }
+            else if (study_start_year >= 2006 && study_start_year <= 2008)
+            {
+                target_table = "study_iec_0608";
+            } 
+            else if (study_start_year is 2009 or 2010)
+            {
+                target_table = "study_iec_0910";
+            } 
+            else if (study_start_year is 2011 or 2012)
+            {
+                target_table = "study_iec_1112";
+            } 
+            else if (study_start_year is 2013 or 2014)
+            {
+                target_table = "study_iec_1314";
+            } 
+            else
+            {
+                target_table = "study_iec_" + study_start_year.ToString()?[2..3];
+            }
+        } 
+        
+        PostgreSQLCopyHelper<StudyIEC> studyIECHelper = 
+         new PostgreSQLCopyHelper<StudyIEC>("sd", target_table)
+         .MapVarchar("sd_sid", x => x.sd_sid)
+         .MapInteger("seq_num", x => x.seq_num)
+         .MapVarchar("leader", x => x.leader)
+         .MapInteger("indent_level", x => x.indent_level)
+         .MapInteger("level_seq_num", x => x.level_seq_num)
+         .MapInteger("iec_type_id", x => x.iec_type_id)
+         .MapVarchar("iec_type", x => x.iec_type)
+         .MapVarchar("iec_text", x => x.iec_text);
+        
+        studyIECHelper.SaveAll(conn, iec);
     }
 
 
@@ -170,9 +244,14 @@ public class StorageDataLayer : IStorageDataLayer
 
         if (source.has_object_pubmed_set is true)
         {
-            if (r.object_contributors?.Any() is true)
+            if (r.object_organisations?.Count > 0)
             {
-                _och.objectContributorsHelper.SaveAll(conn, r.object_contributors);
+                _och.objectOrganisationsHelper.SaveAll(conn, r.object_organisations);
+            }
+            
+            if (r.object_people?.Count > 0)
+            {
+                _och.objectPeopleHelper.SaveAll(conn, r.object_people);
             }
 
             if (r.object_topics?.Any() is true)

@@ -29,16 +29,30 @@ public class SchemaBuilder
             // these are database dependent
             if (_source.has_study_topics is true) study_table_builder.create_table_study_topics();
             if (_source.has_study_features is true) study_table_builder.create_table_study_features();
-            if (_source.has_study_contributors is true) study_table_builder.create_table_study_contributors();
+            if (_source.has_study_organisations is true) study_table_builder.create_table_study_organisations();
+            if (_source.has_study_people is true) study_table_builder.create_table_study_people();
             if (_source.has_study_references is true) study_table_builder.create_table_study_references();
             if (_source.has_study_relationships is true) study_table_builder.create_table_study_relationships();
             if (_source.has_study_links is true) study_table_builder.create_table_study_links();
             if (_source.has_study_countries is true) study_table_builder.create_table_study_countries();
             if (_source.has_study_locations is true) study_table_builder.create_table_study_locations();
             if (_source.has_study_conditions is true) study_table_builder.create_table_study_conditions();
-            if (_source.has_study_iec is true) study_table_builder.create_table_study_iec();
             if (_source.has_study_ipd_available is true) study_table_builder.create_table_ipd_available();
-
+            if (_source.has_study_iec is true)
+            {
+                if (_source.study_iec_storage_type == "Single Table")
+                {
+                    study_table_builder.create_table_study_iec();
+                }
+                if (_source.study_iec_storage_type == "By Year Groupings")
+                {
+                    study_table_builder.create_table_study_iec_by_year_groups();
+                }
+                if (_source.study_iec_storage_type == "By Years")
+                {
+                    study_table_builder.create_table_study_iec_by_years();
+                }
+            }
             _loggingHelper.LogLine("Study tables recreated");
         }
 
@@ -57,7 +71,8 @@ public class SchemaBuilder
         if (_source.has_object_pubmed_set is true)
         {
             object_table_builder.create_table_journal_details();
-            object_table_builder.create_table_object_contributors();
+            object_table_builder.create_table_object_organisations();
+            object_table_builder.create_table_object_people();
             object_table_builder.create_table_object_topics();
             object_table_builder.create_table_object_comments();
             object_table_builder.create_table_object_descriptions();
@@ -65,7 +80,6 @@ public class SchemaBuilder
             object_table_builder.create_table_object_db_links();
             object_table_builder.create_table_object_publication_types();
         }
-
         _loggingHelper.LogLine("Object tables recreated");
     }
 

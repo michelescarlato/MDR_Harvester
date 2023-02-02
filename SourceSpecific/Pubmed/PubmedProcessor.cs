@@ -42,7 +42,8 @@ public class PubmedProcessor : IObjectProcessor
         List<ObjectTopic> topics = new();
         List<ObjectPublicationType> pubtypes = new();
         List<ObjectDescription> descriptions = new();
-        List<ObjectContributor> contributors = new();
+        List<ObjectPerson> people = new();
+        List<ObjectOrganisation> organisations = new();
         List<ObjectComment> comments = new();
         List<ObjectDBLink> db_ids = new();
 
@@ -903,12 +904,13 @@ public class PubmedProcessor : IObjectProcessor
         // splits the author information up into its constituent classes.
 
         var author_list = r.Creators;
+        List<ObjectPerson> people2 = new();
         if (author_list?.Any() is true)
         {
             foreach (var a in author_list)
             {
                 // Construct the basic contributor data from the various elements.
-                string? family_name = a.FamilyName.ReplaceApos(); 
+                string? family_name = a.FamilyName.ReplaceApos();
                 string? given_name = a.GiveneName;
                 string? suffix = a.Suffix;
                 string? initials = a.Initials;
@@ -928,12 +930,14 @@ public class PubmedProcessor : IObjectProcessor
                 }
                 else
                 {
-                    if (!string.IsNullOrEmpty(suffix)) 
-                    { 
-                        suffix = " " + suffix; 
+                    if (!string.IsNullOrEmpty(suffix))
+                    {
+                        suffix = " " + suffix;
                     }
+
                     full_name = (given_name + " " + family_name + suffix).Trim();
                 }
+
                 full_name = full_name?.ReplaceApos();
 
                 // should only ever be a single ORCID identifier.
@@ -953,7 +957,8 @@ public class PubmedProcessor : IObjectProcessor
                             string qText = $"person {full_name} (linked to {sdoid}) identifier ";
                             qText += "is not an ORCID (" + identifier + " (source =" + identifier_source + "))";
                             _logging_helper.LogLine(qText, sdoid);
-                            identifier = null; identifier_source = null;  // do not store in db
+                            identifier = null;
+                            identifier_source = null; // do not store in db
                         }
                     }
                 }
@@ -1004,54 +1009,62 @@ public class PubmedProcessor : IObjectProcessor
                     }
                 }
 
-                contributors.Add(new ObjectContributor(sdoid, 11, "Creator",
-                                                    given_name, family_name, full_name,
-                                                    identifier, affiliation, affil_organisation));
+                people.Add(new ObjectPerson(sdoid, 11, "Creator",
+                    given_name, family_name, full_name,
+                    identifier, affiliation, null, affil_organisation));
             }
 
             // Construct author string for citation - exact form depends on numbers of authors identified.
 
-            if (contributors.Count == 1)
+            if (people.Count == 1)
             {
-                author_string = PubMedHelpers.GetCitationName(contributors, 0);
+                author_string = PubMedHelpers.GetCitationName(people, 0);
             }
 
-            else if (contributors.Count == 2)
+            else if (people.Count == 2)
             {
-                author_string = PubMedHelpers.GetCitationName(contributors, 0) + " & " + PubMedHelpers.GetCitationName(contributors, 1);
+                author_string = PubMedHelpers.GetCitationName(people, 0) + " & " +
+                                PubMedHelpers.GetCitationName(people, 1);
             }
 
-            else if (contributors.Count == 3)
+            else if (people.Count == 3)
             {
-                author_string = PubMedHelpers.GetCitationName(contributors, 0) + ", " + PubMedHelpers.GetCitationName(contributors, 1)
-                                + " & " + PubMedHelpers.GetCitationName(contributors, 2);
+                author_string = PubMedHelpers.GetCitationName(people, 0) + ", " +
+                                PubMedHelpers.GetCitationName(people, 1)
+                                + " & " + PubMedHelpers.GetCitationName(people, 2);
             }
 
-            else if (contributors.Count > 3)
+            else if (people.Count > 3)
             {
-                author_string = PubMedHelpers.GetCitationName(contributors, 0) + ", " + PubMedHelpers.GetCitationName(contributors, 1)
-                                + ", " + PubMedHelpers.GetCitationName(contributors, 2) + " et al";
+                author_string = PubMedHelpers.GetCitationName(people, 0) + ", " +
+                                PubMedHelpers.GetCitationName(people, 1)
+                                + ", " + PubMedHelpers.GetCitationName(people, 2) + " et al";
             }
+
             author_string = author_string.Trim() + ".";
 
-            // some contributors may be teams or groups
 
-            if (contributors.Count > 0)
+            // some contributors may be teams or groups.
+
+            if (people.Count > 0)
             {
-                foreach (ObjectContributor oc in contributors)
+                bool add = true;
+                foreach (ObjectPerson p in people)
                 {
-                    // check if a group inserted as an individual
-
-                    string? fullname = oc.person_full_name?.ToLower();
-                    if (fullname.IsAnOrganisation())
+                    string? full_name = p.person_full_name?.ToLower();
+                    if (full_name is not null && full_name.IsAnOrganisation())
                     {
-                        oc.organisation_name = oc.person_full_name;
-                        oc.person_full_name = null;
-                        oc.person_given_name = null;
-                        oc.person_family_name = null;
-                        oc.person_affiliation = null;
-                        oc.orcid_id = null;
-                        oc.is_individual = false;
+                        string? organisation_name = p.person_full_name;
+                        if (organisation_name is not null)
+                        {
+                            organisations.Add(new ObjectOrganisation(sdoid, p.contrib_type_id, p.contrib_type,
+                                null, organisation_name));
+                            add = false;
+                        }
+                    }
+                    if (add)
+                    {
+                        people2.Add(p);
                     }
                 }
             }
@@ -1266,7 +1279,8 @@ public class PubmedProcessor : IObjectProcessor
         fob.object_dates = dates;
         fob.object_titles = titles;
         fob.object_identifiers = identifiers;
-        fob.object_contributors = contributors;
+        fob.object_people = people2;
+        fob.object_organisations = organisations;
         fob.object_descriptions = descriptions;
         fob.object_pubtypes = pubtypes;
         fob.object_topics = topics;

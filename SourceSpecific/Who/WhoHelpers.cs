@@ -70,56 +70,7 @@ internal class WhoHelpers
             return null;
         }
     }
-
-
-    public bool CheckIfIndividual(string orgname)
-    {
-        bool make_individual = false;
-
-        // if looks like an individual's name
-        if (orgname.EndsWith(" md") || orgname.EndsWith(" phd") ||
-            orgname.Contains(" md,") || orgname.Contains(" md ") ||
-            orgname.Contains(" phd,") || orgname.Contains(" phd ") ||
-            orgname.Contains("dr ") || orgname.Contains("dr.") ||
-            orgname.Contains("prof ") || orgname.Contains("prof.") ||
-            orgname.Contains("professor"))
-        {
-            make_individual = true;
-            // but if part of a organisation reference...
-            if (orgname.Contains("hosp") || orgname.Contains("univer") ||
-                orgname.Contains("labor") || orgname.Contains("labat") ||
-                orgname.Contains("institu") || orgname.Contains("istitu") ||
-                orgname.Contains("school") || orgname.Contains("founda") ||
-                orgname.Contains("associat"))
-
-            {
-                make_individual = false;
-            }
-        }
-
-        // some specific individuals...
-        if (orgname == "seung-jung park" || orgname == "kang yan")
-        {
-            make_individual = true;
-        }
-        return make_individual;
-    }
-
-
-    public bool CheckIfOrganisation(string fullname)
-    {
-        bool make_org = false;
-
-        if (fullname.Contains(" group") || fullname.StartsWith("group") ||
-            fullname.Contains(" assoc") || fullname.Contains(" team") ||
-            fullname.Contains("collab") || fullname.Contains("network"))
-        {
-            make_org = true;
-        }
-
-        return make_org;
-    }
-
+    
 
     internal StudyIdentifier GetANZIdentifier(string sid, string processed_id, bool? sponsor_is_org, string sponsor_name)
     {
@@ -468,6 +419,65 @@ internal class WhoHelpers
         }
     }
 
+}
 
+internal static class WhoExtensions
+{
+    public static bool IsAnIndividual(this string? org_name)
+    {
+        if (string.IsNullOrEmpty(org_name))
+        {
+            return false;
+        }
+        
+        bool is_an_individual = false;
 
+        // if looks like an individual's name
+        if (org_name.EndsWith(" md") || org_name.EndsWith(" phd") ||
+            org_name.Contains(" md,") || org_name.Contains(" md ") ||
+            org_name.Contains(" phd,") || org_name.Contains(" phd ") ||
+            org_name.Contains("dr ") || org_name.Contains("dr.") ||
+            org_name.Contains("prof ") || org_name.Contains("prof.") ||
+            org_name.Contains("professor"))
+        {
+            is_an_individual = true;
+            
+            // but if part of a organisation reference...
+            
+            if (org_name.Contains("hosp") || org_name.Contains("univer") ||
+                org_name.Contains("labor") || org_name.Contains("labat") ||
+                org_name.Contains("institu") || org_name.Contains("istitu") ||
+                org_name.Contains("school") || org_name.Contains("founda") ||
+                org_name.Contains("associat"))
+
+            {
+                is_an_individual = false;
+            }
+        }
+
+        // some specific individuals...
+        if (org_name == "seung-jung park" || org_name == "kang yan")
+        {
+            is_an_individual = true;
+        }
+        return is_an_individual;
+    }
+    
+    public static bool IsAnOrganisation(this string? full_name)
+    {
+        if (string.IsNullOrEmpty(full_name))
+        {
+            return false;
+        }
+        
+        bool is_an_organisation = false;
+        string fname = full_name.ToLower();
+        if (fname.Contains(" group") || fname.StartsWith("group") ||
+            fname.Contains(" assoc") || fname.Contains(" team") ||
+            fname.Contains("collab") || fname.Contains("network"))
+        {
+            is_an_organisation = true;
+        }
+        return is_an_organisation;
+    }
 }
