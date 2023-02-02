@@ -2,5 +2,5 @@
 
 public interface IStudyProcessor
 {
-    public Study? ProcessData(string json_string, DateTime? download_datetime);
+    public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper);
 }

@@ -1,6 +1,6 @@
 ﻿namespace MDR_Harvester;
 
-public interface ITestingDataLayer
+public interface ITestDataLayer
 {
     int EstablishExpectedData();
     void TransferTestSDData(Source source);

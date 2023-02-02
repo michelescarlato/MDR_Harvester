@@ -6,10 +6,9 @@ public class ParameterChecker
 {
     private readonly ILoggingHelper _loggingHelper;
     private readonly IMonDataLayer _monDataLayer;
-    private readonly ITestingDataLayer _testDataLayer;
+    private readonly ITestDataLayer _testDataLayer;
 
-    public ParameterChecker(IMonDataLayer monDataLayer, ITestingDataLayer testDataLayer, 
-                              ILoggingHelper logging_helper)
+    public ParameterChecker(ILoggingHelper logging_helper, IMonDataLayer monDataLayer, ITestDataLayer testDataLayer)
     {
         _monDataLayer = monDataLayer;
         _testDataLayer = testDataLayer;
@@ -81,7 +80,7 @@ public class ParameterChecker
                     {
                         if (!_monDataLayer.SourceIdPresent(source_id))
                         {
-                            throw new ArgumentException("Source argument " + source_id.ToString() +
+                            throw new ArgumentException("Source argument " + source_id +
                                                         " does not correspond to a known source");
                         }
                     }

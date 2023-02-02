@@ -3,12 +3,12 @@ using Npgsql;
 
 namespace MDR_Harvester;
 
-public class TestingDataLayer : ITestingDataLayer
+public class TestDataLayer : ITestDataLayer
 {
     private readonly string _db_conn;
     private readonly ILoggingHelper _loggingHelper;
 
-    public TestingDataLayer(ICredentials credentials, ILoggingHelper loggingHelper)
+    public TestDataLayer(ICredentials credentials, ILoggingHelper loggingHelper)
     {
         _loggingHelper = loggingHelper;
         _db_conn = credentials.GetConnectionString("test", 1);

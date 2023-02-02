@@ -6,14 +6,7 @@ namespace MDR_Harvester.Yoda;
 
 public class YodaProcessor : IStudyProcessor
 {
-    private readonly ILoggingHelper _loggingHelper;
-
-    public YodaProcessor(ILoggingHelper loggingHelper)
-    {
-        _loggingHelper = loggingHelper;
-    }
-
-    public Study? ProcessData(string jsonString, DateTime? downloadDatetime)
+    public Study? ProcessData(string jsonString, DateTime? downloadDatetime, ILoggingHelper _logging_helper)
     {
         // set up json reader and deserialise file to a BioLiNCC object.
 
@@ -28,7 +21,7 @@ public class YodaProcessor : IStudyProcessor
 
         if(r is null)
         {
-            _loggingHelper.LogError($"Unable to deserialise json file to Who_Record\n{jsonString[..1000]}... (first 1000 characters)");
+            _logging_helper.LogError($"Unable to deserialise json file to Who_Record\n{jsonString[..1000]}... (first 1000 characters)");
             return null;
         }
 

@@ -6,14 +6,7 @@ namespace MDR_Harvester.Biolincc;
 
 public class BioLinccProcessor : IStudyProcessor
 {
-    private readonly ILoggingHelper _loggingHelper_helper;
-
-    public BioLinccProcessor( ILoggingHelper loggingHelper_helper)
-    {
-        _loggingHelper_helper = loggingHelper_helper;
-    }
-
-    public Study? ProcessData(string json_string, DateTime? download_datetime)
+    public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper)
     {
         // set up json reader and deserialise file to a BioLiNCC object.
 
@@ -27,7 +20,7 @@ public class BioLinccProcessor : IStudyProcessor
         BioLincc_Record? r = JsonSerializer.Deserialize<BioLincc_Record?>(json_string, json_options);
         if (r is null)
         {
-            _loggingHelper_helper.LogError($"Unable to deserialise json file to BioLincc_Record\n{json_string[..1000]}... (first 1000 characters)");
+            _logging_helper.LogError($"Unable to deserialise json file to BioLincc_Record\n{json_string[..1000]}... (first 1000 characters)");
             return null;
         }
 
@@ -54,7 +47,7 @@ public class BioLinccProcessor : IStudyProcessor
         string? sid = r.sd_sid;
         if (string.IsNullOrEmpty(sid))
         {
-            _loggingHelper_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
+            _logging_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
 
@@ -327,7 +320,7 @@ public class BioLinccProcessor : IStudyProcessor
         {
             foreach (var doc in primary_docs)
             {
-                string? pubmed_id = doc.pubmed_id;
+                string? pubmed_id = doc.pubmed_id?.Trim('/');    // a few seem to have slash suffixes
                 string? url = doc.url;
                 if (url is not null)
                 {
@@ -374,7 +367,7 @@ public class BioLinccProcessor : IStudyProcessor
         {
             foreach (var doc in assoc_docs)
             {
-                string? pubmed_id = doc.pubmed_id;
+                string? pubmed_id = doc.pubmed_id?.Trim('/');    // a few seem to have slash suffixes
                 string? display_title = doc.display_title?.ReplaceApos();
                 string? link_id = doc.link_id;
                 if (display_title is not null)

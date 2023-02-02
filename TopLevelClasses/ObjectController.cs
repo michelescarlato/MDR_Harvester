@@ -44,7 +44,7 @@ public class ObjectController
                 if (filePath is not null && File.Exists(filePath))
                 {
                     string jsonString = File.ReadAllText(filePath);
-                    FullDataObject? s = _processor.ProcessData(jsonString, rec.last_downloaded);
+                    FullDataObject? s = _processor.ProcessData(jsonString, rec.last_downloaded, _loggingHelper);
 
                     if (s is not null)
                     {

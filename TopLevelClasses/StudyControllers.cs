@@ -44,7 +44,7 @@ public class StudyController
                 if (filePath is not null && File.Exists(filePath))
                 {
                     string jsonString = File.ReadAllText(filePath);
-                    Study? s = _processor.ProcessData(jsonString, rec.last_downloaded);
+                    Study? s = _processor.ProcessData(jsonString, rec.last_downloaded, _loggingHelper);
 
                     if (s is not null)
                     {

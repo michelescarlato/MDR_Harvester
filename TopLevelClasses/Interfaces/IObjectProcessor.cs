@@ -2,7 +2,8 @@
 
 public interface IObjectProcessor
 {
-    public FullDataObject? ProcessData(string json_string, DateTime? download_datetime);
+    public FullDataObject? ProcessData(string json_string, DateTime? download_datetime, 
+                          ILoggingHelper _loggingHelper_helper);
 
 }
 

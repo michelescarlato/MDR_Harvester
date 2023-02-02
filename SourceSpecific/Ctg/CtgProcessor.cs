@@ -7,14 +7,7 @@ namespace MDR_Harvester.Ctg;
 
 public class CTGProcessor : IStudyProcessor
 {
-    readonly ILoggingHelper _logging_helper;
-
-    public CTGProcessor(ILoggingHelper logging_helper)
-    {
-            _logging_helper = logging_helper;
-    }
-
-    public Study? ProcessData(string json_string, DateTime? download_datetime)
+    public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper)
     {
         // set up json reader and deserialise file to a ISRCTN_Record object.
 

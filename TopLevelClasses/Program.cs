@@ -32,28 +32,30 @@ IHost host = Host.CreateDefaultBuilder()
     services.AddSingleton<ICredentials, Credentials>();
     services.AddSingleton<ILoggingHelper, LoggingHelper>();
     services.AddSingleton<IMonDataLayer, MonDataLayer>();
-    services.AddSingleton<IHarvester, Harvester>();
+    services.AddSingleton<ITestDataLayer, TestDataLayer>();    
     services.AddSingleton<IStorageDataLayer, StorageDataLayer>();
     services.AddSingleton<IStudyCopyHelpers, StudyCopyHelpers>();
     services.AddSingleton<IObjectCopyHelpers, ObjectCopyHelpers>();
-    services.AddSingleton<ITestingDataLayer, TestingDataLayer>();
+
 })
 .Build();
 
-
 // Establish loggingHelper, at this stage as an object reference
 // because the log file(s) are yet to be opened.
-// Establish a new parameter checker class.
+// Establish the repository classes using the services above.
 
 LoggingHelper logging_helper = ActivatorUtilities.CreateInstance<LoggingHelper>(host.Services);
-ParameterChecker paramChecker = ActivatorUtilities.CreateInstance<ParameterChecker>(host.Services);
+MonDataLayer monDataLayer = ActivatorUtilities.CreateInstance<MonDataLayer>(host.Services);
+TestDataLayer testDataLayer = ActivatorUtilities.CreateInstance<TestDataLayer>(host.Services);
+StorageDataLayer storageDataLayer = ActivatorUtilities.CreateInstance<StorageDataLayer>(host.Services);
 
-// The parameter checker first checks if the program's arguments 
+// A parameter checker is instantiated and first checks if the program's arguments 
 // can be parsed and if they can then checks if they are valid.
 // If both tests are passed the object returned includes both the
 // original arguments and the 'source' object with details of the
 // single data source being downloaded. 
 
+ParameterChecker paramChecker = new(logging_helper, monDataLayer, testDataLayer);
 ParamsCheckResult paramsCheck = paramChecker.CheckParams(args);
 if (paramsCheck.ParseError || paramsCheck.ValidityError)
 {
@@ -69,14 +71,14 @@ if (paramsCheck.ParseError || paramsCheck.ValidityError)
 try
 {
     var opts = paramsCheck.Pars!;
-    Harvester harvester = ActivatorUtilities.CreateInstance<Harvester>(host.Services);
+    Harvester harvester = new(logging_helper, monDataLayer, testDataLayer, storageDataLayer);
     harvester.Run(opts);
     return 0;
 }
 catch (Exception e)
 {
-    // If an error bubbles up to here there is an issue with the code.
-    // A file should normally have been created.
+    // If an error bubbles up to here there is an unexpected issue with the code.
+    // A file should normally have been created (but just in case...).
 
     if (logging_helper.LogFilePath == "")
     {

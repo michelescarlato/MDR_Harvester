@@ -22,9 +22,10 @@ public class LoggingHelper : ILoggingHelper
         _logfileStartOfPath = settings["logfilepath"] ?? "";
         _summaryLogfileStartOfPath = settings["summaryfilepath"] ?? "";
     }
+    
+    // Used to check if a log file with a named source has been created.
 
     public string LogFilePath => _logfilePath;
-
     
     public void OpenLogFile(string databaseName)
     {
@@ -38,6 +39,8 @@ public class LoggingHelper : ILoggingHelper
         }
         
         string log_file_name = "HV " + databaseName + " " + dt_string + ".log";
+        
+        
         _logfilePath = Path.Combine(log_folder_path, log_file_name);
         _summaryLogfilePath = Path.Combine(_summaryLogfileStartOfPath, log_file_name);
         _sw = new StreamWriter(_logfilePath, true, System.Text.Encoding.UTF8);
@@ -89,7 +92,15 @@ public class LoggingHelper : ILoggingHelper
         Transmit(feedback);
     }
 
+    public void LogHeader(string message)
+    {
+        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
+        string header = dt_prefix + "**** " + message.ToUpper().ToUpper() + " ****";
+        Transmit("");
+        Transmit(header);
+    }
 
+    
     public void LogStudyHeader(Options opts, string studyName)
     {
         int harvest_type = opts.harvest_type_id;
@@ -110,38 +121,28 @@ public class LoggingHelper : ILoggingHelper
     }
 
 
-    public void LogHeader(string message)
-    {
-        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
-        string header = dt_prefix + "**** " + message.ToUpper().ToUpper() + " ****";
-        Transmit("");
-        Transmit(header);
-    }
-
-
     public void LogError(string message)
     {
         string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
         string error_message = dt_prefix + "***ERROR*** " + message;
-        Transmit("");
-        Transmit("+++++++++++++++++++++++++++++++++++++++");
-        Transmit(error_message);
-        Transmit("+++++++++++++++++++++++++++++++++++++++");
-        Transmit("");
+        LogLine("");
+        LogLine("+++++++++++++++++++++++++++++++++++++++");
+        LogLine(error_message);
+        LogLine("+++++++++++++++++++++++++++++++++++++++");
+        LogLine("");
     }
 
 
     public void LogCodeError(string header, string errorMessage, string? stackTrace)
     {
-        string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
-        string headerMessage = dt_prefix + "***ERROR*** " + header + "\n";
-        Transmit("");
-        Transmit("+++++++++++++++++++++++++++++++++++++++");
-        Transmit(headerMessage);
-        Transmit(errorMessage + "\n");
-        Transmit(stackTrace ?? "");
-        Transmit("+++++++++++++++++++++++++++++++++++++++");
-        Transmit("");
+        string headerMessage = "***ERROR*** " + header;
+        LogLine("");
+        LogLine("+++++++++++++++++++++++++++++++++++++++");
+        LogLine(headerMessage);
+        LogLine(errorMessage + "\n");
+        LogLine(stackTrace ?? "");
+        LogLine("+++++++++++++++++++++++++++++++++++++++");
+        LogLine("");
     }
  
 
@@ -149,7 +150,7 @@ public class LoggingHelper : ILoggingHelper
     {
         string dt_prefix = DateTime.Now.ToShortDateString() + " : " + DateTime.Now.ToShortTimeString() + " :   ";
         string error_message = dt_prefix + "***ERROR*** " + "Error " + errorNum + ": " + header + " "  + errorType;
-        Transmit(error_message);
+        LogLine(error_message);
     }
 
 
@@ -214,9 +215,12 @@ public class LoggingHelper : ILoggingHelper
     
     public void CloseLog()
     {
-        LogHeader("Closing Log");
-        _sw?.Flush();
-        _sw?.Close();
+        if (_sw is not null)
+        {
+            LogHeader("Closing Log");
+            _sw.Flush();
+            _sw.Close();
+        }
         
         // Write out the summary file.
         

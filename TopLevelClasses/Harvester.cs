@@ -8,42 +8,44 @@ using MDR_Harvester.Yoda;
 
 namespace MDR_Harvester;
 
-class Harvester : IHarvester
+class Harvester
 {
-    private readonly ILoggingHelper _logging_helper;
-    private readonly IMonDataLayer _monDataLayer;
-    private readonly IStorageDataLayer _storageDataLayer;
-    private readonly ITestingDataLayer _testDataLayer;
 
-    public Harvester(ILoggingHelper logging_helper, IMonDataLayer monDataLayer, IStorageDataLayer storageDataLayer, 
-                     ITestingDataLayer testDataLayer)
+    private readonly ILoggingHelper _loggingHelper;    
+    private readonly IMonDataLayer _monDataLayer;
+    private readonly ITestDataLayer _testDataLayer;
+    private readonly IStorageDataLayer _storageDataLayer;
+
+
+    public Harvester(ILoggingHelper logging_helper, IMonDataLayer monDataLayer, 
+        ITestDataLayer testDataLayer, IStorageDataLayer storageDataLayer)
     {
-        _logging_helper = logging_helper;
+        _loggingHelper = logging_helper;
         _monDataLayer = monDataLayer;
+        _testDataLayer = testDataLayer;       
         _storageDataLayer = storageDataLayer;
-        _testDataLayer = testDataLayer;
     }
 
-    public int Run(Options opts)
+    public void Run(Options opts)
     {
         try
         {
+            // Simply harvest the data for each listed source.
+                
             foreach (int source_id in opts.source_ids!)
             {
                 // Obtain source details, augment with connection string for this database
+                // Open up the logging file for this source and then call the main 
+                // harvest routine. After initial checks source is guaranteed to be non-null.
                 
                 Source source = _monDataLayer.FetchSourceParameters(source_id);
                 string dbName = source.database_name!;
                 source.db_conn = _monDataLayer.GetConnectionString(dbName, opts.harvest_type_id);
 
-                // Establish and begin the loggingHelper helper for this harvest
-
-                _logging_helper.OpenLogFile(dbName);
-                _logging_helper.LogCommandLineParameters(opts);
-                _logging_helper.LogHeader("STARTING HARVESTER");
-                _logging_helper.LogStudyHeader(opts, "For source: " + source.id + ": " + dbName);
-
-                // Call the main routine to do the harvesting, if not just a context data update
+                _loggingHelper.OpenLogFile(dbName);
+                _loggingHelper.LogCommandLineParameters(opts);
+                _loggingHelper.LogHeader("STARTING HARVESTER");
+                _loggingHelper.LogStudyHeader(opts, "For source: " + source.id + ": " + dbName);
 
                 HarvestData(source, opts);
 
@@ -60,22 +62,19 @@ class Harvester : IHarvester
                     }
                     else
                     {
-                        _logging_helper.LogTableStatistics(source, "sd");
+                        _loggingHelper.LogTableStatistics(source, "sd");
                     }
                 }
 
-                _logging_helper.CloseLog();
+                _loggingHelper.CloseLog();
             }
-
-            return 0;
         }
 
         catch (Exception e)
         {
-            _logging_helper.LogHeader("UNHANDLED EXCEPTION");
-            _logging_helper.LogCodeError("Harvester application aborted", e.Message, e.StackTrace);
-            _logging_helper.CloseLog();
-            return -1;
+            _loggingHelper.LogHeader("UNHANDLED EXCEPTION");
+            _loggingHelper.LogCodeError("Harvester application aborted", e.Message, e.StackTrace);
+            _loggingHelper.CloseLog();
         }
     }
 
@@ -94,8 +93,8 @@ class Harvester : IHarvester
         {
             // Otherwise... Construct the sd tables. (Some sources may be data objects only.)
 
-            _logging_helper.LogHeader("Recreate database tables");
-            SchemaBuilder sdb = new(source, _logging_helper);
+            _loggingHelper.LogHeader("Recreate database tables");
+            SchemaBuilder sdb = new(source, _loggingHelper);
             sdb.RecreateTables();
 
             // Construct the harvest_event record.
@@ -103,11 +102,11 @@ class Harvester : IHarvester
             int source_id = source.id ?? 0;
             int harvest_id = _monDataLayer.GetNextHarvestEventId();
             HarvestEvent harvest = new(harvest_id, source_id, opts.harvest_type_id);
-            _logging_helper.LogLine("Harvest event " + harvest_id.ToString() + " began");
+            _loggingHelper.LogLine("Harvest event " + harvest_id.ToString() + " began");
 
             // Harvest the data from the local JSON files.
 
-            _logging_helper.LogHeader("Process data");
+            _loggingHelper.LogHeader("Process data");
             IStudyProcessor? study_processor = null;
             IObjectProcessor? object_processor = null;
             harvest.num_records_available = _monDataLayer.FetchFullFileCount(source_id, source.source_type!, opts.harvest_type_id);
@@ -116,61 +115,47 @@ class Harvester : IHarvester
             {
                 if (source.uses_who_harvest is true)
                 {
-                    study_processor = new WHOProcessor(_logging_helper);
+                    study_processor = new WHOProcessor();
                 }
                 else
                 {
-                    switch (source.id)
+                    if (source.id is 101900)
                     {
-                        case 101900:
-                            {
-                                study_processor = new BioLinccProcessor(_logging_helper);
-                                break;
-                            }
-                        case 101901:
-                            {
-                                study_processor = new YodaProcessor(_logging_helper);
-                                break;
-                            }
-                        case 100120:
-                            {
-                                study_processor = new CTGProcessor(_logging_helper);
-                                break;
-                            }
-                        case 100123:
-                            {
-                                study_processor = new EUCTRProcessor(_logging_helper);
-                                break;
-                            }
-                        case 100126:
-                            {
-                                study_processor = new IsrctnProcessor(_logging_helper);
-                                break;
-                            }
+                        study_processor = new BioLinccProcessor();
                     }
+                    else if (source.id is 101901)
+                    {
+                        study_processor = new YodaProcessor();
+                    }
+                    else if (source.id is 100120)
+                    {
+                        study_processor = new CTGProcessor();
+                    } 
+                    else if (source.id is 100123)
+                    {
+                        study_processor = new EUCTRProcessor();
+                    } 
+                    else if (source.id is 100126)
+                    {
+                        study_processor = new IsrctnProcessor();
+                    } 
                 }
-
                 if (study_processor is not null)
                 {
-                    StudyController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source, study_processor);
+                    StudyController c = new(_loggingHelper, _monDataLayer, _storageDataLayer, source, study_processor);
                     harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
                 }
             }
             else
             {
-                // source type is 'object'
-                switch (source.id)
+                // Source type is 'object'.
+                if (source.id is 100135)
                 {
-                    case 100135:
-                        {
-                            object_processor = new PubmedProcessor(_logging_helper);
-                            break;
-                        }
+                    object_processor = new PubmedProcessor();
                 }
-
                 if (object_processor is not null)
                 {
-                    ObjectController c = new(_logging_helper, _monDataLayer, _storageDataLayer, source,
+                    ObjectController c = new(_loggingHelper, _monDataLayer, _storageDataLayer, source,
                         object_processor);
                     harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
                 }
@@ -179,9 +164,9 @@ class Harvester : IHarvester
             harvest.time_ended = DateTime.Now;
             _monDataLayer.StoreHarvestEvent(harvest);
 
-            _logging_helper.LogLine("Number of source JSON files: " + harvest.num_records_available.ToString());
-            _logging_helper.LogLine("Number of files harvested: " + harvest.num_records_harvested.ToString());
-            _logging_helper.LogLine("Harvest event " + harvest_id.ToString() + " ended");
+            _loggingHelper.LogLine("Number of source JSON files: " + harvest.num_records_available.ToString());
+            _loggingHelper.LogLine("Number of files harvested: " + harvest.num_records_harvested.ToString());
+            _loggingHelper.LogLine("Harvest event " + harvest_id.ToString() + " ended");
         }
     }
 }
