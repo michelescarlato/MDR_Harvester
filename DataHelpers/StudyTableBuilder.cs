@@ -177,12 +177,12 @@ public class StudyTableBuilder
           , sd_sid                 VARCHAR         NOT NULL
           , topic_type_id          INT             NULL
           , topic_type             VARCHAR         NULL
-          , mesh_coded             BOOLEAN         NULL
+          , original_value         VARCHAR         NULL 
+          , original_ct_type_id    INT             NULL
+          , original_ct_type       VARCHAR         NULL
+          , original_ct_code       VARCHAR         NULL 
           , mesh_code              VARCHAR         NULL
           , mesh_value             VARCHAR         NULL
-          , original_ct_id         INT             NULL
-          , original_ct_code       VARCHAR         NULL
-          , original_value         VARCHAR         NULL
         );
         CREATE INDEX study_topics_sd_sid ON sd.study_topics(sd_sid);";
 
