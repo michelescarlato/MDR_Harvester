@@ -4,15 +4,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MDR_Harvester;
 
-string AssemblyLocation = Assembly.GetExecutingAssembly().Location;
-string? BasePath = Path.GetDirectoryName(AssemblyLocation);
-if (string.IsNullOrWhiteSpace(BasePath))
+string assemblyLocation = Assembly.GetExecutingAssembly().Location;
+string? basePath = Path.GetDirectoryName(assemblyLocation);
+if (string.IsNullOrWhiteSpace(basePath))
 {
     return -1;
 }
 
 var configFiles = new ConfigurationBuilder()
-.SetBasePath(BasePath)
+.SetBasePath(basePath)
 .AddJsonFile("appsettings.json")
 .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true)
 .Build();
@@ -22,7 +22,7 @@ var configFiles = new ConfigurationBuilder()
 // Note ALL listed services are singletons.
 
 IHost host = Host.CreateDefaultBuilder()
-.UseContentRoot(BasePath)
+.UseContentRoot(basePath)
 .ConfigureAppConfiguration(builder =>
 {
     builder.AddConfiguration(configFiles);
@@ -44,7 +44,7 @@ IHost host = Host.CreateDefaultBuilder()
 // because the log file(s) are yet to be opened.
 // Establish the repository classes using the services above.
 
-LoggingHelper logging_helper = ActivatorUtilities.CreateInstance<LoggingHelper>(host.Services);
+LoggingHelper loggingHelper = ActivatorUtilities.CreateInstance<LoggingHelper>(host.Services);
 MonDataLayer monDataLayer = ActivatorUtilities.CreateInstance<MonDataLayer>(host.Services);
 TestDataLayer testDataLayer = ActivatorUtilities.CreateInstance<TestDataLayer>(host.Services);
 StorageDataLayer storageDataLayer = ActivatorUtilities.CreateInstance<StorageDataLayer>(host.Services);
@@ -55,7 +55,7 @@ StorageDataLayer storageDataLayer = ActivatorUtilities.CreateInstance<StorageDat
 // original arguments and the 'source' object with details of the
 // single data source being downloaded. 
 
-ParameterChecker paramChecker = new(logging_helper, monDataLayer, testDataLayer);
+ParameterChecker paramChecker = new(loggingHelper, monDataLayer, testDataLayer);
 ParamsCheckResult paramsCheck = paramChecker.CheckParams(args);
 if (paramsCheck.ParseError || paramsCheck.ValidityError)
 {
@@ -71,7 +71,7 @@ if (paramsCheck.ParseError || paramsCheck.ValidityError)
 try
 {
     var opts = paramsCheck.Pars!;
-    Harvester harvester = new(logging_helper, monDataLayer, testDataLayer, storageDataLayer);
+    Harvester harvester = new(loggingHelper, monDataLayer, testDataLayer, storageDataLayer);
     harvester.Run(opts);
     return 0;
 }
@@ -80,13 +80,13 @@ catch (Exception e)
     // If an error bubbles up to here there is an unexpected issue with the code.
     // A file should normally have been created (but just in case...).
 
-    if (logging_helper.LogFilePath == "")
+    if (loggingHelper.LogFilePath == "")
     {
-        logging_helper.OpenNoSourceLogFile();
+        loggingHelper.OpenNoSourceLogFile();
     }
-    logging_helper.LogHeader("UNHANDLED EXCEPTION");
-    logging_helper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace);
-    logging_helper.CloseLog();
+    loggingHelper.LogHeader("UNHANDLED EXCEPTION");
+    loggingHelper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace);
+    loggingHelper.CloseLog();
     return -1;
 }
 
