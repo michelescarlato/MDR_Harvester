@@ -5,7 +5,7 @@ namespace MDR_Harvester;
 
 class ExpectedDataBuilder
 {
-    string _db_conn;
+    private readonly string _db_conn;
 
     public ExpectedDataBuilder(string db_conn)
     {
@@ -15,20 +15,16 @@ class ExpectedDataBuilder
 
     public void Execute_SQL(string sql_string)
     {
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            conn.Execute(sql_string);
-        }
+        using var conn = new NpgsqlConnection(_db_conn);
+        conn.Execute(sql_string);
     }
 
 
     private void LoadStudyData(string study_id)
     {
         string sp_call = "call expected.study_" + study_id + "();";
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            conn.Execute(sp_call);
-        }
+        using var conn = new NpgsqlConnection(_db_conn);
+        conn.Execute(sp_call);
     }
 
 
@@ -37,10 +33,8 @@ class ExpectedDataBuilder
         // Used for Pubmed data
 
         string sp_call = "call expected.object_" + object_id + "();";
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            conn.Execute(sp_call);
-        }
+        using var conn = new NpgsqlConnection(_db_conn);
+        conn.Execute(sp_call);
     }
 
     public void InitialiseTestStudiesList()

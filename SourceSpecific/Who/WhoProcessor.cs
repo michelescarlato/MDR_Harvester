@@ -59,7 +59,7 @@ public class WHOProcessor : IStudyProcessor
         int? source_id = r.source_id;
         string? source_name = wh.GetSourceName(source_id);
 
-        // Do inital identifier representing the registry id.
+        // Do initial identifier representing the registry id.
 
         SplitDate? registration_date = null;
         //string? date_registration = r.date_registration;  
@@ -71,7 +71,7 @@ public class WHOProcessor : IStudyProcessor
         identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", source_id,
                                     source_name, registration_date?.date_string, null));
 
-        // Obtain piublic and scientific titles. In some cases these are acronyms.
+        // Obtain public and scientific titles. In some cases these are acronyms.
 
         string? public_title = r.public_title;
         bool public_title_present = public_title.AppearsGenuineTitle();
@@ -135,7 +135,7 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(interventions))
         {
             if (!interventions.ToLower().Contains("not applicable") && !interventions.ToLower().Contains("not selected")
-                && !(interventions.ToLower() == "n/a") && !(interventions.ToLower() == "na"))
+                && interventions.ToLower() != "n/a" && interventions.ToLower() != "na")
             {
                 interventions = interventions.StringClean();
                 if (!interventions!.ToLower().StartsWith("intervention"))
@@ -151,7 +151,7 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(primary_outcome))
         {
             if (!primary_outcome.ToLower().Contains("not applicable") && !primary_outcome.ToLower().Contains("not selected")
-                && !(primary_outcome.ToLower() == "n/a") && !(primary_outcome.ToLower() == "na"))
+                && primary_outcome.ToLower() != "n/a" && primary_outcome.ToLower() != "na")
             {
                 primary_outcome = primary_outcome.StringClean();
                 if (!primary_outcome!.ToLower().StartsWith("primary"))
@@ -167,7 +167,7 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(design_string))
         {
             if (!design_string.ToLower().Contains("not applicable") && !design_string.ToLower().Contains("not selected")
-                && !(design_string.ToLower() == "n/a") && !(design_string.ToLower() == "na"))
+                && design_string.ToLower() != "n/a" && design_string.ToLower() != "na")
             {
                 design_string = design_string.StringClean();
                 if (!design_string!.ToLower().StartsWith("primary"))
@@ -457,11 +457,11 @@ public class WHOProcessor : IStudyProcessor
         {
             foreach(var f in study_feats)
             { 
-                int? ftype_id = f.ftype_id;
-                string? ftype = f.ftype;
-                int? fvalue_id = f.fvalue_id;
-                string? fvalue = f.fvalue;
-                features.Add(new StudyFeature(sid, ftype_id, ftype, fvalue_id, fvalue));
+                int? f_type_id = f.f_type_id;
+                string? f_type = f.f_type;
+                int? f_value_id = f.f_value_id;
+                string? f_value = f.f_value;
+                features.Add(new StudyFeature(sid, f_type_id, f_type, f_value_id, f_value));
             }
         }
 
@@ -546,10 +546,10 @@ public class WHOProcessor : IStudyProcessor
                 if (!string.IsNullOrEmpty(con))
                 {
                     char[] chars_to_trim = { ' ', '?', ':', '*', '/', '-', '_', '+', '=', '>', '<', '&' };
-                    string contrim = con.Trim(chars_to_trim);
-                    if (!string.IsNullOrEmpty(contrim) && contrim.ToLower() != "not applicable" && contrim.ToLower() != "&quot")
+                    string con_trim = con.Trim(chars_to_trim);
+                    if (!string.IsNullOrEmpty(con_trim) && con_trim.ToLower() != "not applicable" && con_trim.ToLower() != "&quot")
                     {
-                        if (condition_is_new(contrim))
+                        if (condition_is_new(con_trim))
                         {
                             string? code = cn.code;
                             string? code_system = cn.code_system;
@@ -558,13 +558,13 @@ public class WHOProcessor : IStudyProcessor
 
                             if (code is null)
                             {
-                                conditions.Add(new StudyCondition(sid, contrim, null, null));
+                                conditions.Add(new StudyCondition(sid, con_trim, null, null));
                             }
                             else
                             {
                                 if (code_system == "ICD 10")
                                 {
-                                    conditions.Add(new StudyCondition(sid, contrim, 12, cn.code));
+                                    conditions.Add(new StudyCondition(sid, con_trim, 12, cn.code));
                                 }
                             }
                         }
@@ -777,17 +777,17 @@ public class WHOProcessor : IStudyProcessor
                     country_name = country_name.Replace("only ", "").Replace("Only in ", "");
                     country_name = country_name.Replace(" only", "").Replace(" Only", "");
 
-                    var clower = country_name.ToLower();
-                    if (clower.Length > 1 && clower != "na"
-                        && clower != "n a" && clower != "other" && clower != "nothing"
-                        && clower != "not applicable" && clower != "not provided"
-                        && clower != "etc" && clower != "Under selecting")
+                    string c_lower = country_name.ToLower();
+                    if (c_lower.Length > 1 && c_lower != "na"
+                                           && c_lower != "n a" && c_lower != "other" && c_lower != "nothing"
+                                           && c_lower != "not applicable" && c_lower != "not provided"
+                                           && c_lower != "etc" && c_lower != "Under selecting")
                     {
-                        if (clower != "none" && clower != "nnone"
-                            && clower != "mone" && clower != "none."
-                            && clower != "non" && clower != "noe"
-                            && clower != "no country" && clower != "many"
-                            && clower != "north" && clower != "south")
+                        if (c_lower != "none" && c_lower != "nnone"
+                                              && c_lower != "mone" && c_lower != "none."
+                                              && c_lower != "non" && c_lower != "noe"
+                                              && c_lower != "no country" && c_lower != "many"
+                                              && c_lower != "north" && c_lower != "south")
                         {
                             // The following can have misleading commas inside a name, that
                             // need to be removed before the string is split on the commas.
@@ -808,13 +808,13 @@ public class WHOProcessor : IStudyProcessor
                             if (country_name.Contains(","))
                             {
                                 string[] country_list = country_name.Split(",");
-                                for (int i = 0; i < country_list.Length; i++)
+                                foreach (var t in country_list)
                                 {
-                                    string ci = country_list[i].Trim();
+                                    string ci = t.Trim();
                                     string cil = ci.ToLower();
                                     if (!cil.Contains("other") && !cil.Contains("countries")
-                                        && cil != "islamic republic of"
-                                        && cil != "republic of")
+                                                               && cil != "islamic republic of"
+                                                               && cil != "republic of")
                                     {
                                         countries.Add(new StudyCountry(sid, ci));
                                     }
@@ -865,8 +865,8 @@ public class WHOProcessor : IStudyProcessor
             foreach (StudyOrganisation g in organisations)
             {
                 bool add = true;
-                string? orgname = g.organisation_name?.ToLower();
-                if (orgname is not null && orgname.IsAnIndividual())
+                string? org_name = g.organisation_name?.ToLower();
+                if (org_name is not null && org_name.IsAnIndividual())
                 {
                     string? person_full_name = g.organisation_name.TidyPersonName();
                     if (person_full_name is not null)

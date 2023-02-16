@@ -38,7 +38,7 @@ public class Yoda_Record
         sd_sid = sm.sd_sid;
         registry_id = sm.registry_id ?? "";
         yoda_title = sm.study_name;
-        is_yoda_only = (registry_id.StartsWith("NCT") || registry_id.StartsWith("ISRCTN")) ? false : true;
+        is_yoda_only = !registry_id.StartsWith("NCT") && !registry_id.StartsWith("ISRCTN");
         remote_url = sm.details_link;
     }
 }

@@ -54,7 +54,7 @@ public static class EuctrExtensions
         }
 
         string ms_lc = member_state.ToLower();
-        string seclang = ms_lc switch
+        string sec_lang = ms_lc switch
         {
             _ when ms_lc.Contains("spain")
                    || ms_lc.Contains("span") => "es",
@@ -91,7 +91,7 @@ public static class EuctrExtensions
             _ => "??"
         };
 
-        return seclang;
+        return sec_lang;
     }
     
     public static bool IsAnIndividual(this string? org_name)
@@ -142,10 +142,10 @@ public static class EuctrExtensions
         }
         
         bool is_an_organisation = false;
-        string fname = full_name.ToLower();
-        if (fname.Contains(" group") || fname.StartsWith("group") ||
-            fname.Contains(" assoc") || fname.Contains(" team") ||
-            fname.Contains("collab") || fname.Contains("network"))
+        string f_name = full_name.ToLower();
+        if (f_name.Contains(" group") || f_name.StartsWith("group") ||
+            f_name.Contains(" assoc") || f_name.Contains(" team") ||
+            f_name.Contains("collab") || f_name.Contains("network"))
         {
             is_an_organisation = true;
         }

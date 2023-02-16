@@ -150,7 +150,7 @@ public class StorageDataLayer : IStorageDataLayer
             {
                 target_table = "study_iec_pre12";
             }
-            else if (study_start_year >= 2013 && study_start_year <= 2019)
+            else if (study_start_year is >= 2013 and <= 2019)
             {
                 target_table = "study_iec_13to19";
             }
@@ -161,7 +161,7 @@ public class StorageDataLayer : IStorageDataLayer
         }
         else if (storage_type == "By Years")
         {
-            if (study_start_year is null || study_start_year > 2030)
+            if (study_start_year is null or > 2030)
             {
                 target_table = "study_iec_null";
             }
@@ -169,7 +169,7 @@ public class StorageDataLayer : IStorageDataLayer
             {
                 target_table = "study_iec_pre06";
             }
-            else if (study_start_year >= 2006 && study_start_year <= 2008)
+            else if (study_start_year is >= 2006 and <= 2008)
             {
                 target_table = "study_iec_0608";
             } 

@@ -61,9 +61,7 @@ public class IECHelpers
                 Regex recrit1 = new Regex(@"^\d{1,2}\.");
 
                 int level = 0;
-                string hdr_name;
-                string old_hdr_name = "none";
-                string regex_pattern, leader, clipped_line;
+                string oldHdrName = "none";
                 List<Level> levels = new(){new Level("none", 0)}; 
                
                 for (int i = 0; i < lines.Length; i++)
@@ -76,138 +74,140 @@ public class IECHelpers
                         this_line = this_line.Replace(",.", ".");
                         this_line = this_line.Replace("\n\n", "\n");
 
+                        string hdrName;
+                        string regex_pattern;
                         if (recrit.IsMatch(this_line)) //  Number period and space  1. , 2. 
                         {
-                            hdr_name = "recrit";
+                            hdrName = "recrit";
                             regex_pattern = @"^\d{1,2}\. ";
                         }
                         else if (resh.IsMatch(this_line)) // Numeric Sub-heading. N.n.
                         {
-                            hdr_name = "resh";
+                            hdrName = "resh";
                             regex_pattern = @"^\d{1,2}\.\d{1,2}\.";
                         }
                         else if (resh1.IsMatch(this_line)) // Numeric Sub-heading (without final period) N.n
                         {
-                            hdr_name = "resh1";
+                            hdrName = "resh1";
                             regex_pattern = @"^\d{1,2}\.\d{1,2} ";
                         }
                         else if (ressh.IsMatch(this_line)) // Numeric Sub-sub-heading. N.n.n.
                         {
-                            hdr_name = "ressh";
+                            hdrName = "ressh";
                             regex_pattern = @"^\d{1,2}\.\d{1,2}\.\d{1,2}\.";
                         }
                         else if (reha.IsMatch(this_line)) // Alpha heading. a., b.
                         {
-                            hdr_name = "reha";
+                            hdrName = "reha";
                             regex_pattern = @"^[a-z]{1}\.";
                         }
                         else if (rehab.IsMatch(this_line)) // Alpha heading. a), b)
                         {
-                            hdr_name = "rehab";
+                            hdrName = "rehab";
                             regex_pattern = @"^[a-z]{1}\)";
                         }
                         else if (renha.IsMatch(this_line)) // Number plus letter - Na, Nb
                         {
-                            hdr_name = "renha";
+                            hdrName = "renha";
                             regex_pattern = @"^\d{1,2}[a-z]{1} ";
                         }
                         else if (retab1.IsMatch(this_line)) // Hyphen followed by tab, -\t, -\t 
                         {
-                            hdr_name = "retab1";
+                            hdrName = "retab1";
                             regex_pattern = @"^-\t";
                         }
                         else if (retab2.IsMatch(this_line)) // Number followed by tab, -\1, -\2 
                         {
-                            hdr_name = "retab2";
+                            hdrName = "retab2";
                             regex_pattern = @"^\d{1,2}\t"; 
                         }
                         else if (retab3.IsMatch(this_line)) // Unknown character followed by tab
                         {
-                            hdr_name = "retab3";
+                            hdrName = "retab3";
                             regex_pattern = @"^\uF0A7\t";
                         }
                         else if (retab4.IsMatch(this_line)) // Asterisk followed by tab
                         {
-                            hdr_name = "retab4";
+                            hdrName = "retab4";
                             regex_pattern = @"^\*\t";
                         }
                         else if (retab5.IsMatch(this_line)) // Alpha-period followed by tab   a.\t, b.\t
                         {
-                            hdr_name = "retab5";
+                            hdrName = "retab5";
                             regex_pattern = @"^[a-z]\.\t";
                         }
                         else if (rebrnum.IsMatch(this_line)) // Bracketed numbers (1), (2)
                         {
-                            hdr_name = "rebrnum";
+                            hdrName = "rebrnum";
                             regex_pattern = @"^\(\d{1,2}\)";
                         }
                         else if (restar.IsMatch(this_line)) //  Asterisk only
                         {
-                            hdr_name = "restar";
+                            hdrName = "restar";
                             regex_pattern = @"^\*";
                         }
                         else if (resbrnum.IsMatch(this_line)) // Alpha-period followed by tab   a.\t, b.\t
                         {
-                            hdr_name = "resbrnum";
+                            hdrName = "resbrnum";
                             regex_pattern = @"^\d{1,2}\)";
                         }
                         else if (rebrnumdot.IsMatch(this_line)) // Bracketed numbers (1), (2)
                         {
-                            hdr_name = "rebrnumdot";
+                            hdrName = "rebrnumdot";
                             regex_pattern = @"^\d{1,2}\)\.";
                         }
                         else if (resqbrnum.IsMatch(this_line)) //  Asterisk only
                         {
-                            hdr_name = "resqbrnum";
+                            hdrName = "resqbrnum";
                             regex_pattern = @"^\[\d{1,2}\]";
                         }
                         else if (rebull.IsMatch(this_line)) // various bullets
                         {
-                            hdr_name = "rebull";
+                            hdrName = "rebull";
                             regex_pattern = @"^[\u2022,\u2023,\u25E6,\u2043,\u2219]";
                         }
                         else if (rebull1.IsMatch(this_line)) // various bullets
                         {
-                            hdr_name = "rebull1";
+                            hdrName = "rebull1";
                             regex_pattern = @"^[\u2212,\u2666,\u00B7,\uF0B7]";
                         }
                         else if (reso.IsMatch(this_line)) // various bullets
                         {
-                            hdr_name = "reso";
+                            hdrName = "reso";
                             regex_pattern = @"^o ";
                         }
                         else if (reslat.IsMatch(this_line)) // various bullets
                         {
-                            hdr_name = "reslat";
+                            hdrName = "reslat";
                             regex_pattern = @"^x{0,3}(ix|iv|v?i{0,3})\)";
                         }
                         else if (redash.IsMatch(this_line)) //  Asterisk only
                         {
-                            hdr_name = "redash";
+                            hdrName = "redash";
                             regex_pattern = @"^-";
                         }
                         else if (recrit1.IsMatch(this_line)) //  Number period only - can (rarely) give false positives
                         {
-                            hdr_name = "recrit1";
+                            hdrName = "recrit1";
                             regex_pattern = @"^\d{1,2}\.";
                         }
                         else
                         {
-                            hdr_name = "none";
+                            hdrName = "none";
                             regex_pattern = @"";
                         }
                         
                        
-                        if (hdr_name != "none")
+                        if (hdrName != "none")
                         { 
-                            if (hdr_name != old_hdr_name)
+                            if (hdrName != oldHdrName)
                             {
-                                level = GetLevel(hdr_name, levels);
+                                level = GetLevel(hdrName, levels);
                             }
                             levels[level].levelNum++;
 
-                            leader = Regex.Match(this_line, regex_pattern).Value;
-                            clipped_line = Regex.Replace(this_line, regex_pattern, string.Empty).Trim();
+                            string leader = Regex.Match(this_line, regex_pattern).Value;
+                            string clipped_line = Regex.Replace(this_line, regex_pattern, string.Empty).Trim();
                             cr.Add(new Criterion(i + 1, leader, level, levels[level].levelNum,
                                 single_crit, single_type, clipped_line));
                         }
@@ -225,7 +225,7 @@ public class IECHelpers
                             }
                         }
                         
-                        old_hdr_name = hdr_name;
+                        oldHdrName = hdrName;
                     }
                 }
                 

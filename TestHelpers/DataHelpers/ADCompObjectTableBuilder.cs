@@ -5,7 +5,7 @@ namespace MDR_Harvester;
 
 public class ADCompObjectTableBuilder
 {
-    string _db_conn;
+    private readonly string _db_conn;
 
     public ADCompObjectTableBuilder(string db_conn)
     {
@@ -14,10 +14,8 @@ public class ADCompObjectTableBuilder
 
     private void Execute_SQL(string sql_string)
     {
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            conn.Execute(sql_string);
-        }
+        using var conn = new NpgsqlConnection(_db_conn);
+        conn.Execute(sql_string);
     }
 
     public void create_table_data_objects()

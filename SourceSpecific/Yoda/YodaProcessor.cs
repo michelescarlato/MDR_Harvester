@@ -210,7 +210,8 @@ public class YodaProcessor : IStudyProcessor
             conditions.Add(new StudyCondition(sid, conditions_studied, null, null));
         }
 
-        // create study references (pmids)
+        // Create study references (pmids).
+        
         var refs = r.study_references;
         if (refs?.Any() is true)
         {
@@ -312,7 +313,7 @@ public class YodaProcessor : IStudyProcessor
                         }
                         else
                         {
-                            string access_details = "The YODA Project will require that requestors provide basic information about the Principal Investigator, Key Personnel, and the ";
+                            string access_details = "The YODA Project will require that requesters provide basic information about the Principal Investigator, Key Personnel, and the ";
                             access_details += "project Research Proposal, including a scientific abstract and research methods.The YODA Project will review proposals to ensure that: ";
                             access_details += "1) the scientific purpose is clearly described; 2) the data requested will be used to enhance scientific and/or medical knowledge; and ";
                             access_details += "3) the proposed research can be reasonably addressed using the requested data.";

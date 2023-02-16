@@ -59,10 +59,7 @@ public class BioLinccProcessor : IStudyProcessor
         // study display title (= default title) always the biolincc one.
 
         string? title = r.title;
-        if (title is not null)
-        {
-            title = title.ReplaceTags()?.ReplaceApos();
-        }
+        title = title?.ReplaceTags()?.ReplaceApos();
         s.display_title = title;
         titles.Add(new StudyTitle(sid, title, 18, "Other scientific title", true, "From BioLINCC web page"));
 
@@ -70,7 +67,7 @@ public class BioLinccProcessor : IStudyProcessor
         // which will be the CGT name if one exists as this is usually shorter
         // Only possible if the study is not one of those that are in a group,
         // collectively corresponding to a single NCT entry and public title, 
-        // and only for those where an nct entry exists (Some BioLincc studiues are not registered)
+        // and only for those where an nct entry exists (Some BioLincc studies are not registered)
 
         string? nct_name = r.nct_base_name?.ReplaceApos();
         bool in_multiple_biolincc_group = r.in_multiple_biolincc_group is not null && (bool)r.in_multiple_biolincc_group;
@@ -99,7 +96,7 @@ public class BioLinccProcessor : IStudyProcessor
             string first_four = study_period[..4];
             if (first_four == first_four.Trim())
             {
-                if (Int32.TryParse(first_four, out int start_year))
+                if (int.TryParse(first_four, out int start_year))
                 {
                     s.study_start_year = start_year;
                 }
@@ -110,16 +107,16 @@ public class BioLinccProcessor : IStudyProcessor
                     // Is it a month name? - if so, store the number 
                     if (study_period.IndexOf(" ", StringComparison.Ordinal) != -1)
                     {
-                        int spacepos = study_period.IndexOf(" ", StringComparison.Ordinal);
-                        string month_name = study_period[..spacepos];
-                        if (Enum.TryParse<MonthsFull>(month_name, out MonthsFull month_enum))
+                        int space_pos = study_period.IndexOf(" ", StringComparison.Ordinal);
+                        string month_name = study_period[..space_pos];
+                        if (Enum.TryParse(month_name, out MonthsFull month_enum))
                         {
                             // get value...
                             int start_month = (int)month_enum;
 
                             // ...and get next 4 characters - are they a year?
                             // if they are it is the start year
-                            string next_four = study_period.Substring(spacepos + 1, 4);
+                            string next_four = study_period.Substring(space_pos + 1, 4);
                             if (Int32.TryParse(next_four, out start_year))
                             {
                                 s.study_start_month = start_month;
@@ -132,11 +129,11 @@ public class BioLinccProcessor : IStudyProcessor
         }
 
         // Add study attribute records.
-        string? hbli_identifier = r.accession_number;
-        if (hbli_identifier is not null)
+        string? nhbli_identifier = r.accession_number;
+        if (nhbli_identifier is not null)
         {
             // identifier type = NHBLI ID, id = 42, org = National Heart, Lung, and Blood Institute, id = 100167.
-            identifiers.Add(new StudyIdentifier(sid, hbli_identifier, 42, "NHLBI ID", 100167, "National Heart, Lung, and Blood Institute (US)"));
+            identifiers.Add(new StudyIdentifier(sid, nhbli_identifier, 42, "NHLBI ID", 100167, "National Heart, Lung, and Blood Institute (US)"));
         }
 
         // If there is a NCT ID (there usually is...).
@@ -168,11 +165,11 @@ public class BioLinccProcessor : IStudyProcessor
         var rel_studies = r.related_studies;
         if (rel_studies?.Any() is true)
         {
-            foreach (var relstudy in rel_studies)
+            foreach (var rel_study in rel_studies)
             {
                 // relationship is simply 'is related' as no further information is provided
 
-                string? related_study = relstudy.link_text;
+                string? related_study = rel_study.link_text;
                 relationships.Add(new StudyRelationship(sid, 27,
                                     "Has link listed in registry but nature of link unclear", related_study));
             }
@@ -185,15 +182,15 @@ public class BioLinccProcessor : IStudyProcessor
 
         // Get publication year if one exists
         int? pub_year = null;
-        int? pyear = r.publication_year;
-        if (pyear != null && pyear > 0)
+        int? p_year = r.publication_year;
+        if (p_year is > 0)
         {
-            pub_year = pyear;
+            pub_year = p_year;
         }
 
         string? remote_url = r.remote_url;
         string? object_title = "NHLBI web page";
-        string? object_display_title = name_base + " :: " + "NHLBI web page";
+        string object_display_title = name_base + " :: " + "NHLBI web page";
 
         // create Id for the data object
         string sd_oid = sid + " :: 38 :: " + object_title;
@@ -260,7 +257,7 @@ public class BioLinccProcessor : IStudyProcessor
             object_title = "Individual participant data";
             object_display_title = name_base + " :: " + "Individual participant data";
             sd_oid = sid + " :: 80 :: " + object_title;
-            int? dataset_year = last_revised_date is null ? null : ((DateTime)last_revised_date).Year;
+            int? dataset_year = last_revised_date?.Year;
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, dataset_year, 14, "Datasets",
                     80, "Individual participant data", 100167, "National Heart, Lung, and Blood Institute (US)",
@@ -416,7 +413,7 @@ public class BioLinccProcessor : IStudyProcessor
         s.identifiers = identifiers;
         s.references = references2;
         s.organisations = organisations;
-
+        s.relationships = relationships;
         s.data_objects = data_objects;
         s.object_datasets = object_datasets;
         s.object_titles = object_titles;

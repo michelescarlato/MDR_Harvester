@@ -35,9 +35,6 @@ public class BioLincc_Record
     public List<Resource>? resources { get; set; }
     public List<AssocDoc>? assoc_docs { get; set; }
     public List<RelatedStudy>? related_studies { get; set; }
-
-    public BioLincc_Record()
-    { }
 }
 
 
@@ -72,10 +69,10 @@ public class RegistryId
     public string? nct_id { get; set; }
     public string? comment { get; set; }
 
-    public RegistryId(string? _url, string? _nctid, string? _comment)
+    public RegistryId(string? _url, string? _nct_id, string? _comment)
     {
         url = _url;
-        nct_id = _nctid;
+        nct_id = _nct_id;
         comment = _comment;
     }
 

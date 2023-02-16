@@ -71,24 +71,18 @@ public class IsrctnProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(r.scientificTitle))
         {
             string sci_title = r.scientificTitle.ReplaceApos()!;
-            if (s.display_title is null)
-            {
-                s.display_title = sci_title;
-            }
+            s.display_title ??= sci_title;
             titles.Add(new StudyTitle(sid, sci_title, 16, "Registry scientific title", s.display_title == sci_title, "From ISRCTN"));
         }
 
         if (!string.IsNullOrEmpty(r.acronym))
         {
-            if (s.display_title is null)
-            {
-                s.display_title = r.acronym;
-            }
+            s.display_title ??= r.acronym;
             titles.Add(new StudyTitle(sid, r.acronym, 14, "Acronym or Abbreviation", s.display_title == r.acronym, "From ISRCTN"));
         }
 
         // Brief description.
-        // From Plain Englilsh Summary if one available
+        // From Plain English Summary if one available
         // Otherwise try to use the study hypothesis and primary outcome, if available
 
         s.brief_description = r.plainEnglishSummary;
@@ -96,7 +90,7 @@ public class IsrctnProcessor : IStudyProcessor
             || s.brief_description.ToLower().StartsWith("not provided"))
         {
             string hypothesis = r.studyHypothesis.StringClean() ?? "";
-            string poutcome = r.primaryOutcome.StringClean() ?? "";
+            string pri_outcome = r.primaryOutcome.StringClean() ?? "";
             if (hypothesis != "" && !hypothesis.ToLower().StartsWith("not provided"))
             {
                 if (!hypothesis.ToLower().StartsWith("hypothes") && !hypothesis.ToLower().StartsWith("study hyp"))
@@ -105,13 +99,13 @@ public class IsrctnProcessor : IStudyProcessor
                 }
                 s.brief_description = hypothesis;
             }
-            if (poutcome != "" && !poutcome.ToLower().StartsWith("not provided"))
+            if (pri_outcome != "" && !pri_outcome.ToLower().StartsWith("not provided"))
             {
-                if (!poutcome.ToLower().StartsWith("primary") && !poutcome.ToLower().StartsWith("outcome"))
+                if (!pri_outcome.ToLower().StartsWith("primary") && !pri_outcome.ToLower().StartsWith("outcome"))
                 {
-                    poutcome = "Primary outcome: " + poutcome;
+                    pri_outcome = "Primary outcome: " + pri_outcome;
                 }
-                s.brief_description += s.brief_description == "" ? poutcome : "\n" + poutcome;
+                s.brief_description += s.brief_description == "" ? pri_outcome : "\n" + pri_outcome;
             }
         }
 
@@ -168,14 +162,8 @@ public class IsrctnProcessor : IStudyProcessor
                         string? re_date = r.recruitmentEnd;
                         if (DateTime.TryParse(rs_date, culture, DateTimeStyles.None, out DateTime rs_date_dt))
                         {
-                            if (rs_date_dt > DateTime.Now)
-                            {
-                                s.study_status = "Not yet recruiting";
-                            }
-                            else
-                            {
-                                s.study_status = "Recruiting";
-                            }
+                            s.study_status = rs_date_dt > DateTime.Now 
+                                ? "Not yet recruiting" : "Recruiting";
                         }
 
                         // But check if recruiting has now finished.
@@ -223,8 +211,8 @@ public class IsrctnProcessor : IStudyProcessor
                 string? org = stSponsor.organisation;
                 if (org.AppearsGenuineOrgName())
                 {
-                    string? orgname = org.TidyOrgName(sid);
-                    organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, orgname));
+                    string? org_name = org.TidyOrgName(sid);
+                    organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, org_name));
                 }
             }
             if (organisations.Any())
@@ -622,18 +610,18 @@ public class IsrctnProcessor : IStudyProcessor
             if (listed_condition.Contains(","))
             {
                 string[] cons = listed_condition.Split(',');
-                for (int i = 0; i < cons.Length; i++)
+                foreach (var c in cons)
                 {
-                    conds.Add(cons[i]);
+                    conds.Add(c);
                 }
             }
             else if (listed_condition.Contains(";"))
             {
                 // add condition
                 string[] cons = listed_condition.Split(';');
-                for (int i = 0; i < cons.Length; i++)
+                foreach (var c in cons)
                 {
-                    conds.Add(cons[i]);
+                    conds.Add(c);
                 }
             }
             else if (listed_condition.Contains("1.") && listed_condition.Contains("2."))
@@ -837,8 +825,8 @@ public class IsrctnProcessor : IStudyProcessor
         }
                
         
-       // DATA OBJECTS and their attributes
-       // initial data object is the ISRCTN registry entry
+        // DATA OBJECTS and their attributes
+        // initial data object is the ISRCTN registry entry
 
         int? pub_year = null;
         if (reg_date is not null)
@@ -853,10 +841,12 @@ public class IsrctnProcessor : IStudyProcessor
         string sd_oid = sid + " :: 13 :: " + object_title;
 
         DataObject dobj = new (sd_oid, sid, object_title, object_display_title, pub_year,
-                23, "Text", 13, "Trial Registry entry", 100126, "ISRCTN", 12, download_datetime);
+                23, "Text", 13, "Trial Registry entry", 100126, "ISRCTN", 12, download_datetime)
+        {
+            doi = r.doi,
+            doi_status_id = 1
+        };
 
-        dobj.doi = r.doi;
-        dobj.doi_status_id = 1;
         data_objects.Add(dobj);
 
         // Data object title is the display title...
@@ -881,7 +871,7 @@ public class IsrctnProcessor : IStudyProcessor
                     "https://www.isrctn.com/" + sid, true, 35, "Web text"));
 
 
-        // PIS details seem to havbe been largely transferred
+        // PIS details seem to have been largely transferred
         // to the 'Additional files' section.
 
         string? PIS_details = r.patientInfoSheet;
@@ -948,7 +938,7 @@ public class IsrctnProcessor : IStudyProcessor
         // external links to published papers and local files of unpublished supplementary material.
         // External links may be published papers - almost always referred to by pubmed ids, or links to 
         // web sites or unpublished papers with different types of information on them.
-        // Local filers are often PIS, but may be result summaries and oher objects.
+        // Local filers are often PIS, but may be result summaries and other objects.
 
         var outputs = r.outputs;
         if(outputs?.Any() is true)
@@ -962,7 +952,7 @@ public class IsrctnProcessor : IStudyProcessor
                     Tuple<int, string, int, string> object_details = output_lower switch
                     {
                         "resultsarticle" => new Tuple<int, string, int, string>(23, "Text", 202, "Journal article - results"),
-                        "interimresiults" => new Tuple<int, string, int, string>(23, "Text", 203, "Journal article - interim results"),
+                        "interimresults" => new Tuple<int, string, int, string>(23, "Text", 203, "Journal article - interim results"),
                         "protocolarticle" => new Tuple<int, string, int, string>(23, "Text", 201, "Journal article - protocol"),
                         "funderreport" => new Tuple<int, string, int, string>(23, "Text", 204, "Journal article - review"),
                         "preprint" => new Tuple<int, string, int, string>(23, "Text", 210, "Preprint article"),
@@ -1005,8 +995,8 @@ public class IsrctnProcessor : IStudyProcessor
 
                             int pmid = 0;
                             bool pmid_found = false;
-                            char[] endcharsToTrim = new char[] { ';', '.', '/', '?' };
-                            external_url = external_url.TrimEnd(endcharsToTrim);
+                            char[] end_charsToTrim = new char[] { ';', '.', '/', '?' };
+                            external_url = external_url.TrimEnd(end_charsToTrim);
 
                             if (external_url.Contains("list_uids="))
                             {
@@ -1100,9 +1090,11 @@ public class IsrctnProcessor : IStudyProcessor
 
                                 DataObject d_obj = new(sd_oid, sid, object_type, object_display_title,
                                     dt_created?.year, object_class_id, object_class, object_type_id, 
-                                    object_type, 100126, "ISRCTN", 11, download_datetime);
-                                d_obj.version = op.version;
-                                
+                                    object_type, 100126, "ISRCTN", 11, download_datetime)
+                                {
+                                    version = op.version
+                                };
+
                                 string doi = "";
                                 if (external_url.Contains("doi"))
                                 {
@@ -1128,7 +1120,7 @@ public class IsrctnProcessor : IStudyProcessor
                                     22, "Study short name :: object type", true));
 
                                 // May be able to get repository org in some cases from the Urls
-                                // or may wish to try to resolve the dois at some later point
+                                // or may wish to try to resolve the DOIs at some later point
                                 
                                 object_instances.Add(new ObjectInstance(sd_oid, null, null,
                                     external_url, true, 35, "Web text"));
@@ -1147,10 +1139,10 @@ public class IsrctnProcessor : IStudyProcessor
                     {
                         // some form of local file, stored on the ISRCTN web site
 
-                        string? localfile_name = op.downloadFilename;
-                        if (!string.IsNullOrEmpty(localfile_name))
+                        string? local_file_name = op.downloadFilename;
+                        if (!string.IsNullOrEmpty(local_file_name))
                         {
-                            string lower_name = localfile_name.ToLower();
+                            string lower_name = local_file_name.ToLower();
                             int res_type_id = 0;
                             string res_type = "Not yet known";
                             if (lower_name.EndsWith(".pdf"))
@@ -1169,8 +1161,8 @@ public class IsrctnProcessor : IStudyProcessor
                                 res_type = "PowerPoint";
                             }
 
-                            object_display_title = s.display_title + " :: " + localfile_name;
-                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + localfile_name;
+                            object_display_title = s.display_title + " :: " + local_file_name;
+                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + local_file_name;
                             int title_type_id = 21;
                             string title_type = "Study short name :: object name";
 
@@ -1193,9 +1185,11 @@ public class IsrctnProcessor : IStudyProcessor
                                 dt_available = op.dateUploaded?[..10].GetDatePartsFromISOString();
                             }
 
-                            DataObject d_obj = new(sd_oid, sid, localfile_name, object_display_title, dt_created?.year,
-                                    object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime);
-                            d_obj.version = op.version;
+                            DataObject d_obj = new(sd_oid, sid, local_file_name, object_display_title, dt_created?.year,
+                                    object_class_id, object_class, object_type_id, object_type, 100126, "ISRCTN", 11, download_datetime)
+                                {
+                                    version = op.version
+                                };
                             data_objects.Add(d_obj);
 
                             object_titles.Add(new ObjectTitle(sd_oid, object_display_title,

@@ -131,8 +131,6 @@ public class Lastupdatepostdatestruct
     public string? LastUpdatePostDateType { get; set; }
 }
 
-
-
 public class Sponsorcollaboratorsmodule
 {
     public Responsibleparty? ResponsibleParty { get; set; }
@@ -226,7 +224,6 @@ public class Designinfo
     public Designmaskinginfo? DesignMaskingInfo { get; set; }
 }
 
-
 public class Designobservationalmodellist
 {
     public string[]? DesignObservationalModel { get; set; }
@@ -290,7 +287,6 @@ public class Interventionothernamelist
 {
     public string[]? InterventionOtherName { get; set; }
 }
-
 
 
 public class Eligibilitymodule
@@ -487,8 +483,6 @@ public class Conditionmesh
     public string? ConditionMeshId { get; set; }
     public string? ConditionMeshTerm { get; set; }
 }
-
-
 
 public class Documentsection
 {

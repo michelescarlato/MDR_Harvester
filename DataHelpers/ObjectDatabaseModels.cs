@@ -534,7 +534,7 @@ public class SplitDateRange
     public int? emonth;
     public int? eday;
     public bool? date_is_range;
-    public string? date_string;
+    public readonly string? date_string;
 
     public SplitDateRange(int? _syear, int? _smonth, int? _sday,
                      int? _eyear, int? _emonth, int? _eday, 
@@ -568,11 +568,11 @@ public class ObjectPublicationType
 public class ObjectDescription
 {
     public string? sd_oid { get; init; }
-    public int? description_type_id { get; set; }
-    public string? description_type { get; set; }
+    public int? description_type_id { get; init; }
+    public string? description_type { get; init; }
     public string? label { get; set; }
-    public string? description_text { get; set; }
-    public string? lang_code { get; set; }
+    public string? description_text { get; init; }
+    public string? lang_code { get; init; }
 }
 
 

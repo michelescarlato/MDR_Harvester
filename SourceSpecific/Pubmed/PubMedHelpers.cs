@@ -23,14 +23,14 @@ internal static class PubMedHelpers
     }
 
 
-    internal static bool DateNotPresent(List<ObjectDate> dates, int datetype_id, int? year, int? month, int? day)
+    internal static bool DateNotPresent(List<ObjectDate> dates, int date_type_id, int? year, int? month, int? day)
     {
         bool to_add = true;
         if (dates.Count > 0)
         {
             foreach (ObjectDate d in dates)
             {
-                if (d.date_type_id == datetype_id
+                if (d.date_type_id == date_type_id
                     && d.start_year == year && d.start_month == month && d.start_day == day)
                 {
                     to_add = false;
@@ -51,10 +51,10 @@ internal static class PubMedHelpers
         else
         {
             bool is_org = false;
-            string fname = fullname.ToLower();
-            if (fname.Contains(" group") || fname.StartsWith("group") ||
-                fname.Contains(" assoc") || fname.Contains(" team") ||
-                fname.Contains("collab") || fname.Contains("network"))
+            string f_name = fullname.ToLower();
+            if (f_name.Contains(" group") || f_name.StartsWith("group") ||
+                f_name.Contains(" assoc") || f_name.Contains(" team") ||
+                f_name.Contains("collab") || f_name.Contains("network"))
             {
                 is_org = true;
             }
@@ -149,14 +149,14 @@ internal static class PubMedHelpers
         else if (ml_date_string.Length > 4)
         {
             bool year_at_start = false, year_at_end = false;
-            if (int.TryParse(ml_date_string[..4], out int pub_year_stry))
+            if (int.TryParse(ml_date_string[..4], out int pub_year_s_try))
             {
-                pub_year = pub_year_stry;
+                pub_year = pub_year_s_try;
                 year_at_start = true;
             }
-            if (int.TryParse(ml_date_string[^4..], out int pub_year_etry))
+            if (int.TryParse(ml_date_string[^4..], out int pub_year_e_try))
             {
-                pub_year = pub_year_etry;
+                pub_year = pub_year_e_try;
                 year_at_end = true;
             }
 
@@ -221,7 +221,7 @@ internal static class PubMedHelpers
                     string e_day = rest[(hyphen_pos + 1)..];
                     if (Int32.TryParse(s_day, out int s_day_int) && (Int32.TryParse(e_day, out int e_day_int)))
                     {
-                        if ((s_day_int > 0 && s_day_int < 32) && (e_day_int > 0 && e_day_int < 32))
+                        if (s_day_int is > 0 and < 32 && e_day_int is > 0 and < 32)
                         {
                             sday = s_day_int;
                             eday = e_day_int;
@@ -239,12 +239,12 @@ internal static class PubMedHelpers
             string s_month = non_year_date[..3];
             string e_month = non_year_date[4..].Trim();
             e_month = e_month[..3];
-            int startmonth = s_month.GetMonth3AsInt();
-            int endmonth = e_month.GetMonth3AsInt();
-            if (startmonth != 0 && endmonth != 0)
+            int start_month = s_month.GetMonth3AsInt();
+            int end_month = e_month.GetMonth3AsInt();
+            if (start_month != 0 && end_month != 0)
             {
-                smonth = startmonth;
-                emonth = endmonth;
+                smonth = start_month;
+                emonth = end_month;
             }
             return new SplitDateRange(pub_year, smonth, null, pub_year, emonth, null, true, ml_date_string);
         }

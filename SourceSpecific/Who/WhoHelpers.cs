@@ -284,7 +284,7 @@ internal class WhoHelpers
             processed_id = processed_id.Replace("HRC", "");
             processed_id = processed_id.Replace("Emerging Research First Grant- ", "");
             processed_id = processed_id.Replace("Project Grant Number #", "");
-            processed_id = processed_id.Replace("Ref:", "").Trim(); ;
+            processed_id = processed_id.Replace("Ref:", "").Trim();
 
             return new StudyIdentifier(sid, processed_id, 13, "Funder’s ID", 104541, "Health Research Council of New Zealand");
         }
@@ -471,10 +471,10 @@ internal static class WhoExtensions
         }
         
         bool is_an_organisation = false;
-        string fname = full_name.ToLower();
-        if (fname.Contains(" group") || fname.StartsWith("group") ||
-            fname.Contains(" assoc") || fname.Contains(" team") ||
-            fname.Contains("collab") || fname.Contains("network"))
+        string f_name = full_name.ToLower();
+        if (f_name.Contains(" group") || f_name.StartsWith("group") ||
+            f_name.Contains(" assoc") || f_name.Contains(" team") ||
+            f_name.Contains("collab") || f_name.Contains("network"))
         {
             is_an_organisation = true;
         }

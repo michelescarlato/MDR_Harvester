@@ -198,18 +198,18 @@ public class CTGProcessor : IStudyProcessor
         var secIds = IdentificationModule.SecondaryIdInfoList?.SecondaryIdInfo;
         if (secIds?.Any() is true)
         { 
-            foreach (var secid in secIds)
+            foreach (var sec_id in secIds)
             {
-                string? id_value = secid.SecondaryId; 
-                string? id_link = secid.SecondaryIdLink;
+                string? id_value = sec_id.SecondaryId; 
+                string? id_link = sec_id.SecondaryIdLink;
 
                 // Check not already used as the sponsor id (or there is no sponsor id, =org_study_id)
                 if (id_value is not null)
                 {
                     if (string.IsNullOrEmpty(org_study_id) || (id_value.Trim().ToLower() != org_study_id.Trim().ToLower()))
                     {
-                        string? identifier_type = secid.SecondaryIdType;
-                        string? identifier_org = secid.SecondaryIdDomain?.TidyOrgName(sid);
+                        string? identifier_type = sec_id.SecondaryIdType;
+                        string? identifier_org = sec_id.SecondaryIdDomain?.TidyOrgName(sid);
 
                         // Deduce as much as possible about the secondary id, using its value, type and org.
 
@@ -246,12 +246,11 @@ public class CTGProcessor : IStudyProcessor
         var FirstPostDate = StatusModule.StudyFirstPostDateStruct;
         if (FirstPostDate is not null)
         {
-            string? firstpost_type = FirstPostDate.StudyFirstPostDateType;
-            if (firstpost_type is not null && 
-                firstpost_type is "Actual" or "Estimate")
+            string? first_post_type = FirstPostDate.StudyFirstPostDateType;
+            if (first_post_type is "Actual" or "Estimate")
             {
                 first_post = FirstPostDate.StudyFirstPostDate?.GetDatePartsFromCTGString();
-                if (first_post is not null && firstpost_type == "Estimate")
+                if (first_post is not null && first_post_type == "Estimate")
                 {
                     first_post.date_string += " (est.)";
                 }
@@ -299,11 +298,11 @@ public class CTGProcessor : IStudyProcessor
         var ExpandedAccessInfo = StatusModule.ExpandedAccessInfo;
         if (ExpandedAccessInfo is not null)
         {
-            string? expanded_access_nctid = ExpandedAccessInfo.ExpandedAccessNCTId?.Trim();
-            if (expanded_access_nctid != null)
+            string? expanded_access_nct_id = ExpandedAccessInfo.ExpandedAccessNCTId?.Trim();
+            if (expanded_access_nct_id != null)
             {
-                relationships.Add(new StudyRelationship(sid, 23, "has an expanded access version", expanded_access_nctid));
-                relationships.Add(new StudyRelationship(expanded_access_nctid, 24, "is an expanded access version of", sid));
+                relationships.Add(new StudyRelationship(sid, 23, "has an expanded access version", expanded_access_nct_id));
+                relationships.Add(new StudyRelationship(expanded_access_nct_id, 24, "is an expanded access version of", sid));
             }
         }
                    
@@ -311,9 +310,9 @@ public class CTGProcessor : IStudyProcessor
         var StudyStartDate = StatusModule.StartDateStruct;
         if (StudyStartDate != null)
         {
-            SplitDate? startdate = StudyStartDate.StartDate?.GetDatePartsFromCTGString();
-            s.study_start_year = startdate?.year;
-            s.study_start_month = startdate?.month;
+            SplitDate? start_date = StudyStartDate.StartDate?.GetDatePartsFromCTGString();
+            s.study_start_year = start_date?.year;
+            s.study_start_month = start_date?.month;
         }
 
         s.study_status = StatusModule.OverallStatus;
@@ -350,17 +349,17 @@ public class CTGProcessor : IStudyProcessor
                     rp_name = resp_party.ResponsiblePartyInvestigatorFullName;
                     string? rp_affil = resp_party.ResponsiblePartyInvestigatorAffiliation;
 
-                    string? rp_oldnametitle = resp_party.ResponsiblePartyOldNameTitle;
-                    string? rp_oldorg = resp_party.ResponsiblePartyOldOrganization;
+                    string? rp_old_name_title = resp_party.ResponsiblePartyOldNameTitle;
+                    string? rp_old_org = resp_party.ResponsiblePartyOldOrganization;
 
-                    if (string.IsNullOrEmpty(rp_name) && !string.IsNullOrEmpty(rp_oldnametitle))
+                    if (string.IsNullOrEmpty(rp_name) && !string.IsNullOrEmpty(rp_old_name_title))
                     {
-                        rp_name = rp_oldnametitle;
+                        rp_name = rp_old_name_title;
                     }
 
-                    if (string.IsNullOrEmpty(rp_affil) && !string.IsNullOrEmpty(rp_oldorg))
+                    if (string.IsNullOrEmpty(rp_affil) && !string.IsNullOrEmpty(rp_old_org))
                     {
-                        rp_affil = rp_oldorg;
+                        rp_affil = rp_old_org;
                     }
 
                     if (!string.IsNullOrEmpty(rp_name) && rp_name != "[Redacted]")
@@ -438,10 +437,10 @@ public class CTGProcessor : IStudyProcessor
 
         if (ConditionBrowseModule != null)
         {
-            var condition_meshlist = ConditionBrowseModule.ConditionMeshList;
-            if (condition_meshlist is not null)
+            var condition_mesh_list = ConditionBrowseModule.ConditionMeshList;
+            if (condition_mesh_list is not null)
             {
-                var conds = condition_meshlist.ConditionMesh;
+                var conds = condition_mesh_list.ConditionMesh;
                 if (conds?.Any() is true)
                 {
                     foreach (var con in conds)
@@ -457,10 +456,10 @@ public class CTGProcessor : IStudyProcessor
 
         if (InterventionBrowseModule != null)
         {
-            var intervention_meshlist = InterventionBrowseModule.InterventionMeshList;
-            if (intervention_meshlist is not null)
+            var intervention_mesh_list = InterventionBrowseModule.InterventionMeshList;
+            if (intervention_mesh_list is not null)
             {
-                var interventions = intervention_meshlist.InterventionMesh;
+                var interventions = intervention_mesh_list.InterventionMesh;
                 {
                     if (interventions?.Any() is true)
                     {
@@ -505,17 +504,17 @@ public class CTGProcessor : IStudyProcessor
                     foreach (string keyword in keywords)
                     {
                         // Regularise drug name
-                        string kword = keyword;   // need to do this indirectly as cannot alter the foreach variable
-                        if (kword.Contains(((char)174).ToString()))
+                        string k_word = keyword;   // need to do this indirectly as cannot alter the foreach variable
+                        if (k_word.Contains(((char)174).ToString()))
                         {
-                            kword = kword.Replace(((char)174).ToString(), "");    // drop reg mark
-                            kword = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(kword.ToLower());
+                            k_word = k_word.Replace(((char)174).ToString(), "");    // drop reg mark
+                            k_word = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(k_word.ToLower());
                         }
 
                         // only add the condition name if not already present in the mesh coded conditions
-                        if (topic_is_new(kword))
+                        if (topic_is_new(k_word))
                         {
-                            topics.Add(new StudyTopic(sid, 11, "keyword", kword));
+                            topics.Add(new StudyTopic(sid, 11, "keyword", k_word));
                         }
                     }
                 }
@@ -597,44 +596,44 @@ public class CTGProcessor : IStudyProcessor
                 var design_info = DesignModule.DesignInfo;
                 if (design_info is not null)
                 {
-                    var obsmodel_list = design_info.DesignObservationalModelList;
-                    if (obsmodel_list is not null)
+                    var obs_model_list = design_info.DesignObservationalModelList;
+                    if (obs_model_list is not null)
                     {
-                        var obsmodels = obsmodel_list.DesignObservationalModel;
-                        if (obsmodels?.Any() is true)
+                        var obs_models = obs_model_list.DesignObservationalModel;
+                        if (obs_models?.Any() is true)
                         {
-                            foreach (string obsmodel in obsmodels)
+                            foreach (string obs_model in obs_models)
                             {
                                 features.Add(new StudyFeature(sid, 30, "observational model", 
-                                    obsmodel.GetObsModelTypeId(), obsmodel));
+                                    obs_model.GetObsModelTypeId(), obs_model));
                             }
                         }
                     }
                     else
                     {
-                        string obsmodel = "Not provided";
+                        string obs_model = "Not provided";
                         features.Add(new StudyFeature(sid, 30, "observational model",
-                            obsmodel.GetObsModelTypeId(), obsmodel));
+                            obs_model.GetObsModelTypeId(), obs_model));
                     }
 
-                    var timepersp_list = design_info.DesignTimePerspectiveList;
-                    if (timepersp_list is not null)
+                    var time_persp_list = design_info.DesignTimePerspectiveList;
+                    if (time_persp_list is not null)
                     {
-                        var timepersps = timepersp_list.DesignTimePerspective;
-                        if (timepersps?.Any() is true)
+                        var time_persps = time_persp_list.DesignTimePerspective;
+                        if (time_persps?.Any() is true)
                         {
-                            foreach (string timepersp in timepersps)
+                            foreach (string time_persp in time_persps)
                             {
                                 features.Add(new StudyFeature(sid, 31, "time perspective", 
-                                    timepersp.GetTimePerspectiveId(), timepersp));
+                                    time_persp.GetTimePerspectiveId(), time_persp));
                             }
                         }
                     }
                     else
                     {
-                        string timepersp = "Not provided";
+                        string time_persp = "Not provided";
                         features.Add(new StudyFeature(sid, 31, "time perspective",
-                            timepersp.GetTimePerspectiveId(), timepersp));
+                            time_persp.GetTimePerspectiveId(), time_persp));
                     }
                 }
 
@@ -1304,7 +1303,7 @@ public class CTGProcessor : IStudyProcessor
                                     if (object_type_id == 80)
                                     {
                                         object_datasets.Add(new ObjectDataset(sd_oid,
-                                            3, "Anonymised", "Sevier states that... 'Servier will provide anonymized patient-level and study-level clinical trial data'",
+                                            3, "Anonymised", "Servier states that... 'Servier will provide anonymized patient-level and study-level clinical trial data'",
                                             2, "De-identification applied", null,
                                             0, "Not known", null));
                                     }
@@ -1368,10 +1367,10 @@ public class CTGProcessor : IStudyProcessor
                         }
 
                         else if (ipd_url.Contains("immport") || ipd_url.Contains("itntrialshare")
-                                                             || ipd_url.Contains("drive.google") || ipd_url.Contains("zenodo")
-                                                             || ipd_url.Contains("dataverse") || ipd_url.Contains("datadryad")
-                                                             || ipd_url.Contains("github") || ipd_url.Contains("osf.io")
-                                                             || ipd_url.Contains("scribd") || ipd_url.Contains("researchgate"))
+                                || ipd_url.Contains("drive.google") || ipd_url.Contains("zenodo")
+                                || ipd_url.Contains("dataverse") || ipd_url.Contains("datadryad")
+                                || ipd_url.Contains("github") || ipd_url.Contains("osf.io")
+                                || ipd_url.Contains("scribd") || ipd_url.Contains("researchgate"))
                         {
                             // these sites seem to have available data objects with specific URLs
 
@@ -1725,8 +1724,8 @@ public class CTGProcessor : IStudyProcessor
             foreach (StudyOrganisation g in organisations)
             {
                 bool add = true;
-                string? orgname = g.organisation_name?.ToLower();
-                if (orgname is not null && orgname.IsAnIndividual())
+                string? org_name = g.organisation_name?.ToLower();
+                if (org_name is not null && org_name.IsAnIndividual())
                 {
                     string? person_full_name = g.organisation_name.TidyPersonName();
                     if (person_full_name is not null)
@@ -1815,9 +1814,9 @@ public class CTGProcessor : IStudyProcessor
         int num_of_this_type = 0;
         if (titles.Count > 0)
         {
-            for (int j = 0; j < titles.Count; j++)
+            foreach (var t in titles)
             {
-                string? title_to_test = titles[j].title_text;
+                string? title_to_test = t.title_text;
                 if (title_to_test is not null)
                 {
                     if (title_to_test.Contains(object_display_title))
@@ -1836,14 +1835,14 @@ public class CTGProcessor : IStudyProcessor
         bool url_already_present = false;
         if (instances.Count > 0)
         {
-            for (int j = 0; j < instances.Count; j++)
+            foreach (var inst in instances)
             {
-                string? url_to_test = instances[j].url;
+                string? url_to_test = inst.url;
                 if (url_to_test is not null)
                 {
                     if (url_to_test == url)
                     {
-                       url_already_present = true;
+                        url_already_present = true;
                         break;
                     }
                 }

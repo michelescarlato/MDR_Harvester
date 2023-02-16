@@ -6,13 +6,13 @@ namespace MDR_Harvester;
 class TransferSDDataBuilder
 {
     private readonly int _source_id;
-    private readonly string _db_conn = "";
+    private readonly string _db_conn;
     private readonly Source _source;
 
     public TransferSDDataBuilder(Source source)
     {
         _source = source;
-        _source_id = (int)source.id!;           
+        _source_id = source.id;           
         _db_conn = source.db_conn ?? "";
     }
 
@@ -91,7 +91,7 @@ class TransferSDDataBuilder
         if (_source.has_study_references is true) stt.TransferStudyReferences();
         if (_source.has_study_relationships is true) stt.TransferStudyRelationships();
         if (_source.has_study_links is true) stt.TransferStudyLinks();
-        if (_source.has_study_ipd_available is true) stt.TransferStudyIPDAvaiable();
+        if (_source.has_study_ipd_available is true) stt.TransferStudyIPDAvailable();
 
     }
 
@@ -112,7 +112,7 @@ class TransferSDDataBuilder
         if (_source.has_object_relationships is true) ott.TransferObjectRelationships();
         if (_source.has_object_rights is true) ott.TransferObjectRights();
 
-        if (_source?.has_object_pubmed_set is true)
+        if (_source.has_object_pubmed_set is true)
         {
             ott.TransferObjectContributors();
             ott.TransferObjectTopics();

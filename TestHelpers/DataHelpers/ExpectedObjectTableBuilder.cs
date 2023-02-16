@@ -5,7 +5,7 @@ namespace MDR_Harvester;
 
 class ExpectedObjectTableBuilder
 {
-    string _db_conn;
+    private readonly string _db_conn;
 
     public ExpectedObjectTableBuilder(string db_conn)
     {
@@ -14,10 +14,8 @@ class ExpectedObjectTableBuilder
 
     public void Execute_SQL(string sql_string)
     {
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            conn.Execute(sql_string);
-        }
+        using var conn = new NpgsqlConnection(_db_conn);
+        conn.Execute(sql_string);
     }
 
     public void create_table_data_objects()

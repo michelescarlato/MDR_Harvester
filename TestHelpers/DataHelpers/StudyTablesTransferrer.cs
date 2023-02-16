@@ -5,8 +5,8 @@ namespace MDR_Harvester;
 
 class StudyTablesTransferrer
 {
-    private string _source_id;
-    private string _db_conn;
+    private readonly string _source_id;
+    private readonly string _db_conn;
 
     public StudyTablesTransferrer(int source_id, string db_conn)
     {
@@ -16,10 +16,8 @@ class StudyTablesTransferrer
 
     private void Execute_SQL(string sql_string)
     {
-        using (var conn = new NpgsqlConnection(_db_conn))
-        {
-            conn.Execute(sql_string);
-        }
+        using var conn = new NpgsqlConnection(_db_conn);
+        conn.Execute(sql_string);
     }
     
     public void TransferStudies()
@@ -176,7 +174,7 @@ class StudyTablesTransferrer
     }
 
 
-    public void TransferStudyIPDAvaiable()
+    public void TransferStudyIPDAvailable()
     {
         string sql_string = @"INSERT INTO sdcomp.study_ipd_available(source_id, sd_sid,
         ipd_id, ipd_type, ipd_url, ipd_comment, record_hash)

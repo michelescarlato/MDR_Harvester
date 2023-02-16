@@ -7,7 +7,7 @@ internal class CTGHelpers
     {
         // Use initial values to create id details object
         // then examine id_org and (mostly) id_type to provide
-        // identifier details where possiblle (sometimes provides org as well)
+        // identifier details where possible (sometimes provides org as well)
 
         IdentifierDetails id = new IdentifierDetails(null, id_type, null, id_org, id_value);
 
@@ -345,6 +345,7 @@ public class IdentifierDetails
         id_type = _id_type;
         id_org_id = _id_org_id;
         id_org = _id_org;
+        id_value = _id_value;
     }
 }
 

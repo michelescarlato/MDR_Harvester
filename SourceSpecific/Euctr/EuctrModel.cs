@@ -35,13 +35,10 @@ public class Euctr_Record
     {
         sd_sid = _sd_sid;
     }
-
-    public Euctr_Record()
-    { }
 }
 
 /*
-public class EUCTR_Summmary
+public class EUCTR_Summary
 {
     public string? eudract_id { get; set; }
     public string? sponsor_id { get; set; }
@@ -56,7 +53,7 @@ public class EUCTR_Summmary
 
     public List<MeddraTerm>? meddra_terms { get; set; }
 
-    public EUCTR_Summmary(string? _eudract_id, string? _sponsor_id, string? _start_date)
+    public EUCTR_Summary(string? _eudract_id, string? _sponsor_id, string? _start_date)
     {
         eudract_id = _eudract_id;
         sponsor_id = _sponsor_id;

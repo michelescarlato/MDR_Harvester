@@ -111,12 +111,12 @@ public class EUCTRProcessor : IStudyProcessor
         var sponsors = r.sponsors;
         if (sponsors?.Any() is true)
         {
-            foreach (var dline in sponsors)
+            foreach (var d_line in sponsors)
             {
-                string? item_name = dline.item_name;
+                string? item_name = d_line.item_name;
                 if (item_name == "Name of organisation providing support")
                 {
-                    var values = dline.item_values;
+                    var values = d_line.item_values;
                     if (values?.Any() is true)
                     {
                         string? org_value = values[0].value;
@@ -165,9 +165,9 @@ public class EUCTRProcessor : IStudyProcessor
         if (idents?.Any() is true)
         {
             string? second_language = "";
-            foreach (var dline in idents)
+            foreach (var d_line in idents)
             {
-                string? item_code = dline.item_code;
+                string? item_code = d_line.item_code;
                 switch (item_code)
                 {
                     case "A.1":
@@ -176,7 +176,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // used here to estimate any non English title text listed
                         // (GetLanguage... function beneath main ProcessData function).
 
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             string? member_state = values[0].value;
@@ -193,7 +193,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // Study scientific titles - may be multiple titles (but may just repeat).
                         // The first title is in English, any second in the country's own language/
 
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             int value_num = 0;
@@ -225,7 +225,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // Study public titles - may be multiple titles (but may just repeat).
                         // The first title is in English, any second in the country's own language.
 
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             int value_num = 0;
@@ -264,7 +264,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // Study Acronym(s) - may be multiple (but may just repeat).
                         // The first acronym uses English, the second the country's own language.
 
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             foreach (item_value v in values)
@@ -308,7 +308,7 @@ public class EUCTRProcessor : IStudyProcessor
                         // identifier: ISRCTN (International Standard Randomised Controlled Trial)
                         // Number, if one present.
 
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             string? isrctn_id = values[0].value;
@@ -325,7 +325,7 @@ public class EUCTRProcessor : IStudyProcessor
                     {
                         // identifier: NCT Number if one present.
 
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             string? nct_id = values[0].value;
@@ -341,7 +341,7 @@ public class EUCTRProcessor : IStudyProcessor
                     case "A.5.3":
                     {
                         // identifier: WHO UTN Number, if one present.
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             string? who_id = values[0].value;
@@ -418,16 +418,16 @@ public class EUCTRProcessor : IStudyProcessor
         var feats = r.features;
         if (feats?.Any() is true)
         {
-            foreach (var dline in feats)
+            foreach (var d_line in feats)
             {
-                string? item_code = dline.item_code;
+                string? item_code = d_line.item_code;
                 if (item_code is not null)
                 {
                     if (item_code == "E.1.1")
                     {
                         // Condition(s) under study.
 
-                        var values = dline.item_values;
+                        var values = d_line.item_values;
                         if (values?.Any() is true)
                         {
                             foreach (var item_value in values)
@@ -450,7 +450,7 @@ public class EUCTRProcessor : IStudyProcessor
 
                         if (item_code == "E.2.1")
                         {
-                            var values = dline.item_values;
+                            var values = d_line.item_values;
                             if (values?.Any() is true)
                             {
                                 int indiv_value_num = 0;
@@ -489,7 +489,7 @@ public class EUCTRProcessor : IStudyProcessor
 
                         if (item_code == "E.5.1")
                         {
-                            var values = dline.item_values;
+                            var values = d_line.item_values;
                             if (values?.Any() is true)
                             {
                                 int indiv_value_num = 0;
@@ -605,7 +605,7 @@ public class EUCTRProcessor : IStudyProcessor
         var population = r.population;
         if (population?.Any() is true)
         {
-            var pgroups = new Dictionary<string, bool>
+            var p_groups = new Dictionary<string, bool>
             {
                 { "includes_under18", false },
                 { "includes_in_utero", false },
@@ -643,23 +643,23 @@ public class EUCTRProcessor : IStudyProcessor
 
                 if (group_type != "")
                 {
-                    pgroups[group_type] = true;
+                    p_groups[group_type] = true;
                 }
             }
 
             // get gender eligibility information
 
-            if (pgroups["includes_men"] && pgroups["includes_women"])
+            if (p_groups["includes_men"] && p_groups["includes_women"])
             {
                 s.study_gender_elig = "All";
                 s.study_gender_elig_id = 900;
             }
-            else if (pgroups["includes_women"])
+            else if (p_groups["includes_women"])
             {
                 s.study_gender_elig = "Female";
                 s.study_gender_elig_id = 905;
             }
-            else if (pgroups["includes_men"])
+            else if (p_groups["includes_men"])
             {
                 s.study_gender_elig = "Male";
                 s.study_gender_elig_id = 910;
@@ -672,18 +672,18 @@ public class EUCTRProcessor : IStudyProcessor
 
             // Try to establish age limits
 
-            if (!pgroups["includes_under18"])
+            if (!p_groups["includes_under18"])
             {
                 // No children or adolescents included.
                 // If 'elderly' are included no age maximum is presumed.
 
-                if (pgroups["includes_adults"] && pgroups["includes_elderly"])
+                if (p_groups["includes_adults"] && p_groups["includes_elderly"])
                 {
                     s.min_age = 18;
                     s.min_age_units = "Years";
                     s.min_age_units_id = 17;
                 }
-                else if (pgroups["includes_adults"])
+                else if (p_groups["includes_adults"])
                 {
                     s.min_age = 18;
                     s.min_age_units = "Years";
@@ -692,7 +692,7 @@ public class EUCTRProcessor : IStudyProcessor
                     s.max_age_units = "Years";
                     s.max_age_units_id = 17;
                 }
-                else if (pgroups["includes_elderly"])
+                else if (p_groups["includes_elderly"])
                 {
                     s.min_age = 65;
                     s.min_age_units = "Years";
@@ -705,7 +705,7 @@ public class EUCTRProcessor : IStudyProcessor
                 // First identify the situation where under-18s, adults and elderly are all included
                 // corresponds to no age restrictions
 
-                if (pgroups["includes_under18"] && pgroups["includes_adults"] && pgroups["includes_elderly"])
+                if (p_groups["includes_under18"] && p_groups["includes_adults"] && p_groups["includes_elderly"])
                 {
                     // Leave min and max ages blank
                 }
@@ -714,25 +714,25 @@ public class EUCTRProcessor : IStudyProcessor
                     // First try and obtain a minimum age.
                     // Start with the youngest included and work up.
 
-                    if (pgroups["includes_in_utero"] || pgroups["includes_preterm"] || pgroups["includes_newborns"])
+                    if (p_groups["includes_in_utero"] || p_groups["includes_preterm"] || p_groups["includes_newborns"])
                     {
                         s.min_age = 0;
                         s.min_age_units = "Days";
                         s.min_age_units_id = 14;
                     }
-                    else if (pgroups["includes_infants"])
+                    else if (p_groups["includes_infants"])
                     {
                         s.min_age = 28;
                         s.min_age_units = "Days";
                         s.min_age_units_id = 14;
                     }
-                    else if (pgroups["includes_children"])
+                    else if (p_groups["includes_children"])
                     {
                         s.min_age = 2;
                         s.min_age_units = "Years";
                         s.min_age_units_id = 17;
                     }
-                    else if (pgroups["includes_ados"])
+                    else if (p_groups["includes_ados"])
                     {
                         s.min_age = 12;
                         s.min_age_units = "Years";
@@ -742,37 +742,37 @@ public class EUCTRProcessor : IStudyProcessor
                     // Then try and obtain a maximum age.
                     // Start with the oldest included and work down.
 
-                    if (pgroups["includes_adults"])
+                    if (p_groups["includes_adults"])
                     {
                         s.max_age = 64;
                         s.max_age_units = "Years";
                         s.max_age_units_id = 17;
                     }
-                    else if (pgroups["includes_ados"])
+                    else if (p_groups["includes_ados"])
                     {
                         s.max_age = 17;
                         s.max_age_units = "Years";
                         s.max_age_units_id = 17;
                     }
-                    else if (pgroups["includes_children"])
+                    else if (p_groups["includes_children"])
                     {
                         s.max_age = 11;
                         s.max_age_units = "Years";
                         s.max_age_units_id = 17;
                     }
-                    else if (pgroups["includes_infants"])
+                    else if (p_groups["includes_infants"])
                     {
                         s.max_age = 23;
                         s.max_age_units = "Months";
                         s.max_age_units_id = 16;
                     }
-                    else if (pgroups["includes_newborns"])
+                    else if (p_groups["includes_newborns"])
                     {
                         s.max_age = 27;
                         s.max_age_units = "Days";
                         s.max_age_units_id = 14;
                     }
-                    else if (pgroups["includes_in_utero"] || pgroups["includes_preterm"])
+                    else if (p_groups["includes_in_utero"] || p_groups["includes_preterm"])
                     {
                         s.max_age = 0;
                         s.max_age_units = "Days";
@@ -1141,8 +1141,8 @@ public class EUCTRProcessor : IStudyProcessor
             foreach (StudyOrganisation g in organisations)
             { 
                 bool add = true;
-                string? orgname = g.organisation_name?.ToLower();
-                if (orgname is not null && orgname.IsAnIndividual())
+                string? org_name = g.organisation_name?.ToLower();
+                if (org_name is not null && org_name.IsAnIndividual())
                 {
                     string? person_full_name = g.organisation_name.TidyPersonName();
                     if (person_full_name is not null)

@@ -2,7 +2,7 @@
 
 namespace MDR_Harvester.Extensions;
 
-public static class DateStrinExtensions
+public static class DateStringExtensions
 {
     public static SplitDate? GetDatePartsFromCTGString(this string dateString)
     {

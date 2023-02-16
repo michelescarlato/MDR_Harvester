@@ -104,18 +104,18 @@ public class SecIdBase
 
 public class WhoStudyFeature
 {
-    public int? ftype_id { get; set; }
-    public string? ftype { get; set; }
-    public int? fvalue_id { get; set; }
-    public string? fvalue { get; set; }
+    public int? f_type_id { get; set; }
+    public string? f_type { get; set; }
+    public int? f_value_id { get; set; }
+    public string? f_value { get; set; }
 
-    public WhoStudyFeature(int? _ftype_id, string? _ftype,
-                        int? _fvalue_id, string? _fvalue)
+    public WhoStudyFeature(int? _f_type_id, string? _f_type,
+                        int? _f_value_id, string? _f_value)
     {
-        ftype_id = _ftype_id;
-        ftype = _ftype;
-        fvalue_id = _fvalue_id;
-        fvalue = _fvalue;
+        f_type_id = _f_type_id;
+        f_type = _f_type;
+        f_value_id = _f_value_id;
+        f_value = _f_value;
     }
 
     public WhoStudyFeature()

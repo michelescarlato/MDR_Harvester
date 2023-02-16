@@ -5,44 +5,39 @@ namespace MDR_Harvester;
 
 public class Credentials : ICredentials
 {
-    public string Host { get; set; }
-    public string Username { get; set; }
-    public string Password { get; set; }
-    public int Port { get; set; }
+    private readonly string _host;
+    private readonly string _username;
+    private readonly string _password;
+    private readonly int _port;
 
     public Credentials(IConfiguration settings)
     {
         // all asserted as non-null
 
-        Host = settings["host"]!;
-        Username = settings["user"]!;
-        Password = settings["password"]!;
+        _host = settings["host"]!;
+        _username = settings["user"]!;
+        _password = settings["password"]!;
         string? PortAsString = settings["port"];
         if (string.IsNullOrWhiteSpace(PortAsString))
         {
-            Port = 5432;
+            _port = 5432;  // default
         }
         else
         {
-            if (Int32.TryParse(PortAsString, out int port_num))
-            {
-                Port = port_num;
-            }
-            else
-            {
-                Port = 5432;
-            }
+            _port = int.TryParse(PortAsString, out int port_num) ? port_num : 5432;
         }
     }
 
     public string GetConnectionString(string database_name, int harvest_type_id)
     {
-        NpgsqlConnectionStringBuilder builder = new NpgsqlConnectionStringBuilder();
-        builder.Host = Host;
-        builder.Username = Username;
-        builder.Password = Password;
-        builder.Port = Port;
-        builder.Database = (harvest_type_id == 3) ? "test" : database_name;
+        NpgsqlConnectionStringBuilder builder = new()
+        {
+            Host = _host,
+            Username = _username,
+            Password = _password,
+            Port = _port,
+            Database = (harvest_type_id == 3) ? "test" : database_name
+        };
         return builder.ConnectionString;
     }
 }

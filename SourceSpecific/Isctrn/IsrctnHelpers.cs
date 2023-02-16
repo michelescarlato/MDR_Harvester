@@ -252,10 +252,10 @@ internal static class IsrctnExtensions
         }
 
         bool is_an_organisation = false;
-        string fname = full_name.ToLower();
-        if (fname.Contains(" group") || fname.StartsWith("group") ||
-            fname.Contains(" assoc") || fname.Contains(" team") ||
-            fname.Contains("collab") || fname.Contains("network"))
+        string f_name = full_name.ToLower();
+        if (f_name.Contains(" group") || f_name.StartsWith("group") ||
+            f_name.Contains(" assoc") || f_name.Contains(" team") ||
+            f_name.Contains("collab") || f_name.Contains("network"))
         {
             is_an_organisation = true;
         }
@@ -273,9 +273,9 @@ internal static class IsrctnExtensions
         int num_of_this_type = 0;
         if (titles.Count > 0)
         {
-            for (int j = 0; j < titles.Count; j++)
+            foreach (var t in titles)
             {
-                if (titles[j].title_text?.Contains(object_display_title) is true)
+                if (t.title_text?.Contains(object_display_title) is true)
                 {
                     num_of_this_type++;
                 }

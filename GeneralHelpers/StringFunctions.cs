@@ -277,7 +277,7 @@ public static class StringHelpers
     }
 
 
-    public static string? ReplacNBSpaces(this string? input_string)
+    public static string? ReplaceNonBreakingSpaces(this string? input_string)
     {
         // Simple extension that returns null for null values and
         // text based 'NULL equivalents', and otherwise trims the string
@@ -692,7 +692,7 @@ public static class StringHelpers
         string? affil_organisation = "";
         string aff = affiliation.ToLower();
 
-        if (!aff.Contains(","))
+        if (!aff.Contains(','))
         {
             affil_organisation = affiliation;
         }
