@@ -436,7 +436,7 @@ public class EUCTRProcessor : IStudyProcessor
                                 if (!string.IsNullOrEmpty(name) && !name.Contains('\r') && !name.Contains('\n') &&
                                     name.Length < 100)
                                 {
-                                    conditions.Add(new StudyCondition(sid, name, null, null));
+                                    conditions.Add(new StudyCondition(sid, name, null, null, null));
                                 }
                             }
                         }
@@ -919,7 +919,7 @@ public class EUCTRProcessor : IStudyProcessor
             {
                 if (t.term is not null)
                 {
-                    conditions.Add(new StudyCondition(sid, t.term, 16, t.code));
+                    conditions.Add(new StudyCondition(sid, t.term, 16, "MedDRA", t.code));
                 }
             }
         }
@@ -967,8 +967,6 @@ public class EUCTRProcessor : IStudyProcessor
         }
 
         int? registry_pub_year = (entered_in_db is not null) ? entered_in_db.year : s.study_start_year;
-
-        // create hash Id for the data object
         string sd_oid = sid + " :: 13 :: " + object_title;
 
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, registry_pub_year,

@@ -633,7 +633,7 @@ public class IsrctnProcessor : IStudyProcessor
             }
             else
             {
-                conditions.Add(new StudyCondition(sid, listed_condition, null, null));
+                conditions.Add(new StudyCondition(sid, listed_condition, null, null, null));
             }
 
             foreach (string cond1 in conds)
@@ -665,7 +665,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                     if (cond != "")
                     {
-                        conditions.Add(new StudyCondition(sid, cond, null, null));
+                        conditions.Add(new StudyCondition(sid, cond, null, null, null));
                     }
                 }
             }

@@ -35,10 +35,10 @@ public class StudyCopyHelpers : IStudyCopyHelpers
         .MapVarchar("sd_sid", x => x.sd_sid)
         .MapInteger("topic_type_id", x => x.topic_type_id)
         .MapVarchar("topic_type", x => x.topic_type)
-        .MapBoolean("mesh_coded", x => x.mesh_coded)
         .MapVarchar("mesh_code", x => x.mesh_code)
         .MapVarchar("mesh_value", x => x.mesh_value)
-        .MapInteger("original_ct_id", x => x.original_ct_id)
+        .MapInteger("original_ct_type_id", x => x.original_ct_type_id)
+        .MapVarchar("original_ct_type", x => x.original_ct_type)
         .MapVarchar("original_ct_code", x => x.original_ct_code)
         .MapVarchar("original_value", x => x.original_value);
 
@@ -46,7 +46,8 @@ public class StudyCopyHelpers : IStudyCopyHelpers
         new PostgreSQLCopyHelper<StudyCondition>("sd", "study_conditions")
         .MapVarchar("sd_sid", x => x.sd_sid)
         .MapVarchar("original_value", x => x.original_value)
-        .MapInteger("original_ct", x => x.original_ct)
+        .MapInteger("original_ct_type_id", x => x.original_ct_type_id)
+        .MapVarchar("original_ct_type", x => x.original_ct_type)  
         .MapVarchar("original_ct_code", x => x.original_ct_code)               
         .MapVarchar("icd_code", x => x.icd_code)
         .MapVarchar("icd_name", x => x.icd_name);

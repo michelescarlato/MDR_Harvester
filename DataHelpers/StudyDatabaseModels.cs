@@ -112,9 +112,9 @@ public class StudyInDB
 public class StudyTitle
 {
     public string? sd_sid { get; set; }
-    public string? title_text { get; set; }
     public int? title_type_id { get; set; }
     public string? title_type { get; set; }
+    public string? title_text { get; set; }
     public string? lang_code { get; set; }
     public int? lang_usage_id  { get; set; }
     public bool? is_default { get; set; }
@@ -185,23 +185,8 @@ public class StudyPerson
         organisation_name = _organisation_name;
     }
 
-    /*
-    // adding personal contributor, usually from CTG
-    
-    public StudyPerson(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
-                            string? _person_full_name, string? _person_affiliation, 
-                            string? _affil_organisation_name)
-    {
-        sd_sid = _sd_sid;
-        contrib_type_id = _contrib_type_id;
-        contrib_type = _contrib_type;
-        person_full_name = _person_full_name;
-        person_affiliation = _person_affiliation;
-        organisation_name = _affil_organisation_name;
-    }
-    */
 
-    // adding contact from ISRCTN
+    // adding contact from ISRCTN with given and family names
 
     public StudyPerson(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
                             string? _person_given_name, string? _person_family_name,
@@ -228,8 +213,6 @@ public class StudyOrganisation
     public int? organisation_id { get; set; }
     public string? organisation_name { get; set; }
     public string? organisation_ror_id { get; set; }
-  
-    // adding organisational contributor
     
     public StudyOrganisation(string?_sd_sid, int? _contrib_type_id, string? _contrib_type,
                             int? _organisation_id, string? _organisation_name)
@@ -240,7 +223,6 @@ public class StudyOrganisation
         organisation_id = _organisation_id;
         organisation_name = _organisation_name;
     }
-
 }
 
 
@@ -265,14 +247,15 @@ public class StudyRelationship
 public class StudyReference
 {
     public string? sd_sid { get; set; }
+    public string? citation { get; set; }   
     public string? pmid { get; set; }
-    public string? citation { get; set; }
     public string? doi { get; set; }
     public int? type_id { get; set; }
     public string? type { get; set; }
     public string? comments { get; set; }
 
-    public StudyReference(string? _sd_sid, string? _pmid, string? _citation, string? _doi, string? _comments)
+    public StudyReference(string? _sd_sid, string? _pmid, string? _citation, 
+                           string? _doi, string? _comments)
     {
         sd_sid = _sd_sid;
         pmid = _pmid;
@@ -343,25 +326,26 @@ public class StudyTopic
     public string? sd_sid { get; set; }
     public int? topic_type_id { get; set; }
     public string? topic_type { get; set; }
-    public bool? mesh_coded { get; set; }
+    public string? original_value { get; set; }    
+    public int? original_ct_type_id { get; set; }
+    public string? original_ct_type { get; set; }    
+    public string? original_ct_code { get; set; }    
     public string? mesh_code { get; set; }
     public string? mesh_value { get; set; }
-    public int? original_ct_id { get; set; }
-    public string? original_ct_code { get; set; }
-    public string? original_value { get; set; }
+
 
     // used for a mesh coded topic (no qualifiers for study topic codes)
 
     public StudyTopic(string? _sd_sid, int? _topic_type_id, string?_topic_type,
-                 bool? _mesh_coded, string? _mesh_code, string? _mesh_value)
+                 string? _mesh_code, string? _mesh_value)
     {
         sd_sid = _sd_sid;
         topic_type_id = _topic_type_id;
         topic_type = _topic_type;
-        mesh_coded = _mesh_coded;
         mesh_code = _mesh_code;
         mesh_value = _mesh_value;
-        original_ct_id = 14;
+        original_ct_type = "MeSH";
+        original_ct_type_id = 14;
         original_ct_code = _mesh_code;
         original_value = _mesh_value;
     }
@@ -374,7 +358,6 @@ public class StudyTopic
         sd_sid = _sd_sid;
         topic_type_id = _topic_type_id;
         topic_type = _topic_type;
-        mesh_coded = false;
         original_value = _topic_value;
     }
 
@@ -382,14 +365,14 @@ public class StudyTopic
     // non mesh coded topic - but coded using another system - comments also possible
 
     public StudyTopic(string? _sd_sid, int? _topic_type_id, string? _topic_type,
-                      string? _topic_value, int? _original_ct_id, 
+                      string? _topic_value, string? _original_ct_type, int? _original_ct_type_id, 
                       string? _original_ct_code)
     {
         sd_sid = _sd_sid;
         topic_type_id = _topic_type_id;
         topic_type = _topic_type;
-        mesh_coded = false;
-        original_ct_id = _original_ct_id;
+        original_ct_type = _original_ct_type;
+        original_ct_type_id = _original_ct_type_id;
         original_ct_code = _original_ct_code;
         original_value = _topic_value;
     }
@@ -401,19 +384,29 @@ public class StudyCondition
 {
     public string? sd_sid { get; set; }
     public string? original_value { get; set; }
-    public int? original_ct { get; set; }
+    public int? original_ct_type_id { get; set; }
+    public string? original_ct_type { get; set; }
     public string? original_ct_code { get; set; }
     public string? icd_code { get; set; }
     public string? icd_name { get; set; }
-
-    public StudyCondition(string? _sd_sid, string? _original_value, 
-                          int? _original_ct, string? _original_ct_code)
+    
+    public StudyCondition(string? _sd_sid, string? _original_value)
     {
         sd_sid = _sd_sid;
         original_value = _original_value;
-        original_ct = _original_ct;
+    }
+
+    public StudyCondition(string? _sd_sid, string? _original_value, int? _original_ct_type_id, 
+                          string? _original_ct_type, string? _original_ct_code)
+    {
+        sd_sid = _sd_sid;
+        original_value = _original_value;
+        original_ct_type_id = _original_ct_type_id;
+        original_ct_type = _original_ct_type;
         original_ct_code = _original_ct_code;
     }
+    
+    
 }
 
 

@@ -261,6 +261,28 @@ internal class CTGHelpers
 
         return id;
     }
+    
+    
+    // check name...
+    internal int CheckObjectName(List<ObjectTitle> titles, string object_display_title)
+    {
+        int num_of_this_type = 0;
+        if (titles.Count > 0)
+        {
+            for (int j = 0; j < titles.Count; j++)
+            {
+                string? title_to_test = titles[j].title_text;
+                if (title_to_test is not null)
+                {
+                    if (title_to_test.Contains(object_display_title))
+                    {
+                        num_of_this_type++;
+                    }
+                }
+            }
+        }
+        return num_of_this_type;
+    }
 }
 
 internal static class CtgExtensions
@@ -328,6 +350,58 @@ internal static class CtgExtensions
             return is_org;
         }
     }
+    
+    
+    internal static bool topic_is_new(this string candidate_topic, List<StudyTopic> topics)
+    {
+        if (topics.Count > 0)
+        {
+            foreach (StudyTopic k in topics)
+            {
+                if (String.Equals(k.original_value!, candidate_topic, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+    
+    internal static bool condition_is_new(this string candidate_condition, List<StudyCondition> conditions)
+    {
+        if (conditions.Count > 0)
+        {
+            foreach (StudyCondition k in conditions)
+            {
+                if (String.Equals(k.original_value!, candidate_condition, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+
+    internal static bool url_is_new(this string url, List<ObjectInstance> instances)
+    {
+        if (instances.Count > 0)
+        {
+            foreach (ObjectInstance i in instances)
+            {
+                string? url_to_test = i.url;
+                if (url_to_test is not null 
+                    && String.Equals(url_to_test, url, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    
 }
 
 public class IdentifierDetails

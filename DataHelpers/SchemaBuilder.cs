@@ -22,35 +22,35 @@ public class SchemaBuilder
         {
             // these common to all databases
 
-            study_table_builder.create_table_studies();
-            study_table_builder.create_table_study_identifiers();
-            study_table_builder.create_table_study_titles();
+            study_table_builder.create_table_studies("sd");
+            study_table_builder.create_table_study_identifiers("sd");
+            study_table_builder.create_table_study_titles("sd");
 
             // these are database dependent
-            if (_source.has_study_topics is true) study_table_builder.create_table_study_topics();
-            if (_source.has_study_conditions is true) study_table_builder.create_table_study_conditions();
-            if (_source.has_study_features is true) study_table_builder.create_table_study_features();
-            if (_source.has_study_people is true) study_table_builder.create_table_study_people();
-            if (_source.has_study_organisations is true) study_table_builder.create_table_study_organisations();
-            if (_source.has_study_references is true) study_table_builder.create_table_study_references();
-            if (_source.has_study_relationships is true) study_table_builder.create_table_study_relationships();
-            if (_source.has_study_links is true) study_table_builder.create_table_study_links();
-            if (_source.has_study_countries is true) study_table_builder.create_table_study_countries();
-            if (_source.has_study_locations is true) study_table_builder.create_table_study_locations();
-            if (_source.has_study_ipd_available is true) study_table_builder.create_table_ipd_available();
+            if (_source.has_study_topics is true) study_table_builder.create_table_study_topics("sd");
+            if (_source.has_study_conditions is true) study_table_builder.create_table_study_conditions("sd");
+            if (_source.has_study_features is true) study_table_builder.create_table_study_features("sd");
+            if (_source.has_study_people is true) study_table_builder.create_table_study_people("sd");
+            if (_source.has_study_organisations is true) study_table_builder.create_table_study_organisations("sd");
+            if (_source.has_study_references is true) study_table_builder.create_table_study_references("sd");
+            if (_source.has_study_relationships is true) study_table_builder.create_table_study_relationships("sd");
+            if (_source.has_study_links is true) study_table_builder.create_table_study_links("sd");
+            if (_source.has_study_countries is true) study_table_builder.create_table_study_countries("sd");
+            if (_source.has_study_locations is true) study_table_builder.create_table_study_locations("sd");
+            if (_source.has_study_ipd_available is true) study_table_builder.create_table_ipd_available("sd");
             if (_source.has_study_iec is true)
             {
                 if (_source.study_iec_storage_type == "Single Table")
                 {
-                    study_table_builder.create_table_study_iec();
+                    study_table_builder.create_table_study_iec("sd");
                 }
                 if (_source.study_iec_storage_type == "By Year Groupings")
                 {
-                    study_table_builder.create_table_study_iec_by_year_groups();
+                    study_table_builder.create_table_study_iec_by_year_groups("sd");
                 }
                 if (_source.study_iec_storage_type == "By Years")
                 {
-                    study_table_builder.create_table_study_iec_by_years();
+                    study_table_builder.create_table_study_iec_by_years("sd");
                 }
             }
             _loggingHelper.LogLine("Study tables recreated");
@@ -58,27 +58,27 @@ public class SchemaBuilder
 
         // object tables - these common to all databases
 
-        object_table_builder.create_table_data_objects();
-        object_table_builder.create_table_object_instances();
-        object_table_builder.create_table_object_titles();
+        object_table_builder.create_table_data_objects("sd");
+        object_table_builder.create_table_object_instances("sd");
+        object_table_builder.create_table_object_titles("sd");
 
         // these are database dependent		
 
-        if (_source.has_object_datasets is true) object_table_builder.create_table_object_datasets();
-        if (_source.has_object_dates is true) object_table_builder.create_table_object_dates();
-        if (_source.has_object_relationships is true) object_table_builder.create_table_object_relationships();
-        if (_source.has_object_rights is true) object_table_builder.create_table_object_rights();
+        if (_source.has_object_datasets is true) object_table_builder.create_table_object_datasets("sd");
+        if (_source.has_object_dates is true) object_table_builder.create_table_object_dates("sd");
+        if (_source.has_object_relationships is true) object_table_builder.create_table_object_relationships("sd");
+        if (_source.has_object_rights is true) object_table_builder.create_table_object_rights("sd");
         if (_source.has_object_pubmed_set is true)
         {
-            object_table_builder.create_table_journal_details();
-            object_table_builder.create_table_object_people();
-            object_table_builder.create_table_object_organisations();
-            object_table_builder.create_table_object_topics();
-            object_table_builder.create_table_object_comments();
-            object_table_builder.create_table_object_descriptions();
-            object_table_builder.create_table_object_identifiers();
-            object_table_builder.create_table_object_db_links();
-            object_table_builder.create_table_object_publication_types();
+            object_table_builder.create_table_journal_details("sd");
+            object_table_builder.create_table_object_people("sd");
+            object_table_builder.create_table_object_organisations("sd");
+            object_table_builder.create_table_object_topics("sd");
+            object_table_builder.create_table_object_comments("sd");
+            object_table_builder.create_table_object_descriptions("sd");
+            object_table_builder.create_table_object_identifiers("sd");
+            object_table_builder.create_table_object_db_links("sd");
+            object_table_builder.create_table_object_publication_types("sd");
         }
         _loggingHelper.LogLine("Object tables recreated");
     }

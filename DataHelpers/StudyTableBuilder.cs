@@ -20,10 +20,10 @@ public class StudyTableBuilder
         conn.Execute(sql_string);
     }
 
-    public void create_table_studies()
+    public void create_table_studies(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.studies;
-        CREATE TABLE sd.studies(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.studies;
+        CREATE TABLE {schema}.studies(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , display_title          VARCHAR         NULL
@@ -39,63 +39,63 @@ public class StudyTableBuilder
           , study_enrolment        VARCHAR         NULL
           , study_gender_elig_id   INT             NULL
           , study_gender_elig      VARCHAR         NULL
+          , iec_level              INT             NULL          
           , min_age                INT             NULL
           , min_age_units_id       INT             NULL
           , min_age_units          VARCHAR         NULL
           , max_age                INT             NULL
           , max_age_units_id       INT             NULL
           , max_age_units          VARCHAR         NULL
-          , iec_level              INT             NULL
           , datetime_of_data_fetch TIMESTAMPTZ     NULL
         );
-        CREATE INDEX studies_sid ON sd.studies(sd_sid);";
+        CREATE INDEX studies_sid ON {schema}.studies(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_identifiers()
+    public void create_table_study_identifiers(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_identifiers;
-        CREATE TABLE sd.study_identifiers(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}study_identifiers;
+        CREATE TABLE {schema}.study_identifiers(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
-          , identifier_value       VARCHAR         NULL
           , identifier_type_id     INT             NULL
           , identifier_type        VARCHAR         NULL
+          , identifier_value       VARCHAR         NULL          
           , identifier_org_id      INT             NULL
           , identifier_org         VARCHAR         NULL
           , identifier_org_ror_id  VARCHAR         NULL
           , identifier_date        VARCHAR         NULL
           , identifier_link        VARCHAR         NULL
         );
-        CREATE INDEX study_identifiers_sd_sid ON sd.study_identifiers(sd_sid);";
+        CREATE INDEX study_identifiers_sd_sid ON {schema}.study_identifiers(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_relationships()
+    public void create_table_study_relationships(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_relationships;
-        CREATE TABLE sd.study_relationships(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_relationships;
+        CREATE TABLE {schema}.study_relationships(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , relationship_type_id   INT             NULL
           , relationship_type      VARCHAR         NULL
           , target_sd_sid          VARCHAR         NULL
         );
-        CREATE INDEX study_relationships_sd_sid ON sd.study_relationships(sd_sid);
-        CREATE INDEX study_relationships_target_sd_sid ON sd.study_relationships(target_sd_sid);";
+        CREATE INDEX study_relationships_sd_sid ON {schema}.study_relationships(sd_sid);
+        CREATE INDEX study_relationships_target_sd_sid ON {schema}.study_relationships(target_sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_references()
+    public void create_table_study_references(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_references;
-        CREATE TABLE sd.study_references(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_references;
+        CREATE TABLE {schema}.study_references(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , citation               VARCHAR         NULL
@@ -105,15 +105,15 @@ public class StudyTableBuilder
           , type                   VARCHAR         NULL
           , comments               VARCHAR         NULL
         );
-        CREATE INDEX study_references_sd_sid ON sd.study_references(sd_sid);";
+        CREATE INDEX study_references_sd_sid ON {schema}.study_references(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
-    public void create_table_study_titles()
+    public void create_table_study_titles(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_titles;
-        CREATE TABLE sd.study_titles(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_titles;
+        CREATE TABLE {schema}.study_titles(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , title_type_id          INT             NULL
@@ -124,15 +124,15 @@ public class StudyTableBuilder
           , is_default             BOOLEAN         NULL
           , comments               VARCHAR         NULL
         );
-        CREATE INDEX study_titles_sd_sid ON sd.study_titles(sd_sid);";
+        CREATE INDEX study_titles_sd_sid ON {schema}.study_titles(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
-    public void create_table_study_people()
+    public void create_table_study_people(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd._study_people;
-        CREATE TABLE sd._study_people(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_people;
+        CREATE TABLE {schema}.study_people(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , contrib_type_id        INT             NULL
@@ -146,15 +146,15 @@ public class StudyTableBuilder
           , organisation_name      VARCHAR         NULL
           , organisation_ror_id    VARCHAR         NULL
         );
-        CREATE INDEX _study_people_sd_sid ON sd._study_people(sd_sid);";
+        CREATE INDEX _study_people_sd_sid ON {schema}.study_people(sd_sid);";
 
         Execute_SQL(sql_string);
     }
     
-    public void create_table_study_organisations()
+    public void create_table_study_organisations(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_organisations;
-        CREATE TABLE sd.study_organisations(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_organisations;
+        CREATE TABLE {schema}.study_organisations(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , contrib_type_id        INT             NULL
@@ -163,16 +163,16 @@ public class StudyTableBuilder
           , organisation_name      VARCHAR         NULL
           , organisation_ror_id    VARCHAR         NULL
         );
-        CREATE INDEX study_organisations_sd_sid ON sd.study_organisations(sd_sid);";
+        CREATE INDEX study_organisations_sd_sid ON {schema}.study_organisations(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_topics()
+    public void create_table_study_topics(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_topics;
-        CREATE TABLE sd.study_topics(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_topics;
+        CREATE TABLE {schema}.study_topics(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , topic_type_id          INT             NULL
@@ -184,34 +184,35 @@ public class StudyTableBuilder
           , mesh_code              VARCHAR         NULL
           , mesh_value             VARCHAR         NULL
         );
-        CREATE INDEX study_topics_sd_sid ON sd.study_topics(sd_sid);";
+        CREATE INDEX study_topics_sd_sid ON {schema}.study_topics(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_conditions()
+    public void create_table_study_conditions(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_conditions;
-        CREATE TABLE sd.study_conditions(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_conditions;
+        CREATE TABLE {schema}.study_conditions(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , original_value         VARCHAR         NULL
-          , original_ct            INT             NULL
+          , original_ct_type_id    INT             NULL
+          , original_ct_type       VARCHAR         NULL    
           , original_ct_code       VARCHAR         NULL                 
           , icd_code               VARCHAR         NULL
           , icd_name               VARCHAR         NULL
         );
-        CREATE INDEX study_conditions_sd_sid ON sd.study_conditions(sd_sid);";
+        CREATE INDEX study_conditions_sd_sid ON {schema}.study_conditions(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_features()
+    public void create_table_study_features(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_features;
-        CREATE TABLE sd.study_features(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_features;
+        CREATE TABLE {schema}.study_features(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , feature_type_id        INT             NULL
@@ -219,30 +220,31 @@ public class StudyTableBuilder
           , feature_value_id       INT             NULL
           , feature_value          VARCHAR         NULL
         );
-        CREATE INDEX study_features_sid ON sd.study_features(sd_sid);";
+        CREATE INDEX study_features_sd_sid ON {schema}.study_features(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
-    public void create_table_study_links()
+    
+    public void create_table_study_links(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_links;
-        CREATE TABLE sd.study_links(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_links;
+        CREATE TABLE {schema}.study_links(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , link_label             VARCHAR         NULL
           , link_url               VARCHAR         NULL
         );
-        CREATE INDEX study_links_sd_sid ON sd.study_links(sd_sid);";
+        CREATE INDEX study_links_sd_sid ON {schema}.study_links(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_locations()
+    public void create_table_study_locations(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_locations;
-        CREATE TABLE sd.study_locations(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_locations;
+        CREATE TABLE {schema}.study_locations(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , facility_org_id        INT             NULL
@@ -255,16 +257,16 @@ public class StudyTableBuilder
           , status_id              INT             NULL
           , status                 VARCHAR         NULL
         );
-        CREATE INDEX study_locations_sd_sid ON sd.study_locations(sd_sid);";
+        CREATE INDEX study_locations_sd_sid ON {schema}.study_locations(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_study_countries()
+    public void create_table_study_countries(string schema)
     {  
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_countries;
-        CREATE TABLE sd.study_countries(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_countries;
+        CREATE TABLE {schema}.study_countries(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , country_id             INT             NULL
@@ -272,16 +274,16 @@ public class StudyTableBuilder
           , status_id              INT             NULL
           , status                 VARCHAR         NULL
         );
-        CREATE INDEX study_countries_sd_sid ON sd.study_countries(sd_sid);";
+        CREATE INDEX study_countries_sd_sid ON {schema}.study_countries(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_ipd_available()
+    public void create_table_ipd_available(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.study_ipd_available;
-        CREATE TABLE sd.study_ipd_available(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_ipd_available;
+        CREATE TABLE {schema}.study_ipd_available(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , ipd_id                 VARCHAR         NULL
@@ -289,15 +291,15 @@ public class StudyTableBuilder
           , ipd_url                VARCHAR         NULL
           , ipd_comment            VARCHAR         NULL
         );
-        CREATE INDEX study_ipd_available_sd_sid ON sd.study_ipd_available(sd_sid);";
+        CREATE INDEX study_ipd_available_sd_sid ON {schema}.study_ipd_available(sd_sid);";
 
         Execute_SQL(sql_string);
     }
     
-    private void create_iec_table(string table_name)
+    private void create_iec_table(string schema, string table_name)
     {
-        string sql_string = $@"DROP TABLE IF EXISTS sd.{table_name};
-        CREATE TABLE sd.{table_name}(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.{table_name};
+        CREATE TABLE {schema}.{table_name}(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
           , seq_num                INT             NULL
@@ -311,34 +313,34 @@ public class StudyTableBuilder
           , iec_class              VARCHAR         NULL
           , iec_parsed_text        VARCHAR         NULL
         );
-        CREATE INDEX {table_name}_sid ON sd.{table_name}(sd_sid);";
+        CREATE INDEX {table_name}_sid ON {schema}.{table_name}(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
-    public void create_table_study_iec()
+    public void create_table_study_iec(string schema)
     {
-        create_iec_table("study_iec");
+        create_iec_table(schema, "study_iec");
     }
     
-    public void create_table_study_iec_by_year_groups()
+    public void create_table_study_iec_by_year_groups(string schema)
     {
-        create_iec_table("study_iec_pre12");
-        create_iec_table("study_iec_13to19");
-        create_iec_table("study_iec_20on");
+        create_iec_table(schema, "study_iec_pre12");
+        create_iec_table(schema, "study_iec_13to19");
+        create_iec_table(schema, "study_iec_20on");
     }
 
-    public void create_table_study_iec_by_years()
+    public void create_table_study_iec_by_years(string schema)
     {
-        create_iec_table("study_iec_null");
-        create_iec_table("study_iec_pre06");
-        create_iec_table("study_iec_0608");
-        create_iec_table("study_iec_0910");
-        create_iec_table("study_iec_1112");
-        create_iec_table("study_iec_1314");
+        create_iec_table(schema, "study_iec_null");
+        create_iec_table(schema, "study_iec_pre06");
+        create_iec_table(schema, "study_iec_0608");
+        create_iec_table(schema, "study_iec_0910");
+        create_iec_table(schema, "study_iec_1112");
+        create_iec_table(schema, "study_iec_1314");
         for (int i = 15; i < 30; i++)
         {
-            create_iec_table($"study_iec_{i}");
+            create_iec_table(schema, $"study_iec_{i}");
         }
     }
     

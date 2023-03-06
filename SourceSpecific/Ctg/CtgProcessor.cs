@@ -447,7 +447,7 @@ public class CTGProcessor : IStudyProcessor
                     {
                         string? mesh_code = con.ConditionMeshId;
                         string? mesh_term = con.ConditionMeshTerm;
-                        topics.Add(new StudyTopic(sid, 13, "condition", true, mesh_code, mesh_term));
+                        conditions.Add(new StudyCondition(sid, mesh_term, 14, "MeSH", mesh_code));
                     }
                 }
             }
@@ -467,7 +467,7 @@ public class CTGProcessor : IStudyProcessor
                         {
                             string? mesh_code = interv.InterventionMeshId;
                             string? mesh_term = interv.InterventionMeshTerm;
-                            topics.Add(new StudyTopic(sid, 12, "chemical / agent", true, mesh_code, mesh_term));
+                            topics.Add(new StudyTopic(sid, 12, "chemical / agent", mesh_code, mesh_term));
                         }
                     }
                 }

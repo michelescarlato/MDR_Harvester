@@ -21,10 +21,10 @@ public class ObjectTableBuilder
         conn.Execute(sql_string);
     }
 
-    public void create_table_data_objects()
+    public void create_table_data_objects(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.data_objects;
-          CREATE TABLE sd.data_objects(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.data_objects;
+          CREATE TABLE {schema}.data_objects(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , sd_sid                 VARCHAR         NULL
@@ -51,17 +51,17 @@ public class ObjectTableBuilder
           , add_study_topics       BOOLEAN         NULL
           , datetime_of_data_fetch TIMESTAMPTZ     NULL
         );
-        CREATE INDEX data_objects_sd_oid ON sd.data_objects(sd_oid);
-        CREATE INDEX data_objects_sd_sid ON sd.data_objects(sd_sid);";
+        CREATE INDEX data_objects_sd_oid ON {schema}.data_objects(sd_oid);
+        CREATE INDEX data_objects_sd_sid ON {schema}.data_objects(sd_sid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_datasets()
+    public void create_table_object_datasets(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_datasets;
-        CREATE TABLE sd.object_datasets(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_datasets;
+        CREATE TABLE {schema}.object_datasets(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , record_keys_type_id    INT             NULL 
@@ -84,16 +84,16 @@ public class ObjectTableBuilder
           , consent_no_methods     BOOLEAN         NULL
           , consent_details        VARCHAR         NULL 
         );
-        CREATE INDEX object_datasets_sd_oid ON sd.object_datasets(sd_oid);";
+        CREATE INDEX object_datasets_sd_oid ON {schema}.object_datasets(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_dates()
+    public void create_table_object_dates(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_dates;
-        CREATE TABLE sd.object_dates(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_dates;
+        CREATE TABLE {schema}.object_dates(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , date_type_id           INT             NULL
@@ -108,16 +108,16 @@ public class ObjectTableBuilder
           , end_day                INT             NULL
           , details                VARCHAR         NULL
         );
-        CREATE INDEX object_dates_sd_oid ON sd.object_dates(sd_oid);";
+        CREATE INDEX object_dates_sd_oid ON {schema}.object_dates(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_instances()
+    public void create_table_object_instances(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_instances;
-        CREATE TABLE sd.object_instances(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_instances;
+        CREATE TABLE {schema}.object_instances(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , repository_org_id      INT             NULL
@@ -131,16 +131,16 @@ public class ObjectTableBuilder
           , resource_size_units    VARCHAR         NULL
           , resource_comments      VARCHAR         NULL
         );
-        CREATE INDEX object_instances_sd_oid ON sd.object_instances(sd_oid);";
+        CREATE INDEX object_instances_sd_oid ON {schema}.object_instances(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_people()
+    public void create_table_object_people(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_people;
-        CREATE TABLE sd.object_people(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_people;
+        CREATE TABLE {schema}.object_people(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , contrib_type_id        INT             NULL
@@ -154,16 +154,16 @@ public class ObjectTableBuilder
           , organisation_name      VARCHAR         NULL
           , organisation_ror_id    VARCHAR         NULL
         );
-        CREATE INDEX object_people_sd_oid ON sd.object_people(sd_oid);";
+        CREATE INDEX object_people_sd_oid ON {schema}.object_people(sd_oid);";
 
         Execute_SQL(sql_string);
     }
     
     
-    public void create_table_object_organisations()
+    public void create_table_object_organisations(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_organisations;
-        CREATE TABLE sd.object_organisations(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_organisations;
+        CREATE TABLE {schema}.object_organisations(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , contrib_type_id        INT             NULL
@@ -172,16 +172,16 @@ public class ObjectTableBuilder
           , organisation_name      VARCHAR         NULL
           , organisation_ror_id    VARCHAR         NULL
         );
-        CREATE INDEX object_organisations_sd_oid ON sd.object_organisations(sd_oid);";
+        CREATE INDEX object_organisations_sd_oid ON {schema}.object_organisations(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_titles()
+    public void create_table_object_titles(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_titles;
-        CREATE TABLE sd.object_titles(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_titles;
+        CREATE TABLE {schema}.object_titles(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , title_type_id          INT             NULL
@@ -192,37 +192,37 @@ public class ObjectTableBuilder
           , is_default             BOOLEAN         NULL
           , comments               VARCHAR         NULL
         );
-        CREATE INDEX object_titles_sd_oid ON sd.object_titles(sd_oid);";
+        CREATE INDEX object_titles_sd_oid ON {schema}.object_titles(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_topics()
+    public void create_table_object_topics(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_topics;
-        CREATE TABLE sd.object_topics(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_topics;
+        CREATE TABLE {schema}.object_topics(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , topic_type_id          INT             NULL
           , topic_type             VARCHAR         NULL
-          , mesh_coded             BOOLEAN         NULL
+          , original_value         VARCHAR         NULL    
+          , original_ct_type_id    INT             NULL
+          , original_ct_type       VARCHAR         NULL
+          , original_ct_code       VARCHAR         NULL          
           , mesh_code              VARCHAR         NULL
           , mesh_value             VARCHAR         NULL
-          , original_ct_id         INT             NULL
-          , original_ct_code       VARCHAR         NULL
-          , original_value         VARCHAR         NULL
         );
-        CREATE INDEX object_topics_sd_oid ON sd.object_topics(sd_oid);";
+        CREATE INDEX object_topics_sd_oid ON {schema}.object_topics(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_comments()
+    public void create_table_object_comments(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_comments;
-        CREATE TABLE sd.object_comments(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_comments;
+        CREATE TABLE {schema}.object_comments(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , ref_type               VARCHAR         NULL 
@@ -231,16 +231,16 @@ public class ObjectTableBuilder
           , pmid_version           VARCHAR         NULL 
           , notes                  VARCHAR         NULL 
         );
-        CREATE INDEX object_comments_sd_oid ON sd.object_comments(sd_oid);";
+        CREATE INDEX object_comments_sd_oid ON {schema}.object_comments(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_descriptions()
+    public void create_table_object_descriptions(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_descriptions;
-        CREATE TABLE sd.object_descriptions(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_descriptions;
+        CREATE TABLE {schema}.object_descriptions(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
           , description_type_id    INT             NULL
@@ -249,16 +249,16 @@ public class ObjectTableBuilder
           , description_text       VARCHAR         NULL
           , lang_code              VARCHAR         NULL
         );
-        CREATE INDEX object_descriptions_sd_oid ON sd.object_descriptions(sd_oid);";
+        CREATE INDEX object_descriptions_sd_oid ON {schema}.object_descriptions(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_identifiers()
+    public void create_table_object_identifiers(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_identifiers;
-        CREATE TABLE sd.object_identifiers(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_identifiers;
+        CREATE TABLE {schema}.object_identifiers(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , identifier_value       VARCHAR         NULL
@@ -269,77 +269,77 @@ public class ObjectTableBuilder
           , identifier_org_ror_id  VARCHAR         NULL
           , identifier_date        VARCHAR         NULL
         );
-        CREATE INDEX object_identifiers_sd_oid ON sd.object_identifiers(sd_oid);";
+        CREATE INDEX object_identifiers_sd_oid ON {schema}.object_identifiers(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
-    public void create_table_object_db_links()
+    public void create_table_object_db_links(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_db_links;
-        CREATE TABLE sd.object_db_links(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_db_links;
+        CREATE TABLE {schema}.object_db_links(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , db_sequence            INT             NULL
           , db_name                VARCHAR         NULL
           , id_in_db               VARCHAR         NULL
         );
-        CREATE INDEX object_db_links_sd_oid ON sd.object_db_links(sd_oid);";
+        CREATE INDEX object_db_links_sd_oid ON {schema}.object_db_links(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_publication_types()
+    public void create_table_object_publication_types(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_publication_types;
-        CREATE TABLE sd.object_publication_types(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_publication_types;
+        CREATE TABLE {schema}.object_publication_types(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , type_name              VARCHAR         NULL
         );
-        CREATE INDEX object_publication_types_sd_oid ON sd.object_publication_types(sd_oid);";
+        CREATE INDEX object_publication_types_sd_oid ON {schema}.object_publication_types(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_relationships()
+    public void create_table_object_relationships(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_relationships;
-        CREATE TABLE sd.object_relationships(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_relationships;
+        CREATE TABLE {schema}.object_relationships(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , relationship_type_id   INT             NULL
           , relationship_type      VARCHAR         NULL
           , target_sd_oid          VARCHAR         NULL
         );
-        CREATE INDEX object_relationships_sd_oid ON sd.object_relationships(sd_oid);";
+        CREATE INDEX object_relationships_sd_oid ON {schema}.object_relationships(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_object_rights()
+    public void create_table_object_rights(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.object_rights;
-        CREATE TABLE sd.object_rights(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_rights;
+        CREATE TABLE {schema}.object_rights(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , rights_name            VARCHAR         NULL
           , rights_uri             VARCHAR         NULL
           , comments               VARCHAR         NULL
         );
-        CREATE INDEX object_rights_sd_oid ON sd.object_rights(sd_oid);";
+        CREATE INDEX object_rights_sd_oid ON {schema}.object_rights(sd_oid);";
 
         Execute_SQL(sql_string);
     }
 
 
-    public void create_table_journal_details()
+    public void create_table_journal_details(string schema)
     {
-        string sql_string = @"DROP TABLE IF EXISTS sd.journal_details;
-        CREATE TABLE sd.journal_details(
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.journal_details;
+        CREATE TABLE {schema}.journal_details(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
           , pissn                  VARCHAR         NULL
@@ -349,7 +349,7 @@ public class ObjectTableBuilder
           , publisher              VARCHAR         NULL
           , publisher_suffix       VARCHAR         NULL
         );
-        CREATE INDEX journal_details_sd_oid ON sd.journal_details(sd_oid);";
+        CREATE INDEX journal_details_sd_oid ON {schema}.journal_details(sd_oid);";
 
         Execute_SQL(sql_string);
     }

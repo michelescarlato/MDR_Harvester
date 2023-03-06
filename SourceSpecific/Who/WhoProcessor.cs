@@ -558,13 +558,13 @@ public class WHOProcessor : IStudyProcessor
 
                             if (code is null)
                             {
-                                conditions.Add(new StudyCondition(sid, con_trim, null, null));
+                                conditions.Add(new StudyCondition(sid, con_trim));
                             }
                             else
                             {
                                 if (code_system == "ICD 10")
                                 {
-                                    conditions.Add(new StudyCondition(sid, con_trim, 12, cn.code));
+                                    conditions.Add(new StudyCondition(sid, con_trim, 12, "ICD 10", cn.code));
                                 }
                             }
                         }

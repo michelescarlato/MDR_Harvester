@@ -186,15 +186,7 @@ public class YodaProcessor : IStudyProcessor
             if (productName is not null)
             {
                 // see if already exists
-                bool addProduct = true;
-                foreach (StudyTopic t in topics)
-                {
-                    if (productName.ToLower() == t.original_value?.ToLower())
-                    {
-                        addProduct = false;
-                        break;
-                    }
-                }
+                bool addProduct = topics.All(t => productName.ToLower() != t.original_value?.ToLower());
 
                 if (addProduct)
                 {
@@ -207,7 +199,7 @@ public class YodaProcessor : IStudyProcessor
         string? conditions_studied = r.conditions_studied;
         if (!string.IsNullOrEmpty(conditions_studied) && conditions_studied != "Healthy Volunteers")
         {
-            conditions.Add(new StudyCondition(sid, conditions_studied, null, null));
+            conditions.Add(new StudyCondition(sid, conditions_studied, null, null, null));
         }
 
         // Create study references (pmids).
@@ -227,12 +219,12 @@ public class YodaProcessor : IStudyProcessor
 
         // data objects...
 
-        // do the yoda web page itself first...
+        // Do the yoda web page itself first,
+        // creating the sd oid for the data object.
+        
         string object_title = "Yoda web page";
         string object_display_title = name_base + " :: " + "Yoda web page";
         string? remote_url = r.remote_url;
-
-        // create hash Id for the data object
         string sd_oid = sid + " :: 38 :: " + object_title;
 
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", 38, "Study Overview",

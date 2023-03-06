@@ -24,7 +24,6 @@ class TransferSDDataBuilder
         {
             DeleteData(_source_id, "study_identifiers");
             DeleteData(_source_id, "study_titles");
-            DeleteData(_source_id, "study_hashes");
 
             // these are database dependent
 
@@ -36,10 +35,10 @@ class TransferSDDataBuilder
             if (_source.has_study_relationships is true) DeleteData(_source_id, "study_relationships");
             if (_source.has_study_links is true) DeleteData(_source_id, "study_links");
             if (_source.has_study_ipd_available is true) DeleteData(_source_id, "study_ipd_available");
-            if (_source.has_study_countries is true) DeleteData(_source_id, "study_ipd_available");
-            if (_source.has_study_locations is true) DeleteData(_source_id, "study_ipd_available");
-            if (_source.has_study_conditions is true) DeleteData(_source_id, "study_ipd_available");
-            if (_source.has_study_iec is true) DeleteData(_source_id, "study_ipd_available");
+            if (_source.has_study_countries is true) DeleteData(_source_id, "study_countries");
+            if (_source.has_study_locations is true) DeleteData(_source_id, "study_locations");
+            if (_source.has_study_conditions is true) DeleteData(_source_id, "_study_conditions");
+            if (_source.has_study_iec is true) DeleteData(_source_id, "study_iec");
         }
     }
 
@@ -51,7 +50,6 @@ class TransferSDDataBuilder
         {
             DeleteData(_source_id, "object_instances");
             DeleteData(_source_id, "object_titles");
-            DeleteData(_source_id, "object_hashes");
 
             // these are database dependent		
 
@@ -80,7 +78,6 @@ class TransferSDDataBuilder
         stt.TransferStudies();
         stt.TransferStudyIdentifiers();
         stt.TransferStudyTitles();
-        stt.TransferStudyHashes();
 
         // these are database dependent
 
@@ -103,7 +100,6 @@ class TransferSDDataBuilder
         ott.TransferDataObjects();
         ott.TransferObjectInstances();
         ott.TransferObjectTitles();
-        ott.TransferObjectHashes();
        
         // these are database dependent		
 

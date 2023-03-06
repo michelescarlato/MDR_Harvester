@@ -44,81 +44,81 @@ public class TestSchemaBuilder
 
     public void SetUpExpectedTables()
     {
-        ExpectedStudyTableBuilder studytablebuilder = new ExpectedStudyTableBuilder(_db_conn);
+        StudyTableBuilder study_table_builder = new StudyTableBuilder(_db_conn);
+        ObjectTableBuilder object_table_builder = new ObjectTableBuilder(_db_conn);
+        
+        study_table_builder.create_table_studies("expected");
+        study_table_builder.create_table_study_identifiers("expected");
+        study_table_builder.create_table_study_titles("expected");
+        study_table_builder.create_table_study_features("expected");
+        study_table_builder.create_table_study_topics("expected");
+        study_table_builder.create_table_study_people("expected");
+        study_table_builder.create_table_study_organisations("expected");
+        study_table_builder.create_table_study_references("expected");
+        study_table_builder.create_table_study_relationships("expected");
+        study_table_builder.create_table_ipd_available("expected");
+        study_table_builder.create_table_study_links("expected");
+        study_table_builder.create_table_study_countries("expected");
+        study_table_builder.create_table_study_locations("expected");
+        study_table_builder.create_table_study_conditions("expected");
+        study_table_builder.create_table_study_iec("expected");
 
-        studytablebuilder.create_table_studies();
-        studytablebuilder.create_table_study_identifiers();
-        studytablebuilder.create_table_study_titles();
-        studytablebuilder.create_table_study_features();
-        studytablebuilder.create_table_study_topics();
-        studytablebuilder.create_table_study_contributors();
-        studytablebuilder.create_table_study_references();
-        studytablebuilder.create_table_study_relationships();
-        studytablebuilder.create_table_ipd_available();
-        studytablebuilder.create_table_study_links();
-        studytablebuilder.create_table_study_countries();
-        studytablebuilder.create_table_study_locations();
-        studytablebuilder.create_table_study_conditions();
-        studytablebuilder.create_table_study_iec();
-
-        ExpectedObjectTableBuilder objecttablebuilder = new ExpectedObjectTableBuilder(_db_conn);
-
-        objecttablebuilder.create_table_data_objects();
-        objecttablebuilder.create_table_object_datasets();
-        objecttablebuilder.create_table_object_dates();
-        objecttablebuilder.create_table_object_instances();
-        objecttablebuilder.create_table_object_contributors();
-        objecttablebuilder.create_table_object_titles();
-        objecttablebuilder.create_table_object_topics();
-        objecttablebuilder.create_table_object_descriptions();
-        objecttablebuilder.create_table_object_identifiers();
-        objecttablebuilder.create_table_object_db_links();
-        objecttablebuilder.create_table_object_publication_types();
-        objecttablebuilder.create_table_object_rights();
-        objecttablebuilder.create_table_object_comments();
-        objecttablebuilder.create_table_object_relationships();
-        objecttablebuilder.create_table_journal_details();
-
+        object_table_builder.create_table_data_objects("expected");
+        object_table_builder.create_table_object_datasets("expected");
+        object_table_builder.create_table_object_dates("expected");
+        object_table_builder.create_table_object_instances("expected");
+        object_table_builder.create_table_object_people("expected");
+        object_table_builder.create_table_object_organisations("expected");
+        object_table_builder.create_table_object_titles("expected");
+        object_table_builder.create_table_object_topics("expected");
+        object_table_builder.create_table_object_descriptions("expected");
+        object_table_builder.create_table_object_identifiers("expected");
+        object_table_builder.create_table_object_db_links("expected");
+        object_table_builder.create_table_object_publication_types("expected");
+        object_table_builder.create_table_object_rights("expected");
+        object_table_builder.create_table_object_comments("expected");
+        object_table_builder.create_table_object_relationships("expected");
+        object_table_builder.create_table_journal_details("expected");
     }
 
 
     public void SetUpSDCompositeTables()
     {
-        SDCompStudyTableBuilder studytablebuilder = new SDCompStudyTableBuilder(_db_conn);
+        StudyTableBuilder study_table_builder = new StudyTableBuilder(_db_conn);
+        ObjectTableBuilder object_table_builder = new ObjectTableBuilder(_db_conn);
+        
+        study_table_builder.create_table_studies("sdcomp");
+        study_table_builder.create_table_study_identifiers("sdcomp");
+        study_table_builder.create_table_study_titles("sdcomp");
+        study_table_builder.create_table_study_features("sdcomp");
+        study_table_builder.create_table_study_topics("sdcomp");
+        study_table_builder.create_table_study_people("sdcomp");
+        study_table_builder.create_table_study_organisations("sdcomp");
+        study_table_builder.create_table_study_references("sdcomp");
+        study_table_builder.create_table_study_relationships("sdcomp");
+        study_table_builder.create_table_ipd_available("sdcomp");
+        study_table_builder.create_table_study_links("sdcomp");
+        study_table_builder.create_table_study_countries("sdcomp");
+        study_table_builder.create_table_study_locations("sdcomp");
+        study_table_builder.create_table_study_conditions("sdcomp");
+        study_table_builder.create_table_study_iec("sdcomp");
 
-        studytablebuilder.create_table_studies();
-        studytablebuilder.create_table_study_identifiers();
-        studytablebuilder.create_table_study_titles();
-        studytablebuilder.create_table_study_features();
-        studytablebuilder.create_table_study_topics();
-        studytablebuilder.create_table_study_contributors();
-        studytablebuilder.create_table_study_references();
-        studytablebuilder.create_table_study_relationships();
-        studytablebuilder.create_table_ipd_available();
-        studytablebuilder.create_table_study_links();
-        studytablebuilder.create_table_study_hashes();
-        studytablebuilder.create_table_study_countries();
-        studytablebuilder.create_table_study_locations();
-        studytablebuilder.create_table_study_conditions();
-        studytablebuilder.create_table_study_iec();
-
-        SDCompObjectTableBuilder objecttablebuilder = new SDCompObjectTableBuilder(_db_conn);
-
-        objecttablebuilder.create_table_data_objects();
-        objecttablebuilder.create_table_object_datasets();
-        objecttablebuilder.create_table_object_dates();
-        objecttablebuilder.create_table_object_instances();
-        objecttablebuilder.create_table_object_contributors();
-        objecttablebuilder.create_table_object_titles();
-        objecttablebuilder.create_table_object_topics();
-        objecttablebuilder.create_table_object_descriptions();
-        objecttablebuilder.create_table_object_identifiers();
-        objecttablebuilder.create_table_object_db_links();
-        objecttablebuilder.create_table_object_publication_types();
-        objecttablebuilder.create_table_object_rights();
-        objecttablebuilder.create_table_object_comments();
-        objecttablebuilder.create_table_object_relationships();
-        objecttablebuilder.create_table_object_hashes();
+        object_table_builder.create_table_data_objects("sdcomp");
+        object_table_builder.create_table_object_datasets("sdcomp");
+        object_table_builder.create_table_object_dates("sdcomp");
+        object_table_builder.create_table_object_instances("sdcomp");
+        object_table_builder.create_table_object_people("sdcomp");
+        object_table_builder.create_table_object_organisations("sdcomp");
+        object_table_builder.create_table_object_titles("sdcomp");
+        object_table_builder.create_table_object_topics("sdcomp");
+        object_table_builder.create_table_object_descriptions("sdcomp");
+        object_table_builder.create_table_object_identifiers("sdcomp");
+        object_table_builder.create_table_object_db_links("sdcomp");
+        object_table_builder.create_table_object_publication_types("sdcomp");
+        object_table_builder.create_table_object_rights("sdcomp");
+        object_table_builder.create_table_object_comments("sdcomp");
+        object_table_builder.create_table_object_relationships("sdcomp");
+        object_table_builder.create_table_journal_details("sdcomp");
     }
 
 
