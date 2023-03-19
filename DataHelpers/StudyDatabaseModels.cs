@@ -20,7 +20,6 @@ public class Study
     public string? study_enrolment { get; set; }
     public int? study_gender_elig_id { get; set; }
     public string? study_gender_elig { get; set; }
-    public int? iec_level { get; set; }
 
     public int? min_age { get; set; }
     public int? min_age_units_id { get; set; }
@@ -28,6 +27,8 @@ public class Study
     public int? max_age { get; set; }
     public int? max_age_units_id { get; set; }
     public string? max_age_units { get; set; }
+    
+    public int? iec_level { get; set; }
     public DateTime? datetime_of_data_fetch { get; set; }
 
     public List<StudyIdentifier>? identifiers { get; set; }
@@ -72,14 +73,15 @@ public class StudyInDB
     public string? study_enrolment { get; set; }
     public int? study_gender_elig_id { get; set; }
     public string? study_gender_elig { get; set; }
-
+    
     public int? min_age { get; set; }
     public int? min_age_units_id { get; set; }
     public string? min_age_units { get; set; }
     public int? max_age { get; set; }
     public int? max_age_units_id { get; set; }
     public string? max_age_units { get; set; }
-
+    
+    public int? iec_level { get; set; }
     public DateTime? datetime_of_data_fetch { get; set; }
 
     public StudyInDB(Study s)
@@ -104,6 +106,7 @@ public class StudyInDB
         max_age = s.max_age;
         max_age_units_id = s.max_age_units_id;
         max_age_units = s.max_age_units;
+        iec_level = s.iec_level;
         datetime_of_data_fetch = s.datetime_of_data_fetch;
     }
 }
@@ -170,7 +173,6 @@ public class StudyPerson
     public string? person_affiliation { get; set; }
     public int? organisation_id { get; set; }
     public string? organisation_name { get; set; }
-    public string? organisation_ror_id { get; set; }
 
     public StudyPerson(string? _sd_sid, int? _contrib_type_id, string? _contrib_type,
                             string? _person_full_name, string? _person_affiliation,
@@ -212,7 +214,6 @@ public class StudyOrganisation
     public string? contrib_type { get; set; }
     public int? organisation_id { get; set; }
     public string? organisation_name { get; set; }
-    public string? organisation_ror_id { get; set; }
     
     public StudyOrganisation(string?_sd_sid, int? _contrib_type_id, string? _contrib_type,
                             int? _organisation_id, string? _organisation_name)
@@ -286,7 +287,6 @@ public class StudyIdentifier
     public string? identifier_value { get; set; }
     public int? identifier_org_id { get; set; }
     public string? identifier_org { get; set; }
-    public string? identifier_org_ror_id { get; set; }
     public string? identifier_date { get; set; }
     public string? identifier_link { get; set; }
 

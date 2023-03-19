@@ -95,7 +95,7 @@ public class EUCTRProcessor : IStudyProcessor
 
         string? sponsor_name = "No organisation name provided in source data";
         string? sponsor = r.sponsor_name;
-        if (sponsor.AppearsGenuineOrgName())
+        if (sponsor.IsNotPlaceHolder() && sponsor.AppearsGenuineOrgName())
         {
             sponsor_name = sponsor?.TidyOrgName(sid);
             string? lc_sponsor = sponsor_name?.ToLower();
@@ -120,7 +120,7 @@ public class EUCTRProcessor : IStudyProcessor
                     if (values?.Any() is true)
                     {
                         string? org_value = values[0].value;
-                        if (org_value.AppearsGenuineOrgName())
+                        if (org_value.IsNotPlaceHolder() && org_value.AppearsGenuineOrgName())
                         {
                             string? funder = org_value?.TidyOrgName(sid);
                             if (funder != sponsor_name)
@@ -203,7 +203,7 @@ public class EUCTRProcessor : IStudyProcessor
                                 value_num++;
                                 if (title is not null && title.Length >= 4)
                                 {
-                                    if (title.AppearsGenuineTitle())
+                                    if (title.IsNotPlaceHolder())
                                     {
                                         title = title.Trim().ReplaceApos();
                                         if (!title!.NameAlreadyPresent(titles))
@@ -235,7 +235,7 @@ public class EUCTRProcessor : IStudyProcessor
                                 value_num++;
                                 if (title is not null && title.Length >= 4)
                                 {
-                                    if (title.AppearsGenuineTitle())
+                                    if (title.IsNotPlaceHolder())
                                     {
                                         title = title.Trim().ReplaceApos()!;
                                         if (! title.NameAlreadyPresent(titles))
@@ -1129,7 +1129,7 @@ public class EUCTRProcessor : IStudyProcessor
         }
 
 
-        // Eit contributors - try to ensure properly categorised.
+        // Edit contributors - try to ensure properly categorised.
         // All contributors originally down as organisations
         // Try and see if some are actually people
         
@@ -1140,7 +1140,7 @@ public class EUCTRProcessor : IStudyProcessor
             { 
                 bool add = true;
                 string? org_name = g.organisation_name?.ToLower();
-                if (org_name is not null && org_name.IsAnIndividual())
+                if (org_name is not null && !org_name.AppearsGenuineOrgName())
                 {
                     string? person_full_name = g.organisation_name.TidyPersonName();
                     if (person_full_name is not null)

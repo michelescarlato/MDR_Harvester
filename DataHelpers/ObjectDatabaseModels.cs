@@ -401,7 +401,6 @@ public class ObjectIdentifier
     public string? identifier_value { get; set; }
     public int? identifier_org_id { get; set; }
     public string? identifier_org { get; set; }
-    public string? identifier_org_ror_id { get; set; }
     public string? identifier_date { get; set; }
 
     public ObjectIdentifier(string _sd_oid, int? _type_id, string? _type_name,
@@ -690,7 +689,6 @@ public class ObjectPerson
     public string? person_affiliation { get; set; }
     public int? organisation_id { get; set; }
     public string? organisation_name { get; set; }
-    public string? organisation_ror_id { get; set; }
 
     public ObjectPerson(string? _sd_oid, int? _contrib_type_id, string? _contrib_type, string? _person_full_name,
                                string? _person_affiliation, int? _organisation_id, string? _organisation_name)
@@ -703,24 +701,6 @@ public class ObjectPerson
         organisation_id = _organisation_id;
         organisation_name = _organisation_name;
     }
-
-/*
-    public ObjectPerson(string? _sd_oid, int? _contrib_type_id, string? _contrib_type, 
-                             string? _person_given_name, string? _person_family_name, 
-                             string? _person_full_name, string? _orcid_id, string? _person_affiliation, 
-                             string? _organisation_name)
-    {
-        sd_oid = _sd_oid;
-        contrib_type_id = _contrib_type_id;
-        contrib_type = _contrib_type;
-        person_given_name = _person_given_name;
-        person_family_name = _person_family_name;
-        person_full_name = _person_full_name;
-        orcid_id = _orcid_id;
-        person_affiliation = _person_affiliation;
-        organisation_name = _organisation_name;
-    }
-*/
 
     public ObjectPerson(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
                             string? _person_given_name, string? _person_family_name, string? _person_full_name,
@@ -748,7 +728,6 @@ public class ObjectOrganisation
     public string? contrib_type { get; set; }
     public int? organisation_id { get; set; }
     public string? organisation_name { get; set; }
-    public string? organisation_ror_id { get; set; }
 
     public ObjectOrganisation(string? _sd_oid, int? _contrib_type_id, string? _contrib_type,
                             int? _organisation_id, string? _organisation_name)

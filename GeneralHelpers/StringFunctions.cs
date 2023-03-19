@@ -5,15 +5,11 @@ public static class StringHelpers
 {
     public static string? TrimPlus(this string? input_string)
     {
-        // removes beginning or trailing carriage returns, tabs and spaces
-        if (string.IsNullOrEmpty(input_string))
-        {
-            return null;
-        }
-        else
-        {
-            return input_string.Trim('\r', '\n', '\t', ' ');
-        }
+        // removes beginning or trailing carriage returns, tabs and spaces.
+        
+        return string.IsNullOrEmpty(input_string) 
+            ? null 
+            : input_string.Trim('\r', '\n', '\t', ' ');
     }
 
 
@@ -307,6 +303,7 @@ public static class StringHelpers
         string? output_string = input_string.TrimPlus();
         output_string = output_string.ReplaceTags();
         output_string = output_string.ReplaceApos();
+        output_string = output_string.ReplaceNonBreakingSpaces();
         return output_string.RegulariseStringEndings();
     }
 
@@ -499,7 +496,7 @@ public static class StringHelpers
             return null;
         }
 
-        // Check for professional titles
+        // Check for and remove professional titles
 
         string low_name = pName.ToLower();
 
@@ -507,15 +504,22 @@ public static class StringHelpers
         {
             pName = pName[10..];
         }
-        else if (low_name.StartsWith("associate professor "))
-        {
-            pName = pName[20..];
-        }
         else if (low_name.StartsWith("prof "))
         {
             pName = pName[5..];
         }
-        else if (low_name.StartsWith("dr med "))
+        else if (low_name.StartsWith("associate professor ") 
+                 || low_name.StartsWith("assistant professor "))
+        {
+            pName = pName[20..];
+        }
+        else if (low_name.StartsWith("associate prof ") 
+                 || low_name.StartsWith("assistant prof "))
+        {
+            pName = pName[15..];
+        }
+        else if (low_name.StartsWith("dr med ") 
+                 || low_name.StartsWith("a/prof ") || low_name.StartsWith("a prof "))
         {
             pName = pName[7..];
         }
@@ -523,6 +527,18 @@ public static class StringHelpers
                                             || low_name.StartsWith("ms "))
         {
             pName = pName[3..];
+        }
+        else if (low_name.StartsWith("assoc prof "))
+        {
+            pName = pName[11..];
+        }
+        else if (low_name.StartsWith("a/ prof "))
+        {
+            pName = pName[8..];
+        }
+        else if (low_name.StartsWith("assocprof "))
+        {
+            pName = pName[10..];
         }
         else if (low_name.StartsWith("dr") && low_name.Length > 2
                                            && pName[2].ToString() == low_name[2].ToString().ToUpper())
@@ -552,7 +568,7 @@ public static class StringHelpers
         {
             pName = pName[..^3];
         }
-        else if (low_name2.EndsWith(" ms"))
+        else if (low_name2.EndsWith(" ms") || low_name2.EndsWith(" md"))
         {
             pName = pName[..^2];
         }
@@ -560,71 +576,103 @@ public static class StringHelpers
         {
             pName = pName[..^12];
         }
+        else if (low_name2.EndsWith("phd candidate"))
+        {
+            pName = pName[..^13];
+        }
 
-        return pName.Trim(' ', '-');
+        return pName.Trim(' ', '-', ',');
     }
+    
 
-
-    public static bool CheckPersonName(this string? in_name)
+    public static bool IsNotPlaceHolder(this string? in_string)
     {
-        if (string.IsNullOrEmpty(in_name))
+        if (string.IsNullOrEmpty(in_string))
         {
             return false;
         }
-        else
-        {
-            bool result = true;
-            string low_name = in_name.ToLower();
-            if (low_name.Contains("research") ||
-                low_name.Contains("development") ||
-                low_name.Contains("trials") ||
-                low_name.Contains("pharma") ||
-                low_name.Contains("ltd") ||
-                low_name.Contains("inc.")
-               )
-            {
-                result = false;
-            }
-
-            return result;
-        }
-    }
-
-
-    public static bool AppearsGenuineTitle(this string? in_title)
-    {
-        if (string.IsNullOrEmpty(in_title))
-        {
-            return false;
-        }
-
-        bool result = true;
-        string lower_title = in_title.ToLower().Trim();
-
-        if (lower_title is "n.a." or "na" or "n.a" or "n/a")
+ 
+        bool result = true;  // default assumption
+        string low_string = in_string.ToLower().Trim();
+        
+        if (low_string.Length < 3)
         {
             result = false;
         }
-        else if (lower_title is "none" or "not done" or "same as above" or "in preparation" or "non fornito")
+        else if (low_string is "n.a." or "n.a" or "n/a" or "nil" or "nill" or "non")
+        {
+            result = false;
+        }
+        else if (low_string is "none" or "not done" or "same as above" or "in preparation" or "non fornito")
         {
              result = false;
-        }
-        else if (lower_title.StartsWith("not applic") || lower_title.StartsWith("not aplic")
-                || lower_title.StartsWith("non applic") || lower_title.StartsWith("non aplic")
-                || lower_title.StartsWith("no applic") || lower_title.StartsWith("no aplic"))
+        }        
+        else if (low_string.StartsWith("no ") || low_string == "not applicable" || low_string.StartsWith("not prov"))
         {
             result = false;
         }
-        else if (lower_title.StartsWith("see ") || lower_title.StartsWith("not avail")
-                                                || lower_title.StartsWith("non dispo"))
+        else if (low_string.StartsWith("non fund") || low_string.StartsWith("non spon")
+                                                   || low_string.StartsWith("nonfun") || low_string.StartsWith("noneno")
+                                                   || low_string.StartsWith("organisation name "))
+        {
+            result = false;
+        }
+        else if (low_string.StartsWith("not applic") || low_string.StartsWith("not aplic")
+                || low_string.StartsWith("non applic") || low_string.StartsWith("non aplic")
+                || low_string.StartsWith("no applic") || low_string.StartsWith("no aplic"))
+        {
+            result = false;
+        }
+        else if (low_string.StartsWith("see ") || low_string.StartsWith("not avail")
+                || low_string.StartsWith("non dispo") || low_string.Contains(" none."))
         {
             result = false;
         }
         
         return result;
     }
+    
+    
+    public static bool AppearsGenuinePersonName(this string? person_name)
+    {
+        if (string.IsNullOrEmpty(person_name))
+        {
+            return false;
+        }
 
+        bool result = true; // default assumption
+        string in_name = person_name.ToLower();
 
+        string low_name = in_name.ToLower();
+        if (low_name.Contains("research") || low_name.Contains("development") ||
+            low_name.Contains("trials") || low_name.Contains("pharma") ||
+            low_name.Contains("national") || low_name.Contains("college") ||
+            low_name.Contains("board") || low_name.Contains("council") ||
+            low_name.Contains("ltd") || low_name.Contains("inc.")
+           )
+        {
+            result = false;
+        }
+
+        if (low_name.Contains(" group") || low_name.StartsWith("group") ||
+            low_name.Contains(" assoc") || low_name.Contains(" team") ||
+            low_name.Contains("collab") || low_name.Contains("network"))
+        {
+            result = false;
+        }
+            
+        if (low_name.Contains("labor") || low_name.Contains("labat") ||
+            low_name.Contains("institu") || low_name.Contains("istitu") ||
+            low_name.Contains("school") || low_name.Contains("founda") ||
+            low_name.Contains("associat") || low_name.Contains("univers") )
+        {
+            result = false;
+        }
+       
+        return result;
+    }
+    
+    
     public static bool AppearsGenuineOrgName(this string? org_name)
     {
         if (string.IsNullOrEmpty(org_name))
@@ -632,42 +680,36 @@ public static class StringHelpers
             return false;
         }
 
-        bool result = true;
+        bool result = true;   // default assumption
         string in_name = org_name.ToLower();
 
-        if (in_name.Length < 3)
+        if (in_name.StartsWith("investigator ") || in_name is "investigator" or "self")
+        {
+            return false;
+        }
+        if (in_name.Contains("thesis"))
+        {
+            return false;
+        }
+        if (in_name is "seung-jung park" or "kang yan")
+        {
+            return false;  // a few specific individuals...
+        }
+        
+        if (in_name.Contains("professor") || in_name.Contains("prof ")
+                  || in_name.Contains("prof. ") || in_name.Contains("associate prof")
+                  || in_name.Contains("assistant prof"))
         {
             result = false;
         }
-        else if (in_name is "n.a." or "n a" or "n/a" or "nil" or "nill" or "non")
+        else if (in_name.Contains("assoc prof") || in_name.Contains("a/prof ")
+                   || in_name.Contains("a/ prof") || in_name.Contains("assocprof")
+                   || in_name.Contains("a prof"))
         {
             result = false;
         }
-        else if (in_name.StartsWith("no ") || in_name == "not applicable" || in_name.StartsWith("not prov"))
-        {
-            result = false;
-        }
-        else if (in_name == "none" || in_name.StartsWith("non fund") || in_name.StartsWith("non spon")
-                 || in_name.StartsWith("nonfun") || in_name.StartsWith("noneno"))
-        {
-            result = false;
-        }
-        else if (in_name.StartsWith("investigator ") || in_name is "investigator" or "self" 
-                                                     || in_name.StartsWith("Organisation name "))
-        {
-            result = false;
-        }
-        else if (in_name.Contains("thesis") || in_name.Contains(" none."))
-        {
-            result = false;
-        }
-        else if (in_name.StartsWith("professor") || in_name.StartsWith("prof ")
-                                                 || in_name.StartsWith("prof. ") ||
-                                                 in_name.StartsWith("associate prof"))
-        {
-            result = false;
-        }
-        else if (in_name.StartsWith("dr med ") || in_name.StartsWith("dr ") || in_name.StartsWith("mr ")
+        else if (in_name.StartsWith("dr med ") || in_name.StartsWith("dr ") 
+                 || in_name.StartsWith("dr. ") || in_name.StartsWith("mr ")
                  || in_name.StartsWith("ms "))
         {
             result = false;
@@ -677,11 +719,26 @@ public static class StringHelpers
         {
             result = false;
         }
-
+        else if (in_name.EndsWith(" md") || in_name.EndsWith(" phd") ||
+                 in_name.Contains(" md,") || in_name.Contains(" md ") ||
+                 in_name.Contains(" phd,") || in_name.Contains(" phd "))
+        {
+            result = false;
+        }
+        
+        // In some cases components of a organisation's name indicate that
+        // the name is that of a person rather than an organisation.
+        // However it may be that the name is a composite of both a person's
+        // and an organisation's name. This therefore needs to be checked.
+        
+        if (!result && !in_name.AppearsGenuinePersonName())
+        {
+            result = true;
+        }
         return result;
     }
 
-
+    
     public static string? ExtractOrganisation(this string affiliation, string sid)
     {
         if (string.IsNullOrEmpty(affiliation))
@@ -783,36 +840,34 @@ public static class StringHelpers
         {
             return null;
         }
-        else
+
+        // try and avoid spurious split string results
+        string[] split_strings = input_string!.Split(separator);
+        for (int j = 0; j < split_strings.Length; j++)
         {
-            // try and avoid spurious split string results
-            string[] split_strings = input_string!.Split(separator);
-            for (int j = 0; j < split_strings.Length; j++)
+            if (split_strings[j].Length < min_width)
             {
-                if (split_strings[j].Length < min_width)
+                if (j == 0)
                 {
-                    if (j == 0)
-                    {
-                        split_strings[1] = split_strings[0] + "," + split_strings[1];
-                    }
-                    else
-                    {
-                        split_strings[j - 1] = split_strings[j - 1] + "," + split_strings[j];
-                    }
+                    split_strings[1] = split_strings[0] + "," + split_strings[1];
+                }
+                else
+                {
+                    split_strings[j - 1] = split_strings[j - 1] + "," + split_strings[j];
                 }
             }
-
-            List<string> strings = new();
-            foreach (string ss in split_strings)
-            {
-                if (ss.Length >= min_width)
-                {
-                    strings.Add(ss);
-                }
-            }
-
-            return strings;
         }
+
+        List<string> strings = new();
+        foreach (string ss in split_strings)
+        {
+            if (ss.Length >= min_width)
+            {
+                strings.Add(ss);
+            }
+        }
+
+        return strings;
     }
 
 
@@ -821,7 +876,7 @@ public static class StringHelpers
         List<string> split_strings = new();
         for (int i = max_number; i > 0; i--)
         {
-            string string_number = i.ToString() + number_suffix;
+            string string_number = i + number_suffix;
             int number_pos = input_string.LastIndexOf(string_number, StringComparison.Ordinal);
             if (number_pos != -1)
             {

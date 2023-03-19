@@ -50,46 +50,43 @@ public class ParameterChecker
                 opts.harvest_type_id = 3;
                 return new ParamsCheckResult(false, false, opts); // can always run if -E parameter present
             }
-            else if (opts.harvest_all_test_data)
+            
+            if (opts.harvest_all_test_data)
             {
-                // Set up array of source ids to reflect
-                // those in the test data set.
+                // Set up array of source ids to reflect those in the test data set.
 
                 opts.source_ids = _testDataLayer.ObtainTestSourceIDs();
                 opts.harvest_type_id = 3;
-                return new ParamsCheckResult(false, false, opts); // should always run if -F parameter present
+                return new ParamsCheckResult(false, false, opts); // can always run if -F parameter present
             }
-            else
+
+            // Check valid harvest type id.
+
+            int harvest_type_id = opts.harvest_type_id;
+            if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3)
             {
-                // check valid harvest type id
-
-                int harvest_type_id = opts.harvest_type_id;
-                if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3)
-                {
-                    throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2 or 3");
-                }
-
-                // check the source(s) validity
-                if (opts.source_ids is null)
-                {
-                    throw new ArgumentException("No Source parameter found");
-                }
-                else
-                {
-                    foreach (int source_id in opts.source_ids)
-                    {
-                        if (!_monDataLayer.SourceIdPresent(source_id))
-                        {
-                            throw new ArgumentException("Source argument " + source_id +
-                                                        " does not correspond to a known source");
-                        }
-                    }
-                }
-
-                // parameters valid - return opts and the source.
-
-                return new ParamsCheckResult(false, false, opts);
+                throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2 or 3");
             }
+
+            // Check the source(s) validity.
+            
+            if (opts.source_ids is null)
+            {
+                throw new ArgumentException("No Source parameter found");
+            }
+
+            foreach (int source_id in opts.source_ids)
+            {
+                if (!_monDataLayer.SourceIdPresent(source_id))
+                {
+                    throw new ArgumentException("Source argument " + source_id +
+                                                " does not correspond to a known source");
+                }
+            }
+
+            // Parameters valid - return opts and the source.
+
+            return new ParamsCheckResult(false, false, opts);
         }
 
         catch (Exception e)

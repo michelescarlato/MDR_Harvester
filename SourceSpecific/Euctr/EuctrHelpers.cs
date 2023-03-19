@@ -8,20 +8,16 @@ public static class EuctrExtensions
         {
             return false;
         }
-        else
+        bool res = false;
+        foreach (StudyTitle t in titles)
         {
-            bool res = false;
-            foreach (StudyTitle t in titles)
+            if (t.title_text?.ToLower() == candidate_name.ToLower())
             {
-                if (t.title_text?.ToLower() == candidate_name.ToLower())
-                {
-                    res = true;
-                    break;
-                }
+                res = true;
+                break;
             }
-
-            return res;
         }
+        return res;
     }
 
     public static bool IMPAlreadyThere(this string imp_name, List<StudyTopic> topics)
@@ -30,20 +26,16 @@ public static class EuctrExtensions
         {
             return false;
         }
-        else
+        bool res = false;
+        foreach (StudyTopic t in topics)
         {
-            bool res = false;
-            foreach (StudyTopic t in topics)
+            if (imp_name.ToLower() == t.original_value?.ToLower())
             {
-                if (imp_name.ToLower() == t.original_value?.ToLower())
-                {
-                    res = true;
-                    break;
-                }
+                res = true;
+                break;
             }
-
-            return res;
         }
+        return res;
     }
 
     public static string? GetLanguageFromMemberState(this string? member_state)
@@ -92,64 +84,6 @@ public static class EuctrExtensions
         };
 
         return sec_lang;
-    }
-    
-    public static bool IsAnIndividual(this string? org_name)
-    {
-        if (string.IsNullOrEmpty(org_name))
-        {
-            return false;
-        }
-        
-        bool is_an_individual = false;
-
-        // if looks like an individual's name
-        if (org_name.EndsWith(" md") || org_name.EndsWith(" phd") ||
-            org_name.Contains(" md,") || org_name.Contains(" md ") ||
-            org_name.Contains(" phd,") || org_name.Contains(" phd ") ||
-            org_name.Contains("dr ") || org_name.Contains("dr.") ||
-            org_name.Contains("prof ") || org_name.Contains("prof.") ||
-            org_name.Contains("professor"))
-        {
-            is_an_individual = true;
-            
-            // but if part of a organisation reference...
-            
-            if (org_name.Contains("hosp") || org_name.Contains("univer") ||
-                org_name.Contains("labor") || org_name.Contains("labat") ||
-                org_name.Contains("institu") || org_name.Contains("istitu") ||
-                org_name.Contains("school") || org_name.Contains("founda") ||
-                org_name.Contains("associat"))
-
-            {
-                is_an_individual = false;
-            }
-        }
-
-        // some specific individuals...
-        if (org_name == "seung-jung park" || org_name == "kang yan")
-        {
-            is_an_individual = true;
-        }
-        return is_an_individual;
-    }
-    
-    public static bool IsAnOrganisation(this string? full_name)
-    {
-        if (string.IsNullOrEmpty(full_name))
-        {
-            return false;
-        }
-        
-        bool is_an_organisation = false;
-        string f_name = full_name.ToLower();
-        if (f_name.Contains(" group") || f_name.StartsWith("group") ||
-            f_name.Contains(" assoc") || f_name.Contains(" team") ||
-            f_name.Contains("collab") || f_name.Contains("network"))
-        {
-            is_an_organisation = true;
-        }
-        return is_an_organisation;
     }
 }
   

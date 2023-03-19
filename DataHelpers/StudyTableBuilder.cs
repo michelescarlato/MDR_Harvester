@@ -39,13 +39,13 @@ public class StudyTableBuilder
           , study_enrolment        VARCHAR         NULL
           , study_gender_elig_id   INT             NULL
           , study_gender_elig      VARCHAR         NULL
-          , iec_level              INT             NULL          
           , min_age                INT             NULL
           , min_age_units_id       INT             NULL
           , min_age_units          VARCHAR         NULL
           , max_age                INT             NULL
           , max_age_units_id       INT             NULL
           , max_age_units          VARCHAR         NULL
+          , iec_level              INT             NULL    
           , datetime_of_data_fetch TIMESTAMPTZ     NULL
         );
         CREATE INDEX studies_sid ON {schema}.studies(sd_sid);";
@@ -56,7 +56,7 @@ public class StudyTableBuilder
 
     public void create_table_study_identifiers(string schema)
     {
-        string sql_string = $@"DROP TABLE IF EXISTS {schema}study_identifiers;
+        string sql_string = $@"DROP TABLE IF EXISTS {schema}.study_identifiers;
         CREATE TABLE {schema}.study_identifiers(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
@@ -65,7 +65,6 @@ public class StudyTableBuilder
           , identifier_value       VARCHAR         NULL          
           , identifier_org_id      INT             NULL
           , identifier_org         VARCHAR         NULL
-          , identifier_org_ror_id  VARCHAR         NULL
           , identifier_date        VARCHAR         NULL
           , identifier_link        VARCHAR         NULL
         );
@@ -144,7 +143,6 @@ public class StudyTableBuilder
           , person_affiliation     VARCHAR         NULL
           , organisation_id        INT             NULL
           , organisation_name      VARCHAR         NULL
-          , organisation_ror_id    VARCHAR         NULL
         );
         CREATE INDEX _study_people_sd_sid ON {schema}.study_people(sd_sid);";
 
@@ -161,7 +159,6 @@ public class StudyTableBuilder
           , contrib_type           VARCHAR         NULL
           , organisation_id        INT             NULL
           , organisation_name      VARCHAR         NULL
-          , organisation_ror_id    VARCHAR         NULL
         );
         CREATE INDEX study_organisations_sd_sid ON {schema}.study_organisations(sd_sid);";
 
@@ -249,7 +246,6 @@ public class StudyTableBuilder
           , sd_sid                 VARCHAR         NOT NULL
           , facility_org_id        INT             NULL
           , facility               VARCHAR         NULL
-          , facility_ror_id        VARCHAR         NULL
           , city_id                INT             NULL
           , city_name              VARCHAR         NULL
           , country_id             INT             NULL
@@ -309,9 +305,6 @@ public class StudyTableBuilder
           , iec_type_id            INT             NULL
           , iec_type               VARCHAR         NULL
           , iec_text               VARCHAR         NULL
-          , iec_class_id           INT             NULL
-          , iec_class              VARCHAR         NULL
-          , iec_parsed_text        VARCHAR         NULL
         );
         CREATE INDEX {table_name}_sid ON {schema}.{table_name}(sd_sid);";
 

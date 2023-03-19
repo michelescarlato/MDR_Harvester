@@ -75,6 +75,7 @@ try
     harvester.Run(opts);
     return 0;
 }
+
 catch (Exception e)
 {
     // If an error bubbles up to here there is an unexpected issue with the code.

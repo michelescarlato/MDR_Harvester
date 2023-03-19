@@ -176,7 +176,6 @@ internal class IsrctnIdentifierDetails
     }
 }
 
-
 internal static class IsrctnExtensions
 {
 
@@ -202,85 +201,4 @@ internal static class IsrctnExtensions
         return res;
     }
 
-
-    internal static bool IsAnIndividual(this string? org_name)
-    {
-        if (string.IsNullOrEmpty(org_name))
-        {
-            return false;
-        }
-        
-        bool is_an_individual = false;
-
-        // If looks like an individual's name...
-
-        if (org_name.EndsWith(" md") || org_name.EndsWith(" phd") ||
-            org_name.Contains(" md,") || org_name.Contains(" md ") ||
-            org_name.Contains(" phd,") || org_name.Contains(" phd ") ||
-            org_name.Contains("dr ") || org_name.Contains("dr.") ||
-            org_name.Contains("prof ") || org_name.Contains("prof.") ||
-            org_name.Contains("professor"))
-        {
-            is_an_individual = true;
-
-            // Unless part of a organisation reference...
-
-            if (org_name.Contains("hosp") || org_name.Contains("univer") ||
-                org_name.Contains("labor") || org_name.Contains("labat") ||
-                org_name.Contains("institu") || org_name.Contains("istitu") ||
-                org_name.Contains("school") || org_name.Contains("founda") ||
-                org_name.Contains("associat"))
-            {
-                is_an_individual = false;
-            }
-        }
-
-        // some specific individuals...
-        if (org_name == "seung-jung park" || org_name == "kang yan")
-        {
-            is_an_individual = true;
-        }
-        return is_an_individual;
-    }
-
-
-    internal static bool IsAnOrganisation(this string? full_name)
-    {
-        if (string.IsNullOrEmpty(full_name))
-        {
-            return false;
-        }
-
-        bool is_an_organisation = false;
-        string f_name = full_name.ToLower();
-        if (f_name.Contains(" group") || f_name.StartsWith("group") ||
-            f_name.Contains(" assoc") || f_name.Contains(" team") ||
-            f_name.Contains("collab") || f_name.Contains("network"))
-        {
-            is_an_organisation = true;
-        }
-        return is_an_organisation;
-    }
-
-
-    internal static int CheckObjectName(this string? object_display_title, List<ObjectTitle> titles)
-    {
-        if (string.IsNullOrEmpty(object_display_title))
-        {
-            return 0;
-        }
-        
-        int num_of_this_type = 0;
-        if (titles.Count > 0)
-        {
-            foreach (var t in titles)
-            {
-                if (t.title_text?.Contains(object_display_title) is true)
-                {
-                    num_of_this_type++;
-                }
-            }
-        }
-        return num_of_this_type;
-    }
 }

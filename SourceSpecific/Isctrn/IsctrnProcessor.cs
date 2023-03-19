@@ -209,7 +209,7 @@ public class IsrctnProcessor : IStudyProcessor
             foreach (var stSponsor in sponsors)
             {
                 string? org = stSponsor.organisation;
-                if (org.AppearsGenuineOrgName())
+                if (org.IsNotPlaceHolder() && org.AppearsGenuineOrgName())
                 {
                     string? org_name = org.TidyOrgName(sid);
                     organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, org_name));
@@ -227,7 +227,7 @@ public class IsrctnProcessor : IStudyProcessor
             foreach (var funder in funders)
             {
                 string? funder_name = funder.name;
-                if (!string.IsNullOrEmpty(funder_name) && funder_name.AppearsGenuineOrgName())
+                if (funder_name.IsNotPlaceHolder() && funder_name.AppearsGenuineOrgName())
                 {
                     // check a funder is not simply the sponsor...(or repeated).
 
@@ -301,17 +301,14 @@ public class IsrctnProcessor : IStudyProcessor
             foreach (StudyPerson p in people)
             {
                 string? full_name = p.person_full_name?.ToLower();
-                if (full_name is not null)
+                if (full_name is not null && !full_name.AppearsGenuinePersonName())
                 {
-                    if (full_name.IsAnOrganisation())
+                    string? organisation_name = p.person_full_name.TidyOrgName(sid);
+                    if (organisation_name is not null)
                     {
-                        string? organisation_name = p.person_full_name.TidyOrgName(sid);
-                        if (organisation_name is not null)
-                        {
-                            organisations.Add(new StudyOrganisation(sid, p.contrib_type_id, p.contrib_type,
-                                null, organisation_name));
-                            add = false;
-                        }
+                        organisations.Add(new StudyOrganisation(sid, p.contrib_type_id, p.contrib_type,
+                            null, organisation_name));
+                        add = false;
                     }
                 }
                 if (add)
@@ -328,20 +325,16 @@ public class IsrctnProcessor : IStudyProcessor
             {
                 bool add = true;
                 string? org_name = g.organisation_name?.ToLower();
-                if (org_name is not null)
+                if (org_name is not null && !org_name.AppearsGenuineOrgName())
                 {
-                    if (org_name.IsAnIndividual())
+                    string? person_full_name = g.organisation_name.TidyPersonName();
+                    if (person_full_name is not null)
                     {
-                        string? person_full_name = g.organisation_name.TidyPersonName();
-                        if (person_full_name is not null)
-                        {
-                            people2.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
-                                null, null, g.organisation_name));
-                            add = false;
-                        }
+                        people2.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
+                            null, null, g.organisation_name));
+                        add = false;
                     }
                 }
-
                 if (add)
                 {
                     orgs2.Add(g);
@@ -694,7 +687,6 @@ public class IsrctnProcessor : IStudyProcessor
             }
         }
 
-
         string? gender = r.gender; 
         if (!string.IsNullOrEmpty(gender)) 
         {
@@ -709,7 +701,6 @@ public class IsrctnProcessor : IStudyProcessor
             }
             s.study_gender_elig_id = s.study_gender_elig.GetGenderEligId();
         }
-
 
         string? age_group = r.ageRange;
         if (!string.IsNullOrEmpty(age_group) && age_group != "Mixed"

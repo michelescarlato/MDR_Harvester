@@ -152,7 +152,6 @@ public class ObjectTableBuilder
           , person_affiliation     VARCHAR         NULL
           , organisation_id        INT             NULL
           , organisation_name      VARCHAR         NULL
-          , organisation_ror_id    VARCHAR         NULL
         );
         CREATE INDEX object_people_sd_oid ON {schema}.object_people(sd_oid);";
 
@@ -170,7 +169,6 @@ public class ObjectTableBuilder
           , contrib_type           VARCHAR         NULL
           , organisation_id        INT             NULL
           , organisation_name      VARCHAR         NULL
-          , organisation_ror_id    VARCHAR         NULL
         );
         CREATE INDEX object_organisations_sd_oid ON {schema}.object_organisations(sd_oid);";
 
@@ -266,7 +264,6 @@ public class ObjectTableBuilder
           , identifier_type        VARCHAR         NULL
           , identifier_org_id      INT             NULL
           , identifier_org         VARCHAR         NULL
-          , identifier_org_ror_id  VARCHAR         NULL
           , identifier_date        VARCHAR         NULL
         );
         CREATE INDEX object_identifiers_sd_oid ON {schema}.object_identifiers(sd_oid);";

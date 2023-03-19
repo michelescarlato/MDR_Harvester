@@ -329,7 +329,7 @@ public class CTGProcessor : IStudyProcessor
             if (sponsor is not null)
             {
                 string? sponsor_candidate = sponsor.LeadSponsorName;
-                if (sponsor_candidate.AppearsGenuineOrgName())
+                if (sponsor_candidate.IsNotPlaceHolder() && sponsor_candidate.AppearsGenuineOrgName())
                 {
                     sponsor_name = sponsor_candidate.TidyOrgName(sid);
                     if (sponsor_name == "[Redacted]")
@@ -364,13 +364,13 @@ public class CTGProcessor : IStudyProcessor
 
                     if (!string.IsNullOrEmpty(rp_name) && rp_name != "[Redacted]")
                     {
-                        if (rp_name.CheckPersonName())
+                        if (rp_name.AppearsGenuinePersonName())
                         {
                             rp_name = rp_name.TidyPersonName();
                             if (rp_name != "")
                             {
                                 string? affil_organisation = null;
-                                if (!rp_affil.AppearsGenuineOrgName())
+                                if (rp_affil.IsNotPlaceHolder() || !rp_affil.AppearsGenuineOrgName())
                                 {
                                     rp_affil = null;
                                 }
@@ -415,7 +415,7 @@ public class CTGProcessor : IStudyProcessor
                     foreach (var col in Collaborators)
                     {
                         string? collab_candidate = col.CollaboratorName;
-                        if (collab_candidate.AppearsGenuineOrgName())
+                        if (collab_candidate.IsNotPlaceHolder() && collab_candidate.AppearsGenuineOrgName())
                         {
                             string? collab_name = collab_candidate?.TidyOrgName(sid);
                             organisations.Add(new StudyOrganisation(sid, 69, "Collaborating organisation", null, collab_name));
@@ -435,87 +435,80 @@ public class CTGProcessor : IStudyProcessor
         }
 
 
-        if (ConditionBrowseModule != null)
+        var condition_mesh_list = ConditionBrowseModule?.ConditionMeshList;
+        if (condition_mesh_list != null)
         {
-            var condition_mesh_list = ConditionBrowseModule.ConditionMeshList;
-            if (condition_mesh_list is not null)
+            var conds = condition_mesh_list.ConditionMesh;
+            if (conds?.Any() is true)
             {
-                var conds = condition_mesh_list.ConditionMesh;
-                if (conds?.Any() is true)
+                foreach (var con in conds)
                 {
-                    foreach (var con in conds)
+                    string? mesh_code = con.ConditionMeshId;
+                    string? mesh_term = con.ConditionMeshTerm;
+                    conditions.Add(new StudyCondition(sid, mesh_term, 14, "MeSH", mesh_code));
+                }
+            }
+        }
+
+
+        var conditions_list = ConditionsModule?.ConditionList;
+        if (conditions_list != null)
+        {
+            var conds = conditions_list.Condition;
+            if (conds?.Any() is true)
+            {
+                foreach (string condition in conds)
+                {
+                    // only add the condition name if not already present.
+
+                    if (condition_is_new(condition))
                     {
-                        string? mesh_code = con.ConditionMeshId;
-                        string? mesh_term = con.ConditionMeshTerm;
-                        conditions.Add(new StudyCondition(sid, mesh_term, 14, "MeSH", mesh_code));
+                        conditions.Add(new StudyCondition(sid, condition));
                     }
                 }
             }
         }
 
 
-        if (InterventionBrowseModule != null)
+        var intervention_mesh_list = InterventionBrowseModule?.InterventionMeshList;
+        if (intervention_mesh_list != null)
         {
-            var intervention_mesh_list = InterventionBrowseModule.InterventionMeshList;
-            if (intervention_mesh_list is not null)
+            var interventions = intervention_mesh_list.InterventionMesh;
             {
-                var interventions = intervention_mesh_list.InterventionMesh;
+                if (interventions?.Any() is true)
                 {
-                    if (interventions?.Any() is true)
+                    foreach (var interv in interventions)
                     {
-                        foreach (var interv in interventions)
-                        {
-                            string? mesh_code = interv.InterventionMeshId;
-                            string? mesh_term = interv.InterventionMeshTerm;
-                            topics.Add(new StudyTopic(sid, 12, "chemical / agent", mesh_code, mesh_term));
-                        }
+                        string? mesh_code = interv.InterventionMeshId;
+                        string? mesh_term = interv.InterventionMeshTerm;
+                        topics.Add(new StudyTopic(sid, 12, "chemical / agent", mesh_code, mesh_term));
                     }
                 }
             }
         }
 
 
-        if (ConditionsModule != null)
+        var keywords_list = ConditionsModule?.KeywordList;
+        if (keywords_list != null)
         {
-            var conditions_list = ConditionsModule.ConditionList;
-            if (conditions_list is not null)
+            var keywords = keywords_list.Keyword;
+            if (keywords?.Any() is true)
             {
-                var conds = conditions_list.Condition;
-                if (conds?.Any() is true)
+                foreach (string keyword in keywords)
                 {
-                    foreach (string condition in conds)
+                    // Regularise drug name
+                    string k_word = keyword;   // need to do this indirectly as cannot alter the foreach variable
+                    if (k_word.Contains(((char)174).ToString()))
                     {
-                        // only add the condition name if not already present in the mesh coded conditions.
-
-                        if (topic_is_new(condition))
-                        {
-                            topics.Add(new StudyTopic(sid, 13, "condition", condition));
-                        }
+                        k_word = k_word.Replace(((char)174).ToString(), "");    // drop reg mark
+                        k_word = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(k_word.ToLower());
                     }
-                }
-            }
 
-            var keywords_list = ConditionsModule.KeywordList;
-            if (keywords_list is not null)
-            {
-                var keywords = keywords_list.Keyword;
-                if (keywords?.Any() is true)
-                {
-                    foreach (string keyword in keywords)
+                    // only add the keyword if not already present in the topics or  conmditions
+                        
+                    if (topic_is_new(k_word) && condition_is_new(k_word))
                     {
-                        // Regularise drug name
-                        string k_word = keyword;   // need to do this indirectly as cannot alter the foreach variable
-                        if (k_word.Contains(((char)174).ToString()))
-                        {
-                            k_word = k_word.Replace(((char)174).ToString(), "");    // drop reg mark
-                            k_word = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(k_word.ToLower());
-                        }
-
-                        // only add the condition name if not already present in the mesh coded conditions
-                        if (topic_is_new(k_word))
-                        {
-                            topics.Add(new StudyTopic(sid, 11, "keyword", k_word));
-                        }
+                        topics.Add(new StudyTopic(sid, 11, "keyword", k_word));
                     }
                 }
             }
@@ -526,7 +519,22 @@ public class CTGProcessor : IStudyProcessor
         {
             foreach (StudyTopic k in topics)
             {
-                if (k.original_value!.ToLower() == candidate_topic.ToLower())
+                if (String.Equals(k.original_value!, candidate_topic, 
+                        StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        
+        bool condition_is_new(string candidate_condition)
+        {
+            foreach (StudyCondition k in conditions)
+            {
+                if (String.Equals(k.original_value!, candidate_condition, 
+                        StringComparison.CurrentCultureIgnoreCase))
                 {
                     return false;
                 }
@@ -719,14 +727,16 @@ public class CTGProcessor : IStudyProcessor
                     foreach (var official in OverallOfficials)
                     {
                         string? official_name = official.OverallOfficialName;
-                        if (official_name is not null && official_name.CheckPersonName())
+                        if (official_name is not null && official_name.AppearsGenuinePersonName())
                         {
                             official_name = official_name.TidyPersonName();
                             if (official_name != rp_name)     // check not already present
                             {
                                 string? official_affiliation = official.OverallOfficialAffiliation;
                                 string? affil_organisation = null;
-                                if (official_affiliation is not null && official_affiliation.AppearsGenuineOrgName())
+                                if (official_affiliation is not null 
+                                    && official_affiliation.IsNotPlaceHolder()
+                                    && official_affiliation.AppearsGenuineOrgName())
                                 { 
                                     official_affiliation = official_affiliation.TidyOrgName(sid);
                                     if (!string.IsNullOrEmpty(sponsor_name)
@@ -1701,7 +1711,7 @@ public class CTGProcessor : IStudyProcessor
             foreach (StudyPerson p in people)
             {
                 string? full_name = p.person_full_name?.ToLower();
-                if (full_name is not null && full_name.IsAnOrganisation())
+                if (full_name is not null && !full_name.AppearsGenuinePersonName())
                 {
                     string? organisation_name = p.person_full_name.TidyOrgName(sid);
                     if (organisation_name is not null)
@@ -1725,7 +1735,7 @@ public class CTGProcessor : IStudyProcessor
             {
                 bool add = true;
                 string? org_name = g.organisation_name?.ToLower();
-                if (org_name is not null && org_name.IsAnIndividual())
+                if (org_name is not null && !org_name.AppearsGenuineOrgName())
                 {
                     string? person_full_name = g.organisation_name.TidyPersonName();
                     if (person_full_name is not null)
@@ -1743,6 +1753,7 @@ public class CTGProcessor : IStudyProcessor
         }
 
         List<StudyPerson> people3 = new();
+        
         // try to identify repeated individuals...
         // can happen as people are put in under different categories
 

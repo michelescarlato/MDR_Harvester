@@ -107,28 +107,25 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapVarchar("orcid_id", x => x.orcid_id)
         .MapVarchar("person_affiliation", x => x.person_affiliation)
         .MapInteger("organisation_id", x => x.organisation_id)
-        .MapVarchar("organisation_name", x => x.organisation_name)
-        .MapVarchar("organisation_ror_id", x => x.organisation_ror_id);
-
+        .MapVarchar("organisation_name", x => x.organisation_name);
+    
     public PostgreSQLCopyHelper<ObjectOrganisation> objectOrganisationsHelper { get; } = 
         new PostgreSQLCopyHelper<ObjectOrganisation>("sd", "object_organisations")
         .MapVarchar("sd_oid", x => x.sd_oid)
         .MapInteger("contrib_type_id", x => x.contrib_type_id)
         .MapVarchar("contrib_type", x => x.contrib_type)
         .MapInteger("organisation_id", x => x.organisation_id)
-        .MapVarchar("organisation_name", x => x.organisation_name)
-        .MapVarchar("organisation_ror_id", x => x.organisation_ror_id);
-                
-    public PostgreSQLCopyHelper<ObjectIdentifier>objectIdentifiersHelper { get; } = 
+        .MapVarchar("organisation_name", x => x.organisation_name);
+
+    public PostgreSQLCopyHelper<ObjectIdentifier> objectIdentifiersHelper { get; } =
         new PostgreSQLCopyHelper<ObjectIdentifier>("sd", "object_identifiers")
-        .MapVarchar("sd_oid", x => x.sd_oid)
-        .MapInteger("identifier_type_id", x => x.identifier_type_id)
-        .MapVarchar("identifier_type", x => x.identifier_type)
-        .MapVarchar("identifier_value", x => x.identifier_value)
-        .MapInteger("identifier_org_id", x => x.identifier_org_id)
-        .MapVarchar("identifier_org", x => x.identifier_org)
-        .MapVarchar("identifier_org_ror_id", x => x.identifier_org_ror_id)
-        .MapVarchar("identifier_date", x => x.identifier_date);
+            .MapVarchar("sd_oid", x => x.sd_oid)
+            .MapInteger("identifier_type_id", x => x.identifier_type_id)
+            .MapVarchar("identifier_type", x => x.identifier_type)
+            .MapVarchar("identifier_value", x => x.identifier_value)
+            .MapInteger("identifier_org_id", x => x.identifier_org_id)
+            .MapVarchar("identifier_org", x => x.identifier_org)
+            .MapVarchar("identifier_date", x => x.identifier_date);
 
     public PostgreSQLCopyHelper<ObjectDescription> objectDescriptionsHelper { get; } = 
         new PostgreSQLCopyHelper<ObjectDescription>("sd", "object_descriptions")
