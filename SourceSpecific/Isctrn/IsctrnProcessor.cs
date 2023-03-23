@@ -744,7 +744,7 @@ public class IsrctnProcessor : IStudyProcessor
                 {    
                      seq_num++;
                      iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
-                         cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum,  cr.CritText));
+                         cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
                 }
                 study_iec_type = (crits.Count == 1) ? 2 : 4;
                 num_inc_criteria = crits.Count;
@@ -761,7 +761,7 @@ public class IsrctnProcessor : IStudyProcessor
                 {
                     seq_num++;
                     iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
-                        cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum,  cr.CritText));
+                        cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
                 }
                 study_iec_type += (crits.Count == 1) ? 5 : 6;
             }

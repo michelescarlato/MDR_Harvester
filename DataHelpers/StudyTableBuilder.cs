@@ -298,13 +298,14 @@ public class StudyTableBuilder
         CREATE TABLE {schema}.{table_name}(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_sid                 VARCHAR         NOT NULL
-          , seq_num                FLOAT           NULL        
+          , seq_num                INT             NULL        
           , iec_type_id            INT             NULL
           , iec_type               VARCHAR         NULL              
           , split_type             VARCHAR         NULL
           , leader                 VARCHAR         NULL
           , indent_level           INT             NULL
           , level_seq_num          INT             NULL
+          , sequence_string        VARCHAR         NULL
           , iec_text               VARCHAR         NULL
         );
         CREATE INDEX {table_name}_sid ON {schema}.{table_name}(sd_sid);";

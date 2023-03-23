@@ -431,18 +431,19 @@ public class StudyFeature
 public class StudyIEC
 {
     public string? sd_sid { get; set; }
-    public float? seq_num { get; set; }    
+    public int? seq_num { get; set; }    
     public int? iec_type_id { get; set; }
     public string? iec_type { get; set; }    
     public string? split_type { get; set; }
     public string? leader { get; set; }
     public int? indent_level { get; set; }
     public int? level_seq_num { get; set; }
+    public string? sequence_string { get; set; }
     public string? iec_text { get; set; }
 
-    public StudyIEC(string? _sd_sid, float? _seq_num, int? _iec_type_id, 
+    public StudyIEC(string? _sd_sid, int? _seq_num, int? _iec_type_id, 
                     string? _iec_type, string? _split_type, string? _leader, 
-                    int? _indent_level, int? _level_seq_num, string? _iec_text)
+                    int? _indent_level, int? _level_seq_num, string? _sequence_string, string? _iec_text)
     {
         sd_sid = _sd_sid;
         seq_num = _seq_num;
@@ -452,6 +453,7 @@ public class StudyIEC
         leader = _leader;
         indent_level = _indent_level;
         level_seq_num = _level_seq_num;
+        sequence_string = _sequence_string;
         iec_text = _iec_text;
     }
 }
@@ -459,17 +461,18 @@ public class StudyIEC
 
 public class Criterion
 {
-    public float? SeqNum { get; set; }
+    public int? SeqNum { get; set; }
     public int? CritTypeId { get; set; }
     public string? CritType { get; set; }    
     public string? SplitType { get; set; }
     public string? Leader { get; set; }
     public int? IndentLevel { get; set; }
     public int? LevelSeqNum { get; set; }
+    public string? SequenceString { get; set; }
     public string? CritText { get; set; }
 
-    public Criterion(float? seqNum, int? critTypeId, string? critType, string splitType, 
-                     string? leader, int? indentLevel, int? levelSeqNum, string? critText)
+    public Criterion(int? seqNum, int? critTypeId, string? critType, string splitType, string? leader, 
+                     int? indentLevel, int? levelSeqNum, string? _SequenceString, string? critText)
     {
         SeqNum = seqNum;
         CritTypeId = critTypeId;
@@ -478,6 +481,7 @@ public class Criterion
         Leader = leader;
         IndentLevel = indentLevel;
         LevelSeqNum = levelSeqNum;
+        SequenceString = _SequenceString;
         CritText = critText;
     }
 }

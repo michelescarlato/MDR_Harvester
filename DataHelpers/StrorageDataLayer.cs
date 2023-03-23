@@ -199,13 +199,14 @@ public class StorageDataLayer : IStorageDataLayer
             PostgreSQLCopyHelper<StudyIEC> studyIECHelper =
                 new PostgreSQLCopyHelper<StudyIEC>("sd", target_table)
                     .MapVarchar("sd_sid", x => x.sd_sid)
-                    .MapReal("seq_num", x => x.seq_num)
+                    .MapInteger("seq_num", x => x.seq_num)
                     .MapInteger("iec_type_id", x => x.iec_type_id)
                     .MapVarchar("iec_type", x => x.iec_type)
                     .MapVarchar("split_type", x => x.split_type)
                     .MapVarchar("leader", x => x.leader)
                     .MapInteger("indent_level", x => x.indent_level)
                     .MapInteger("level_seq_num", x => x.level_seq_num)
+                    .MapVarchar("sequence_string", x => x.sequence_string)
                     .MapVarchar("iec_text", x => x.iec_text);
 
             studyIECHelper.SaveAll(conn, iec);
