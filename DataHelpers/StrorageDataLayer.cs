@@ -59,7 +59,14 @@ public class StorageDataLayer : IStorageDataLayer
 
         if (source.has_study_iec is true && s.iec?.Count > 0)
         {
-            StoreIEC(conn, source.study_iec_storage_type!, s.iec, s.study_start_year);
+            if (source.study_iec_storage_type! == "Single Table")
+            {
+                _sch.studyIECHelper.SaveAll(conn, s.iec);
+            }
+            else
+            {
+                StoreIEC(conn, source.study_iec_storage_type!, s.iec, s.study_start_year);
+            }
         }
 
         if (source.has_study_organisations is true && s.organisations?.Count > 0)
@@ -140,13 +147,9 @@ public class StorageDataLayer : IStorageDataLayer
                         List<StudyIEC> iec, int? study_start_year)
     {
         string target_table = "";        
-        if (storage_type == "Single Table")
+        if  (storage_type == "By Year Groupings")
         {
-            target_table = "study_iec";
-        }
-        else if (storage_type == "By Year Groupings")
-        {
-            if (study_start_year is null || study_start_year < 2012)
+            if (study_start_year is null or < 2012)
             {
                 target_table = "study_iec_pre12";
             }
@@ -161,7 +164,11 @@ public class StorageDataLayer : IStorageDataLayer
         }
         else if (storage_type == "By Years")
         {
-            if (study_start_year is null or > 2030)
+            if (study_start_year is > 2014 and <= 2030)
+            {
+                target_table = "study_iec_" + study_start_year.ToString()?[2..3];
+            }
+            else if (study_start_year is null or > 2030)
             {
                 target_table = "study_iec_null";
             }
@@ -185,24 +192,24 @@ public class StorageDataLayer : IStorageDataLayer
             {
                 target_table = "study_iec_1314";
             } 
-            else
-            {
-                target_table = "study_iec_" + study_start_year.ToString()?[2..3];
-            }
-        } 
-        
-        PostgreSQLCopyHelper<StudyIEC> studyIECHelper = 
-         new PostgreSQLCopyHelper<StudyIEC>("sd", target_table)
-         .MapVarchar("sd_sid", x => x.sd_sid)
-         .MapInteger("seq_num", x => x.seq_num)
-         .MapVarchar("leader", x => x.leader)
-         .MapInteger("indent_level", x => x.indent_level)
-         .MapInteger("level_seq_num", x => x.level_seq_num)
-         .MapInteger("iec_type_id", x => x.iec_type_id)
-         .MapVarchar("iec_type", x => x.iec_type)
-         .MapVarchar("iec_text", x => x.iec_text);
-        
-        studyIECHelper.SaveAll(conn, iec);
+        }
+
+        if (target_table != "")
+        {
+            PostgreSQLCopyHelper<StudyIEC> studyIECHelper =
+                new PostgreSQLCopyHelper<StudyIEC>("sd", target_table)
+                    .MapVarchar("sd_sid", x => x.sd_sid)
+                    .MapReal("seq_num", x => x.seq_num)
+                    .MapInteger("iec_type_id", x => x.iec_type_id)
+                    .MapVarchar("iec_type", x => x.iec_type)
+                    .MapVarchar("split_type", x => x.split_type)
+                    .MapVarchar("leader", x => x.leader)
+                    .MapInteger("indent_level", x => x.indent_level)
+                    .MapInteger("level_seq_num", x => x.level_seq_num)
+                    .MapVarchar("iec_text", x => x.iec_text);
+
+            studyIECHelper.SaveAll(conn, iec);
+        }
     }
 
 

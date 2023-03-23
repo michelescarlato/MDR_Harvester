@@ -16,4 +16,5 @@ public interface IStudyCopyHelpers
     public PostgreSQLCopyHelper<StudyLocation> studyLocationsHelper { get; }
     public PostgreSQLCopyHelper<StudyCountry> studyCountriesHelper { get; }
     public PostgreSQLCopyHelper<AvailableIPD> studyAvailIPDHelper { get; }
+    public PostgreSQLCopyHelper<StudyIEC> studyIECHelper { get; }
 }

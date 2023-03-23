@@ -59,10 +59,12 @@ public static class StringHelpers
         }
 
         // needs to have opening and closing tags for further processing
-        // except in a few cases commas may be in a string as "&#44;".
+        // except in a few cases commas may be in a string as "&#44;"
+        // and hyphens as "&#44;" (largely thai registry)
 
         string output_string = input_string.Replace("&#44;", ",");
-
+        output_string = output_string.Replace("&#45;", "-");
+        
         if (!(output_string.Contains('<') && output_string.Contains('>')))
         {
             return output_string;

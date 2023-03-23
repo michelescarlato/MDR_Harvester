@@ -44,7 +44,7 @@ public class WHOProcessor : IStudyProcessor
         List<ObjectInstance> data_object_instances = new();
 
         WhoHelpers wh = new();
-        IECHelpers iech = new();
+        //IECHelpers iech = new();
         
         string? sid = r.sd_sid;
 
@@ -463,7 +463,7 @@ public class WHOProcessor : IStudyProcessor
         }
 
 
-        //study identifiers.
+        // study identifiers.
 
         var sids = r.secondary_ids;
         if (sids?.Any() is true)
@@ -590,41 +590,47 @@ public class WHOProcessor : IStudyProcessor
         string? ec = r.exclusion_criteria;
         int num_inc_criteria = 0;
         int study_iec_type = 0;
-        
-        if (!string.IsNullOrEmpty(ic))
-        {
-            List<Criterion>? crits = iech.GetNumberedCriteria(sid, ic, "inclusion");
-            if (crits is not null)
-            {
-                int seq_num = 0;
-                foreach (Criterion cr in crits)
-                {    
-                    seq_num++;
-                    iec.Add(new StudyIEC(sid, seq_num, cr.Leader, cr.IndentLevel, 
-                        cr.LevelSeqNum, cr.CritTypeId, cr.CritType, cr.CritText));
-                }
-                study_iec_type = (crits.Count == 1) ? 2 : 4;
-                num_inc_criteria = crits.Count;
-            }
-        }
 
-        if (!string.IsNullOrEmpty(ec))
-        {
-            List<Criterion>? crits = iech.GetNumberedCriteria(sid, ec, "exclusion");
-            if (crits is not null)
+        //if (sid is "ACTRN12605000136240" or "ACTRN12605000320657" 
+       //         or "ACTRN12605000390684" or "ACTRN12605000529640" )
+       // {
+            if (!string.IsNullOrEmpty(ic))
             {
-                int seq_num = num_inc_criteria;
-                foreach (Criterion cr in crits)
+                List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
+                if (crits is not null)
                 {
-                    seq_num++;
-                    iec.Add(new StudyIEC(sid, seq_num, cr.Leader, cr.IndentLevel, 
-                        cr.LevelSeqNum, cr.CritTypeId, cr.CritType, cr.CritText));
-                }
-                study_iec_type += (crits.Count == 1) ? 5 : 6;
-            }
-        }
+                    int seq_num = 0;
+                    foreach (Criterion cr in crits)
+                    {
+                        seq_num++;
+                        iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                            cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum,  cr.CritText));
+                    }
 
-        s.iec_level = study_iec_type;
+                    study_iec_type = (crits.Count == 1) ? 2 : 4;
+                    num_inc_criteria = crits.Count;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(ec))
+            {
+                List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
+                if (crits is not null)
+                {
+                    int seq_num = num_inc_criteria;
+                    foreach (Criterion cr in crits)
+                    {
+                        seq_num++;
+                        iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                            cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum,  cr.CritText));
+                    }
+
+                    study_iec_type += (crits.Count == 1) ? 5 : 6;
+                }
+            }
+
+            s.iec_level = study_iec_type;
+        //}
 
 
 

@@ -176,7 +176,6 @@ public class LoggingHelper : ILoggingHelper
             if (s.has_study_topics is true) LogLine(StudyTableSummary(db_conn, schema, "study_topics"));
             if (s.has_study_features is true) LogLine(StudyTableSummary(db_conn, schema, "study_features"));
             if (s.has_study_conditions is true) LogLine(StudyTableSummary(db_conn, schema, "study_conditions"));
-            if (s.has_study_iec is true) LogLine(StudyTableSummary(db_conn, schema, "study_iec"));
             if (s.has_study_organisations is true) LogLine(StudyTableSummary(db_conn, schema, "study_organisations"));
             if (s.has_study_people is true) LogLine(StudyTableSummary(db_conn, schema, "study_people"));
             if (s.has_study_references is true) LogLine(StudyTableSummary(db_conn, schema, "study_references"));
@@ -185,6 +184,35 @@ public class LoggingHelper : ILoggingHelper
             if (s.has_study_ipd_available is true) LogLine(StudyTableSummary(db_conn, schema, "study_ipd_available"));
             if (s.has_study_countries is true) LogLine(StudyTableSummary(db_conn, schema, "study_countries"));
             if (s.has_study_locations is true) LogLine(StudyTableSummary(db_conn, schema, "study_locations"));
+            if (s.has_study_iec is true)
+            {
+                if (s.study_iec_storage_type! == "Single Table")
+                {
+                    LogLine(StudyTableSummary(db_conn, schema, "study_iec"));
+                }
+                else
+                {
+                    if (s.study_iec_storage_type! == "By Year Groupings")
+                    {
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_pre12"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_13to19"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_20on"));
+                    }
+                    else if (s.study_iec_storage_type! == "By Years")
+                    {
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_null"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_pre06"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_0608"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_0910"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_1112"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_1314"));
+                        for (int i = 15; i < 30; i++)
+                        {
+                            LogLine(StudyTableSummary(db_conn, schema, "study_iec_{i}"));
+                        }
+                    }
+                }
+            }
         }
 
         LogHeader("object tables");

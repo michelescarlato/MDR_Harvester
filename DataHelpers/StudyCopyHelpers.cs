@@ -126,4 +126,18 @@ public class StudyCopyHelpers : IStudyCopyHelpers
             .MapVarchar("ipd_type", x => x.ipd_type)
             .MapVarchar("ipd_url", x => x.ipd_url)
             .MapVarchar("ipd_comment", x => x.ipd_comment);
+    
+    public PostgreSQLCopyHelper<StudyIEC> studyIECHelper{ get; } =
+        new PostgreSQLCopyHelper<StudyIEC>("sd", "study_iec")
+            .MapVarchar("sd_sid", x => x.sd_sid)
+            .MapReal("seq_num", x => x.seq_num)
+            .MapInteger("iec_type_id", x => x.iec_type_id)
+            .MapVarchar("iec_type", x => x.iec_type)
+            .MapVarchar("split_type", x => x.split_type)
+            .MapVarchar("leader", x => x.leader)
+            .MapInteger("indent_level", x => x.indent_level)
+            .MapInteger("level_seq_num", x => x.level_seq_num)
+            .MapVarchar("iec_text", x => x.iec_text);
+
 }
+
