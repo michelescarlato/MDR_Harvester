@@ -35,6 +35,9 @@ public class Euctr_Record
     {
         sd_sid = _sd_sid;
     }
+    
+    public Euctr_Record()
+    { }
 }
 
 /*

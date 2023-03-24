@@ -1,9 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Headers;
-using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
-
 namespace MDR_Harvester.Extensions;
 
 [SuppressMessage("ReSharper", "UnusedMember.Local")]
@@ -74,7 +70,8 @@ public static class IECHelpers
         // There are, however, many cases of spurious CRs splitting lines that are really one statement, 
         // as well as many examples where the criteria list is provided as a single line, without CRs.
        
-        type_values tv = new(type);  
+        type_values tv = new(type);
+        tv.sd_sid = sid;
         List<string> cr_lines = input_string.Split('\n', 
             StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries ).ToList();
 
@@ -432,7 +429,7 @@ public static class IECHelpers
                 {
                     level = GetLevel(ldrName, levels);
                     
-                    // if level = 1, (qnd not the first) have 'returned to a 'top level' leader
+                    // if level = 1, (and not the first) have 'returned to a 'top level' leader
                     // the levels array therefore needs to be cleared so that identification of
                     // lower level leaders is kept 'local' to an individual top level element, and 
                     // built up as necessary for each top level element
@@ -481,13 +478,9 @@ public static class IECHelpers
         if ((crLines.Count > 4 && num_no_leader >= crLines.Count - 1) ||
             (crLines.Count > 1 && num_no_leader == crLines.Count))
         {
-            // Though very rare it is possible for line text strings at this stage to be empty or
-            // only have one character, if the original line had a carriage return after the leader
-            // character rather than only before it. In those situations the processing below becomes
-            // difficult (and meaningless) - therefore a quick check is done on string length before proceeding.
-
             // none of the lines had a leader character. If they (or most of them) had proper 
             // termination then it is possible that they are simply differentiated by the CRs alone...
+            
             bool assume_crs_only = false;
             string use_as_header = "";
 
@@ -511,7 +504,7 @@ public static class IECHelpers
                 int valid_start_chars = 0;
                 foreach (var t in crLines)
                 {
-                    // May be no termination applied but each line starts with a capital letter
+                    // May be no termination applied but each (can be bar 1) line starts with a capital letter
 
                     string start_char = t.text[0].ToString();
                     if (start_char == start_char.ToUpper())
@@ -528,32 +521,61 @@ public static class IECHelpers
 
             if (!assume_crs_only)
             {
-                // a chance that an unknown bullet character has been used to start each line
-                // start with the second line (as the first may be different) and see if they are all the same
-
-                string test_char = crLines[1].text[0].ToString();
                 int valid_start_chars = 0;
-                for (int k = 1; k < crLines.Count; k++)
+                if (crLines.Count > 3)
                 {
-                    // May be no termination applied but each line starts with a capital letter
-
-                    string start_char = crLines[k].text[0].ToString();
-                    if (start_char == test_char)
+                    foreach (var t in crLines)
                     {
-                        valid_start_chars++;
+                        // More tentative / risky but if every line starts with a lower case letter
+                        // and there are a reasonable number of lines...(4+)
+                        // chances are each line can be assumed to be a criterion
+                        
+                        string start_char = t.text[0].ToString();
+                        if (start_char == start_char.ToLower())
+                        {
+                            valid_start_chars++;
+                        }
+                    }
+
+                    if (valid_start_chars >= crLines.Count)
+                    {
+                        assume_crs_only = true;
                     }
                 }
+            }
 
-                if (valid_start_chars == crLines.Count - 1)
+
+            if (!assume_crs_only)
+            {
+                // a chance that an unknown bullet character has been used to start each line
+                // start with the second line (as the first may be different) and see if they are all the same
+                // Don't test letters as some people use formulaic criteria all starting with the same word
+
+                char test_char = crLines[1].text[0];
+                if (!char.IsLetter(test_char))
                 {
-                    assume_crs_only = true;
-                    use_as_header = test_char.ToString();
+                    int valid_start_chars = 0;
+                    for (int k = 1; k < crLines.Count; k++)
+                    {
+                        // May be no termination applied but each line starts with a capital letter
+
+                        char start_char = crLines[k].text[0];
+                        if (start_char == test_char)
+                        {
+                            valid_start_chars++;
+                        }
+                    }
+
+                    if (valid_start_chars == crLines.Count - 1)
+                    {
+                        assume_crs_only = true;
+                        use_as_header = test_char.ToString();
+                    }
                 }
             }
 
             if (assume_crs_only)
             {
-                int hdr_num = 0;
                 int line_num = 0;
                 string leaderString = use_as_header == "" ? "@" : use_as_header;
                 for (int n = 0; n < crLines.Count; n++)
@@ -576,14 +598,26 @@ public static class IECHelpers
                         }
                     }
 
-                    crLines[n].split_type = "cr assumed";
+                    crLines[n].split_type = "cr assumed";   
+                    
+                    // Identify what appear to be headers but only make initial hdr
+                    // have indent 0, if it fits the normal pattern
                     if (crLines[n].text.EndsWith(':') || crLines[n].text == crLines[n].text.ToUpper())
                     {
-                        hdr_num++;
                         crLines[n].leader = leaderString + "Hdr";
-                        crLines[n].indent_level = 0;
-                        crLines[n].indent_seq_num = hdr_num;
                         crLines[n].type = tv.grp_hdr;
+
+                        if (n == 0)
+                        {  
+                            crLines[n].indent_level = 0;
+                            crLines[n].indent_seq_num = 1;
+                        }
+                        else
+                        {
+                            line_num++;
+                            crLines[n].indent_level = 1;
+                            crLines[n].indent_seq_num = line_num;
+                        }
                     }
                     else
                     {
@@ -631,7 +665,8 @@ public static class IECHelpers
                 }
             }
 
-            // Try and identify spurious 'headers' that were caused by odd CRs
+            // Try and identify spurious 'headers' and supplementary lines
+            // i.e. lines with no leader characters, that were caused by odd CRs
 
             if (!string.IsNullOrEmpty(thisText))
             {
@@ -690,12 +725,11 @@ public static class IECHelpers
 
                 // check to see if a 'supplement' is better characterised as a normal criterion
 
-                if (crLines[i].type == tv.post_crit && !thisText.EndsWith(':')
-                                                    && !thisText.StartsWith('*')
-                                                    && !thisText.ToLower().StartsWith("note")
-                                                    && !thisText.ToLower().StartsWith("other ")
-                                                    && !thisText.ToLower().StartsWith("for further details")
-                                                    && !thisText.ToLower().StartsWith("for more information"))
+                if (crLines[i].type == tv.post_crit && i > 0 
+                            && !thisText.EndsWith(':') && !thisText.StartsWith('*') 
+                            && !thisText.ToLower().StartsWith("note") && !thisText.ToLower().StartsWith("other ")
+                            && !thisText.ToLower().StartsWith("for further details")
+                            && !thisText.ToLower().StartsWith("for more information"))
                 {
                     // Almost always is a spurious supplement.
                     // Whether should be joined depends on whether there is an initial
@@ -710,8 +744,11 @@ public static class IECHelpers
                     }
                     else
                     {
-                        crLines[i].indent_level = crLines[i - 1].indent_level;
-                        crLines[i].indent_seq_num = crLines[i - 1].indent_seq_num + 1;
+                        if (i > 0)
+                        {
+                            crLines[i].indent_level = crLines[i - 1].indent_level;
+                            crLines[i].indent_seq_num = crLines[i - 1].indent_seq_num + 1;
+                        }
                     }
                 }
 
@@ -726,9 +763,14 @@ public static class IECHelpers
 
         revised_lines = revised_lines.OrderBy(c => c.seq_num).ToList();
 
+        if (tv.sd_sid == "PACTR201402000761317")
+        {
+            int a = 1;
+        }
+        
         // Clarify situation with one or two criteria only
 
-        if (revised_lines.Count == 0)
+        if (revised_lines.Count == 1)
         {
             revised_lines[0].seq_num = 1;
             revised_lines[0].split_type = "none";
@@ -772,7 +814,7 @@ public static class IECHelpers
         }
 
 
-        if (revised_lines.Count > 0)
+        if (revised_lines.Count > 1)
         {
             // Add in sequence strings to try to 
             // ensure numbering is continuous and reflects levels
@@ -783,12 +825,12 @@ public static class IECHelpers
             int old_level = -1;
             string sequence_base = sequence_start;
             string seq_string = "";
-            int[] level_pos = { 0, 0, 0, 0, 0, 0, 0 };
+            int[] level_pos = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             int current_level_pos = 0;
 
-            for (int n = 0; n < revised_lines.Count; n++)
+            foreach (iec_line t in revised_lines)
             {
-                int level = (int)revised_lines[n].indent_level!; //assume always non-null
+                int level = (int)t.indent_level!; //  assume always non-null
                 if (level == 0)
                 {
                     seq_string = level_pos[0] > 0
@@ -839,7 +881,7 @@ public static class IECHelpers
                     seq_string = sequence_base + (++current_level_pos).ToString("0#");
                 }
 
-                revised_lines[n].sequence_string = seq_string;
+                t.sequence_string = seq_string;
             }
         }
         return revised_lines;
@@ -1335,7 +1377,7 @@ public static class IECHelpers
     private static List<iec_line> SplitOnSeperator(iec_line line, string splitter, int loop_depth, type_values tv)
     {
         string input_string = line.text;
-        string seq_base = line.type == tv.no_sep ? tv.getSequenceStart() + "1."  : line.sequence_string + ".";
+        string seq_base = line.type == tv.no_sep ? tv.getSequenceStart() + "01."  : line.sequence_string + ".";
         
         string[] split_lines = input_string.Split(splitter, 
             StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries );
@@ -1360,7 +1402,7 @@ public static class IECHelpers
     {
         string input_string = input_line.text;
         List<iec_line> split_strings = new();
-        string seq_base = input_line.type == tv.no_sep ? tv.getSequenceStart() + "1."  : input_line.sequence_string + ".";
+        string seq_base = input_line.type == tv.no_sep ? tv.getSequenceStart() + "01."  : input_line.sequence_string + ".";
         int level_seq_num = 0;
         string firstLeader = GetStringToFind(1);
         int firstLeaderPos = input_string.IndexOf(firstLeader, 0, StringComparison.Ordinal);
@@ -1636,6 +1678,7 @@ public static class IECHelpers
         public string post_crit_name { get; set; }
         public string grp_hdr_name{ get; set; }
         public string no_sep_name{ get; set; }
+        public string sd_sid{ get; set; }
         
         public type_values(string type_stem)
         {
