@@ -52,7 +52,7 @@ public class EUCTRProcessor : IStudyProcessor
                 $"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
-
+        
         s.sd_sid = sid;
         s.datetime_of_data_fetch = download_datetime;
 

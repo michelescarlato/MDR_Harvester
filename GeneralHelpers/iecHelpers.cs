@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 namespace MDR_Harvester.Extensions;
 
@@ -12,16 +13,17 @@ public static class IECHelpers
 
         Regexes = new Dictionary<string, string>()
         { 
-           {"recrit", @"^\d{1,2}\. "},                   // number period and space  1. , 2. 
-           {"resh", @"^\d{1,2}\.\d{1,2}\."},             // numeric Sub-heading. N.n.
-           {"resh1", @"^\d{1,2}\.\d{1,2} "},             // numeric Sub-heading space (without final period) N.n
-           {"ressh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}\."},   // numeric Sub-sub-heading. N.n.n.
+           {"resssh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}\.\d{1,2}"},   // numeric Sub-sub-sub-heading. N.n.n.n
+           {"ressh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}"},     // numeric Sub-sub-heading. N.n.n            
+           {"resh", @"^\d{1,2}\.\d{1,2}\."},             // numeric Sub-heading. N.n.     
+           {"resh1", @"^\d{1,2}\.\d{1,2}\s"},            // numeric Sub-heading space (without final period) N.n
+           {"recrit", @"^\d{1,2}\.\s"},                  // number period and space  1. , 2. 
            {"retab5", @"^[a-z]\.\t"},                    // alpha-period followed by tab   a.\t, b.\t
            {"reha", @"^[a-z]{1}\."},                     // alpha period. a., b.
            {"rehacap", @"^[A-Z]{1}\."},                  // alpha caps period. A., B.
            {"rehadb", @"^\([a-z]{1}\)"},                 // alpha in brackets. (a), (b)
            {"rehab", @"^[a-z]{1}\)"},                    // alpha with right bracket. a), b)
-           {"renha", @"^\d{1,2}[a-z]{1} "},              // number plus letter  Na, Nb
+           {"renha", @"^\d{1,2}[a-z]{1}\s"},              // number plus letter  Na, Nb
            {"retab1", @"^-\t"},                          // hyphen followed by tab, -\t, -\t 
            {"retab2", @"^\d{1,2}\t"},                    // number followed by tab, 1\t, 2\t
            {"retab3", @"^\uF0A7\t"},                     // unknown character followed by tab
@@ -35,22 +37,27 @@ public static class IECHelpers
            {"resqrtnum", @"^\d{1,2}\]"},                 // numbers with right square bracket   1], 2]
            {"resnumdashb", @"^\d{1,2}\-\)"},             //  numbers and following dash, right bracket  1-), 2-)
            {"resnumdash", @"^\d{1,2}\-"},                //  numbers and following dash  1-, 2-
+           {"resnumslash", @"^\d{1,2}\/"},                //  numbers and following slash  1/, 2/
            {"rebull", @"^[\u2022,\u2023,\u25E6,\u2043,\u2219]"},  // various bullets 1
            {"rebull1", @"^[\u2212,\u2666,\u00B7,\uF0B7]"},        // various bullets 2
-           {"reso", @"^o "},                              // open 'o' bullet followed by space
-           {"reslatbr", @"^\(x{0,3}(|ix|iv|v?i{0,3})\)"}, // roman numerals double bracket
-           {"reslat", @"^x{0,3}(|ix|iv|v?i{0,3})\)"},     // roman numerals right brackets
+           {"reso", @"^o "},                              // open 'o' bullet followed by space, o , o
+           {"resotab", @"^o\t"},                          // open 'o' bullet followed by tab  o\t, o\t
+           {"reslatbr", @"^\(x{0,3}(|ix|iv|v?i{0,3})\)"}, // roman numerals double bracket   (i), (ii)
+           {"reslat", @"^x{0,3}(|ix|iv|v?i{0,3})\)"},     // roman numerals right brackets    i), ii)
+           {"reslatdot", @"^x{0,3}(|ix|iv|v?i{0,3})\."},  // roman numerals dots   i., ii.
            {"recrit1", @"^\d{1,2}\."},                    // number period only - can give false positives
-           {"recrit2", @"^\d{1,2} "},                      // number space only - can give false positives           
-           {"reslatdot", @"^x{0,3}(|ix|iv|v?i{0,3})\."},  // roman numerals dots
+           {"recrit2", @"^\d{1,2}\s"},                     // number space only - can give false positives       
+           {"recrit3", @"^\d{1,2}[A-Z]"},                 // number-cap letter  - might give false positives   
+           {"recrit4", @"^\d{1,2}\.\d{1,2}[A-Z]"},        // number-dot-number cap letter  - might give false positives
            {"redash", @"^-"},                             // dash only   -, -
            {"redoubstar", @"^\*\*"},                      // two asterisks   **, **
            {"restar", @"^\*"},                            // asterisk only   *, *
            {"resemi", @"^;"},                             // semi-colon only   ;, ; 
            {"request", @"^\?"},                           // question mark only   ?, ?
            {"reinvquest", @"^¿"},                         // inverted question mark only   ¿, ¿
-           {"reespacenum", @"^E \d{1,2}"},                // exclusion as E numbers  E 01, E 02
-           {"reispacenum", @"^I \d{1,2}"},                // inclusion as I numbers  I 01, I 02
+           {"reespacenum", @"^(E|e)\s?\d{1,2}"},          // exclusion as E or e numbers, optional space  E 01, E 02
+           {"reispacenum", @"^(I|i)\s?\d{1,2}"},          // inclusion as I or i numbers, optional space  i1, i2
+           {"rethreeenum", @"^(1|2)\d{1,2}\.? "},          // 1 or 2 followed by 2 numbers, optional dot and space 
         };
          
     }
@@ -59,6 +66,7 @@ public static class IECHelpers
     public static List<Criterion>? GetNumberedCriteria(string sid, string? input_string, string type)
     {
         input_string = input_string.StringClean();
+
         if (string.IsNullOrEmpty(input_string))
         {
             return null;
@@ -70,8 +78,7 @@ public static class IECHelpers
         // There are, however, many cases of spurious CRs splitting lines that are really one statement, 
         // as well as many examples where the criteria list is provided as a single line, without CRs.
        
-        type_values tv = new(type);
-        tv.sd_sid = sid;
+        type_values tv = new(type, sid);
         List<string> cr_lines = input_string.Split('\n', 
             StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries ).ToList();
 
@@ -92,62 +99,26 @@ public static class IECHelpers
         
         // then transfer data to list of iec_line structures
 
-        List<iec_line> lines = new();
-        if (cleaned_lines.Count == 1)   // No CRs in source
+        List<iec_line> final_cr_lines = new();   // target list to develop
+        if (cleaned_lines.Count == 1)            // No CRs in source, simply add single line
         { 
-            lines.Add(new iec_line(1, tv.no_sep, "none", "All", cleaned_lines[0], 0, 1, tv.getSequenceStart() + "0A"));
+            final_cr_lines.Add(new iec_line(1, tv.no_sep, "none", "All", cleaned_lines[0], 0, 1, tv.getSequenceStart() + "0A"));
         } 
         else
         {
-            List<iec_line> prelines = new();
-            int n = 0;
-            foreach (string s in cleaned_lines)
+            List<string> checked_lines = CoalesceVeryShortLines(cleaned_lines);
+            List<iec_line> raw_list = new();
+            int n = 0;            
+            foreach (string s in checked_lines)
             {
-                n++;
-                prelines.Add(new iec_line(n, tv.type, "cr", s)); // seq num therefore reflects original ordering of lines
+                raw_list.Add(new iec_line(++n, tv.type, "cr", s));
             }
-
-            // prelines used here because of a very rare but possible problem with very short lines
-            // may be, or include, 'or' or 'and', or be the result of a spurious CR (e.g. immediately
-            // after a line number). In general therefore add such very small lines to the preceding
-            // line (unless it is the first line or very short and starts with a number). 
-            // N.B. Lines are already trimmed, from above.
             
-            for (int j = 0; j < prelines.Count; j++)
-            {
-                if (prelines[j].text.Length < 6)
-                {
-                    if (j == 0)
-                    {
-                        prelines[1].text = prelines[0].text + " " + prelines[1].text;
-                    }
-                    else if (prelines[j].text.Length < 4 && char.IsDigit(prelines[j].text[0]))
-                    {
-                        if (j < prelines.Count - 1)
-                        {
-                            prelines[j + 1].text = prelines[j].text + " " + prelines[j + 1].text;
-                        }
-                        else
-                        {
-                            lines.Last().text += " " + prelines[j].text;
-                        }
-                    }
-                    else
-                    {
-                       lines.Last().text += " " + prelines[j].text;
-                    }
-                }
-                else
-                {
-                    lines.Add(prelines[j]);
-                }
-            }
-
             // Initially try to find leader characters for each split line
             // then try to correct common errors in the list
 
-            List<iec_line> cr_list = IdentifyLineLeaders(lines, tv);
-            lines = TryToRepairSplitLines(cr_list, tv);
+            List<iec_line> processed_list = IdentifyLineLeaders(raw_list, tv);
+            final_cr_lines  = TryToRepairSplitLines(processed_list, tv);
         }
         
         // then process each line to see if it includes sequences or separators itself
@@ -155,7 +126,7 @@ public static class IECHelpers
         // recursive process ends with a list of criterion objects
 
         List<iec_line> expanded_lines = new();
-        foreach (iec_line l in lines)
+        foreach (iec_line l in final_cr_lines)
         {
             List<iec_line> possible_lines = TryToSplitLine(l, (int)l.indent_level!, tv); // see if a 'composite' line
             if (possible_lines.Count > 1)
@@ -173,13 +144,62 @@ public static class IECHelpers
         {
             crits.Add(new Criterion(ln.seq_num, ln.type, tv.getTypeName(ln.type), ln.split_type, 
                           ln.leader, ln.indent_level, ln.indent_seq_num, ln.sequence_string, 
-                          ln.text.TrimStart(' ', '-', '.', ',')));
+                          ln.text.TrimStart(' ', '-', '.', ',', ')')));
         }
         
         return crits.OrderBy(c => c.SequenceString).ToList();
     }
 
-    
+    private static List<string> CoalesceVeryShortLines(List<string> preLines)
+    {
+        // preLines used here because of a very rare but possible problem with very short lines.
+        // May be, or include, 'or' or 'and', or be the result of a spurious CR (e.g. immediately
+        // after a line number). In general therefore add such very small lines to the preceding
+        // line (unless it is the first line or very short and starts with a number). 
+        // N.B. Lines are already trimmed, in calling procedure.
+        
+        List<string> checked_lines = new();
+        for (int j = 0; j < preLines.Count; j++)
+        {
+            if (preLines[j].Length >= 4)
+            {
+                checked_lines.Add(preLines[j]);
+            }
+            else
+            {
+                if (j == 0)
+                {
+                    preLines[1] = preLines[0] + " " + preLines[1];  // add to following line
+                }
+                else
+                {
+                    bool includes_digit = false;
+                    foreach (char c in preLines[j].Where(char.IsDigit))
+                    {
+                        includes_digit = true;
+                    }
+                    if (includes_digit)
+                    {
+                        if (j < preLines.Count - 1)   // if not the final line
+                        {
+                            preLines[j + 1] = preLines[j] + " " + preLines[j + 1]; // add to following line
+                        }
+                        else
+                        {
+                            checked_lines[^1] += " " + preLines[j];  // add to preceding line, already transferred 
+                        }
+                    }
+                    else
+                    {
+                        checked_lines[^1] += " " + preLines[j];  // add to preceding line, already transferred
+                    }
+                }
+            }
+        }
+        return checked_lines;
+    }
+
+
     private static List<iec_line> IdentifyLineLeaders(List<iec_line> crLines, type_values tv)
     {
         // Examine each line for possible leader characters.
@@ -205,6 +225,140 @@ public static class IECHelpers
                     // some regex patterns have to have additional checks. In other cases 
                     // simply break out of the loop with the matched pattern value.
                     
+                    if (ldrName.StartsWith("recrit"))
+                    {
+                        if (ldrName == "recrit")
+                        {
+                            // Turn into recrit1, without the space, to ensure that the header type
+                            // remains the same even if there are variations in spacing in the source.
+
+                            ldrName = "recrit1";
+                            leader = leader.Trim();
+                            break;
+                        }
+
+                        if (ldrName == "recrit1")
+                        {
+                            // regex_pattern = @"^\d{1,2}." 
+                            // does it really match recrit 4?, regex = @"^\d{1,2}\.\d{1,2}[A-Z]"},
+
+                            if (Regex.Match(this_line, @"^\d{1,2}\.\d{1,2}[A-Z]").Success)
+                            {
+                                ldrName = "recrit4";
+                                leader = Regex.Match(this_line, @"^\d{1,2}\.\d{1,2}[A-Z]").Value;
+                                leader = leader[..^1]; // lose the initial letter of the text from the leader
+                            }
+
+                            break;
+                        }
+
+                        if (ldrName == "recrit2")
+                        {
+                            // hdrName = "recrit2", regex_pattern = @"^\d{1,2} " 
+
+                            if (int.TryParse(leader.Trim(), out int leader_num))
+                            {
+                                // should parse OK given regex match
+                                // May need to be ignored if a number appears out of sequence
+                                // Also the case if number is followed by a time period - almost
+                                // always part of the line above 
+
+                                // ReSharper disable once ReplaceWithSingleAssignment.True
+                                bool genuine = true;
+
+                                if (i == 0 && leader_num != 1)
+                                {
+                                    genuine = false; // probably, but the converse is not true
+                                }
+
+                                // if associated with a time period unlikely to be genuine 
+
+                                string rest_of_text = this_line[leader.Length..].Trim().ToLower();
+                                if (rest_of_text.StartsWith("secs")
+                                    || rest_of_text.StartsWith("second")
+                                    || rest_of_text.StartsWith("mins")
+                                    || rest_of_text.StartsWith("minute")
+                                    || rest_of_text.StartsWith("hour")
+                                    || rest_of_text.StartsWith("day")
+                                    || rest_of_text.StartsWith("week")
+                                    || rest_of_text.StartsWith("month")
+                                    || rest_of_text.StartsWith("year"))
+                                {
+                                    genuine = false;
+                                }
+
+                                if (i > 0)
+                                {
+                                    string prev_ldr = crLines[i - 1].leader!.Trim();
+                                    if (int.TryParse(prev_ldr, out int prev_number))
+                                    {
+                                        // preceding line has number space heading too
+                                        // therefore likely to be genuine
+                                        genuine = true;
+                                    }
+                                    else
+                                    {
+                                        // unless the first number, unlikely to be a genuine number
+                                        // though some number lists do start at 2! and others have a sequence 
+                                        // interrupted by CRs at random intervals.
+
+                                        // If there is a following number, or the previous line looks like a header,
+                                        // it is more likely to be genuine.
+
+                                        string prev_ldr2 = "", post_ldr = "";
+                                        if (i > 1)
+                                        {
+                                            prev_ldr2 = crLines[i - 1].leader!.Trim();
+                                        }
+
+                                        if (i < crLines.Count - 1)
+                                        {
+                                            if (Regex.Match(crLines[i + 1].text, @"^\d{1,2} ").Success)
+                                            {
+                                                post_ldr = Regex.Match(crLines[i + 1].text, @"^\d{1,2} ").Value.Trim();
+                                            }
+                                        }
+
+                                        if ((prev_ldr2 != "" && int.TryParse(prev_ldr2, out int prev_number2))
+                                            || (post_ldr != "" && int.TryParse(post_ldr, out int post_number)))
+                                        {
+                                            // line is probably genuine
+                                        }
+                                        else
+                                        {
+                                            // seems to be isolated in the sequence
+                                            genuine = false;
+                                        }
+                                    }
+                                }
+
+                                if (!genuine)
+                                {
+                                    // change the found pattern to none, line becomes a 'header' and likely
+                                    // to be merge with the one before
+                                    
+                                    ldrName = "none";
+                                    leader = "";
+                                }
+                            }
+
+                            break;
+                        }
+
+                        if (ldrName == "recrit3")
+                        {
+                            // regex = @"^\d{1,2}[A-Z]"}
+                            
+                            // Need to lose the first letter of the text -
+                            // this has been used to identify the leader but is not really part of it.
+                            // Leader needs to lose that character.
+
+                            leader = leader[..^1];
+                            break;
+                        }
+                    }
+                   
+
                     if (ldrName.StartsWith("reha"))
                     {
                         if (ldrName == "reha")
@@ -308,6 +462,74 @@ public static class IECHelpers
                         }
                     }
 
+                    
+                    if (ldrName == "rethreeenum")
+                    {
+                        // Regex is @"^(1|2)\d{1,2}\.? "
+                        // Can be a spurious CR followed by a number, a.g. after an equals sign
+                        // or before a unit. Should normally also be part of a sequence.
+                        
+                        bool genuine = true;  // as the starting point
+                        string rest_of_text = this_line[leader.Length..].Trim().ToLower();
+                        if (rest_of_text.StartsWith("kg") || rest_of_text.StartsWith("secs")
+                           || rest_of_text.StartsWith("patients") || rest_of_text.StartsWith("min") 
+                           || rest_of_text.StartsWith("days"))
+                        {
+                            genuine = false;
+                        }
+                        if (i > 0)
+                        {
+                            string prev_line = crLines[i - 1].text;
+                            if (prev_line[^1] == '=' || prev_line[^1] == '>' || prev_line[^1] == '<')
+                            {
+                                genuine = false;
+                            }
+                            else
+                            {
+                                if (leader.Trim() != "101" && leader.Trim() != "201")
+                                {
+                                    bool prevln1same = false, prevln2same = false, nextlinesame = false;
+                                    string prevldr1 = crLines[i - 1].leader!.Trim();
+                                    if (Regex.Match(prevldr1, @"^(1|2)\d{1,2}").Success)
+                                    {
+                                        prevln1same = true;
+                                    }
+                                    if (i > 1)
+                                    {
+                                        string prevldr2 = crLines[i - 2].leader!.Trim();
+                                        if (Regex.Match(prevldr2, @"^(1|2)\d{1,2}").Success)
+                                        {
+                                            prevln2same = true;
+                                        }
+                                    }
+                                    if (i < crLines.Count - 1)
+                                    {
+                                        if (Regex.Match(crLines[i + 1].text, @"^(1|2)\d{1,2}\.? ").Success)
+                                        {
+                                            nextlinesame = true;
+                                        }
+                                    }
+                                    if (prevln1same || prevln2same || nextlinesame)
+                                    {
+                                         // line is probably genuine
+                                    }
+                                    else
+                                    {
+                                         // seems to be isolated in the sequence
+                                         genuine = false;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!genuine)
+                        {
+                            ldrName = "none"; // not really a match for anything - make a 'header'
+                            leader = "";
+                        }
+                    }
+                    
+                    
                     if (ldrName == "resnumdash")
                     {
                         // hdrName = "resnumdash", regex_pattern = @"^\d{1,2}\-" by default 
@@ -389,33 +611,6 @@ public static class IECHelpers
                          break;
                     }
 
-                    if (ldrName == "recrit")
-                    {
-                         // Turn into recrit1, without the space, to ensure that the header type
-                         // remains the same even if there are variations in spacing in the source.
-                         
-                         ldrName = "recrit1";
-                         leader = leader.Trim();
-                         break;
-                    }
-                    
-                    if (ldrName == "recrit2")
-                    {
-                        // hdrName = "recrit2", regex_pattern = @"^\d{1,2} " by default 
-                        // may need to be put back together if a number appears out of sequence
-                        // Can occur with lines split on carriage returns
-                        // (number then almost certainly part of the text, with a preceding carriage return)
-
-                        if (int.TryParse(leader, out int leader_num))
-                        {
-                            if (leader_num != 1 && leader_num != levels[level].levelNum + 1)
-                            {
-                                ldrName = "none";
-                            }
-                        }
-  
-                    }
-
                     break; // in all other cases simply break as an appropriate match found
                 }
             }
@@ -483,20 +678,27 @@ public static class IECHelpers
             
             bool assume_crs_only = false;
             string use_as_header = "";
-
-            int valid_end_chars = 0;
-            foreach (var t in crLines)
+            try
             {
-                char end_char = t.text[^1];
-                if (end_char is '.' or ';' or ',')
+                int valid_end_chars = 0;
+                foreach (var t in crLines)
                 {
-                    valid_end_chars++;
+                    char end_char = t.text[^1];
+                    if (end_char is '.' or ';' or ',')
+                    {
+                        valid_end_chars++;
+                    }
+                }
+                
+                if (valid_end_chars >= crLines.Count - 1)
+                {
+                    assume_crs_only = true;
                 }
             }
-
-            if (valid_end_chars >= crLines.Count - 1)
+            catch (Exception e)
             {
-                assume_crs_only = true;
+                Console.WriteLine(e.Message);
+                throw;
             }
 
             if (!assume_crs_only)
@@ -645,13 +847,13 @@ public static class IECHelpers
         for (int i = crLines.Count - 1; i >= 0; i--)
         {
             bool transfer_crit = true; // by default
-            string? thisText = crLines[i].text;
+            string thisText = crLines[i].text;
 
             // remove simple headings with no information
 
             if (crLines[i].type == tv.grp_hdr)
             {
-                string lowtext = thisText?.ToLower() ?? "";
+                string lowtext = thisText.ToLower();
                 if (lowtext is "inclusion:" or "inclusion criteria" or "inclusion criteria:"
                     || lowtext.Contains("key inclusion criteria") || lowtext.Contains("inclusion criteria include"))
                 {
@@ -665,65 +867,81 @@ public static class IECHelpers
                 }
             }
 
-            // Try and identify spurious 'headers' and supplementary lines
-            // i.e. lines with no leader characters, that were caused by odd CRs
-
             if (!string.IsNullOrEmpty(thisText))
             {
-                if (crLines[i].type == tv.grp_hdr && i < crLines.Count - 1 && i > 0)
+                // Try and identify spurious 'headers' 
+                // i.e. lines with no leader characters, that were caused by odd CRs
+
+                try
                 {
-                    // if line starts with 'Note' very likely to be a 'header' giving supp. information
-                    // also do not try to merge upward if preceding line ends with ':'
-
-                    if (!thisText.ToLower().StartsWith("note") && !crLines[i - 1].text.EndsWith(':'))
+                    if (crLines[i].type == tv.grp_hdr && i < crLines.Count - 1 && i > 0)
                     {
-                        // headers assumed to normally end with ':', but other checks made in addition
-                        // (N.B. Initial and last entries are not checked).
-
-                        char initChar = thisText[0];
-                        if (!thisText.EndsWith(':'))
+                        // if line starts with 'Note' very likely to be a 'header' giving supp. information
+                        // also do not try to merge upward if preceding line ends with ':'
+                        if (!thisText.ToLower().StartsWith("note") && !crLines[i - 1].text.EndsWith(':'))
                         {
-                            // Does the entry following the header have an indentation level greater than the header?,
-                            // as would be expected with a 'true' header.
-                            // If not, add it to the preceding entry as it is 
-                            // likely to be a spurious \n in the original string rather than a genuine header.
+                            // headers assumed to normally end with ':', but other checks made in addition
+                            // (N.B. Initial and last entries are not checked).
 
-                            // Also if no end colon, starts with a lower case letter or digit, and
-                            // previous line does not add in a full stop.
-
-                            if (crLines[i].indent_level >= crLines[i + 1].indent_level
-                                || (!crLines[i - 1].text.EndsWith('.')
-                                    && (char.ToLower(initChar) == initChar || char.IsDigit(initChar))))
+                            char initChar = thisText[0];
+                            if (!thisText.EndsWith(':'))
                             {
-                                // Almost certainly a spurious \n in the
-                                // original string rather than a genuine header.
+                                // Does the entry following the header have an indentation level greater than the header?,
+                                // as would be expected with a 'true' header.
+                                // If not, add it to the preceding entry as it is 
+                                // likely to be a spurious \n in the original string rather than a genuine header.
 
-                                crLines[i - 1].text += " " + thisText;
-                                crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
-                                transfer_crit = false;
+                                // Also if no end colon, starts with a lower case letter or digit, and
+                                // previous line does not add in a full stop.
+
+                                if (crLines[i].indent_level >= crLines[i + 1].indent_level
+                                    || (!crLines[i - 1].text.EndsWith('.') 
+                                        && (char.ToLower(initChar) == initChar || char.IsDigit(initChar)))
+                                    )
+                                {
+                                    // Almost certainly a spurious \n in the
+                                    // original string rather than a genuine header.
+
+                                    crLines[i - 1].text += " " + thisText;
+                                    crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
+                                    transfer_crit = false;
+                                }
                             }
-                        }
 
-                        if (thisText.EndsWith(':')
-                            && initChar.ToString() == initChar.ToString().ToLower() || char.IsDigit(initChar))
-                        {
-                            // Header line that has a colon but starts with a lower case letter
-                            // merge it 'upwards' to the line before
-
-                            string prev_line = crLines[i - 1].text;
-                            char prev_last_char = prev_line[^1];
-                            if (prev_last_char is not ('.' or ';' or ':'))
+                            try
                             {
-                                crLines[i - 1].text += " " + thisText;
-                                crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
-                                crLines[i - 1].type = tv.grp_hdr;
-                                transfer_crit = false;
+                                if (thisText.EndsWith(':')
+                                    && initChar.ToString() == initChar.ToString().ToLower() || char.IsDigit(initChar))
+                                {
+                                    // Header line that has a colon but starts with a lower case letter
+                                    // merge it 'upwards' to the line before
+
+                                    string prev_line = crLines[i - 1].text;
+                                    char prev_last_char = prev_line[^1];
+                                    if (prev_last_char is not ('.' or ';' or ':'))
+                                    {
+                                        crLines[i - 1].text = (prev_line + " " + thisText).Replace("  ", " ");
+                                        crLines[i - 1].type = tv.grp_hdr;
+                                        transfer_crit = false;
+                                    }
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(tv.sd_sid);
+                                Console.WriteLine(e);
+                                throw;
                             }
                         }
                     }
                 }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
 
-                // check to see if a 'supplement' is better characterised as a normal criterion
+                // check to see if a last line 'supplement' is better characterised as a normal criterion
 
                 if (crLines[i].type == tv.post_crit && i > 0 
                             && !thisText.EndsWith(':') && !thisText.StartsWith('*') 
@@ -744,14 +962,11 @@ public static class IECHelpers
                     }
                     else
                     {
-                        if (i > 0)
-                        {
-                            crLines[i].indent_level = crLines[i - 1].indent_level;
-                            crLines[i].indent_seq_num = crLines[i - 1].indent_seq_num + 1;
-                        }
+                        crLines[i].indent_level = crLines[i - 1].indent_level;
+                        crLines[i].indent_seq_num = crLines[i - 1].indent_seq_num + 1; 
                     }
                 }
-
+                
                 if (transfer_crit)
                 {
                     revised_lines.Add(crLines[i]);
@@ -762,11 +977,6 @@ public static class IECHelpers
         // Put things back in correct order
 
         revised_lines = revised_lines.OrderBy(c => c.seq_num).ToList();
-
-        if (tv.sd_sid == "PACTR201402000761317")
-        {
-            int a = 1;
-        }
         
         // Clarify situation with one or two criteria only
 
@@ -834,7 +1044,7 @@ public static class IECHelpers
                 if (level == 0)
                 {
                     seq_string = level_pos[0] > 0
-                        ? sequence_start + "0" + level_pos[0]
+                        ? sequence_start + "00" + level_pos[0]
                         : sequence_start + "00";
                     level_pos[0]++;
                 }
@@ -1011,14 +1221,6 @@ public static class IECHelpers
         if (input_string.Count(c => c == '?') > 1)
         {
             splitters.Add(new Splitter(2, input_string.IndexOf("?", 0, StringComparison.Ordinal), "?"));
-        }
-        
-        // additional checks here - ensure 3 single asterisks
-        int singlestar_count = input_string.Count(c => c == '*')  ;
-        int doublestar_count = (input_string.Length - input_string.Replace("**", "").Length) ;
-        if (singlestar_count - doublestar_count > 2)
-        {
-            splitters.Add(new Splitter(2, input_string.IndexOf("*", 0, StringComparison.Ordinal), "*"));
         }
 
         // then examine possible sequences
@@ -1295,7 +1497,7 @@ public static class IECHelpers
             {
                 string GetStringToFind(int i) => (char)(i + 96) + ".";
                 string GetNextStringToFind(int i) => (char)(i + 97) + ".";
-                splitters.Add(new Splitter(1, pos1, GetStringToFind, GetNextStringToFind, ""));
+                splitters.Add(new Splitter(1, pos1, GetStringToFind, GetNextStringToFind, "a."));
             }
         }
         
@@ -1370,6 +1572,33 @@ public static class IECHelpers
             }
         }
         
+        // Test 20
+        
+        int singlestar_count = input_string.Count(c => c == '*')  ;
+        int doublestar_count = (input_string.Length - input_string.Replace("**", "").Length) ;
+        if (singlestar_count - doublestar_count > 2)
+        {
+            // * also used to indicate multiplication within formulae, as well as '**' doubles
+            // Therefore check for numbers both sides of the *
+
+            int pos1 = FetchNextButCheckNotMultip(input_string, 0, "*");
+            if (pos1 > -1)
+            {
+                int pos2 = FetchNextButCheckNotMultip(input_string, pos1 + 2, "*");
+                if (pos2 > -1 && pos2 - pos1 > 4)
+                {
+                    if (!input_string.Trim().StartsWith("*"))
+                    {
+                        input_string = "*" + input_string; // ensure all lines treated the same
+                    }
+
+                    string GetStringToFind(int i) => "*";
+                    string GetNextStringToFind(int i) => "*";
+                    splitters.Add(new Splitter(1, pos1, GetStringToFind, GetNextStringToFind, "¿"));
+                }
+            }
+        }
+        
         return splitters;
     }
     
@@ -1408,8 +1637,13 @@ public static class IECHelpers
         int firstLeaderPos = input_string.IndexOf(firstLeader, 0, StringComparison.Ordinal);
         if (firstLeaderPos > 2)   // add any prefix as the initial line, if more than 2 letters
         {
+            // watch the a) / (a) possibility
+            if (firstLeader == "a)" && input_string[firstLeaderPos - 1] == '(')
+            {
+                firstLeaderPos--; // go back to include the leading bracket if it was there
+            }
             ++level_seq_num;
-            split_strings.Add(new iec_line(input_line.seq_num, input_line.type, "seq", "Hdr", 
+            split_strings.Add(new iec_line(input_line.seq_num, tv.grp_hdr, "seq", "Hdr", 
                             input_string[..firstLeaderPos], loop_depth + 1, level_seq_num, 
                             seq_base + level_seq_num.ToString("0#")));   // no leader - therefore a hdr
 
@@ -1427,6 +1661,7 @@ public static class IECHelpers
             if (string_to_find == "a)" && line_start > 0 && input_string[line_start - 1] == '(')
             {
                 line_start--; // include the leading bracket if it was there for "a)"
+                string_to_find = "(a)";
             }
 
             if (line_start + 5 > input_string.Length)
@@ -1468,11 +1703,23 @@ public static class IECHelpers
                     line_end = FetchNextButCheckSeparatedFromPreceding(input_string, line_start + 3,
                         next_string_to_find);
                 }
+                else if (checkChar is "a.")
+                {
+                    // need to check following character is not part of e.g. or i.e.
+                    line_end = FetchNextButCheckNotAbbrev(input_string, line_start + 3,
+                        next_string_to_find);
+                }
                 else if (checkChar is "-" or "¿")
                 {
                     // need to check preceding characters as not representing a number or letter.
                     line_end = FetchNextButCheckNotHyphen(input_string, line_start + 3, next_string_to_find);
                 }
+                else if (checkChar is "*")
+                {
+                    // need to check preceding characters as not representing a number or letter.
+                    line_end = FetchNextButCheckNotMultip(input_string, line_start + 3, next_string_to_find);
+                }
+
 
                 line = (line_end == -1) ? input_string[line_start..] : input_string[line_start..line_end];
                 if (line.Length > string_to_find.Length)
@@ -1667,6 +1914,95 @@ public static class IECHelpers
         return result;
     }
 
+    
+    private static int FetchNextButCheckNotAbbrev(string input_string, int string_pos, string string_to_find)
+    {
+        // only applies to these situations, when next string to find would 'e' and 'i' 
+        // and e.g. or i.e. could be identified wrongly
+        
+        int result = -1;
+        int spos = string_pos == 0 ? 0 : string_pos + string_to_find.Length;
+        while (string_pos < input_string.Length - string_to_find.Length)
+        {
+            string_pos = input_string.IndexOf(string_to_find, spos, StringComparison.Ordinal);
+            if (string_pos == -1 || string_pos >= input_string.Length - string_to_find.Length)
+            {
+                result = -1;
+                break;
+            }
+            bool result_obtained = true;
+
+            if (string_to_find == "e")
+            {
+                char test_char1 = input_string[string_pos + 1];
+                char test_char2 = input_string[string_pos + 2];
+
+                if (test_char1 == '.' &&  test_char2 == 'g')
+                {
+                    result_obtained = false;
+                }
+            }
+            if (string_to_find == "i")
+            {
+                char test_char1 = input_string[string_pos + 1];
+                char test_char2 = input_string[string_pos + 2];
+
+                if (test_char1 == '.' &&  test_char2 == 'e')
+                {
+                    result_obtained = false;
+                }
+            }
+
+            if (result_obtained)
+            {
+                result = string_pos;
+                break;
+            }
+            spos = string_pos + string_to_find.Length;
+        }
+
+        return result;
+    }
+    
+    private static int FetchNextButCheckNotMultip(string input_string, int string_pos, string string_to_find)
+    {
+        int result = -1;
+        int spos = string_pos == 0 ? 0 : string_pos + string_to_find.Length;
+        while (string_pos < input_string.Length - string_to_find.Length)
+        {
+            string_pos = input_string.IndexOf(string_to_find, spos, StringComparison.Ordinal);
+            if (string_pos == -1 || string_pos >= input_string.Length - string_to_find.Length)
+            {
+                result = -1;
+                break;
+            }
+            bool result_obtained = true;
+            if (string_pos > 0)
+            {
+                int char_pos1 = string_pos, char_pos2 = string_pos;
+                while (char_pos1 > 0 && input_string[char_pos1] != ' ')
+                {
+                    char_pos1--;
+                }
+                while (char_pos2 < input_string.Length - 1 && input_string[char_pos2] != ' ')
+                {
+                    char_pos2++;
+                }
+                
+                if (char.IsDigit(input_string[char_pos1]) && char.IsDigit(input_string[char_pos2]))
+                {
+                    result_obtained = false;  // looks like a multiplication!
+                }
+            }
+            if (result_obtained)
+            {
+                result = string_pos;
+                break;
+            }
+            spos = string_pos + string_to_find.Length;
+        }
+        return result;
+    }
 
     private class type_values
     {
@@ -1680,8 +2016,9 @@ public static class IECHelpers
         public string no_sep_name{ get; set; }
         public string sd_sid{ get; set; }
         
-        public type_values(string type_stem)
+        public type_values(string type_stem, string sid)
         {
+            sd_sid = sid;
             type = type_stem switch
             {
                 "inclusion" => 1,

@@ -149,11 +149,11 @@ public class StorageDataLayer : IStorageDataLayer
         string target_table = "";        
         if  (storage_type == "By Year Groupings")
         {
-            if (study_start_year is null or < 2012)
+            if (study_start_year is null or <= 2012)
             {
-                target_table = "study_iec_pre12";
+                target_table = "study_iec_upto12";
             }
-            else if (study_start_year is >= 2013 and <= 2019)
+            else if (study_start_year is > 2012 and <= 2019)
             {
                 target_table = "study_iec_13to19";
             }

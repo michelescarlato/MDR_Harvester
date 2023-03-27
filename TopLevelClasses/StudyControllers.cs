@@ -28,7 +28,7 @@ public class StudyController
         int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvestTypeId);
         int chunk = _source.harvest_chunk ?? 0;
         int k = 0;
-        for (int m = 0; m < total_amount; m += chunk)
+        for (int m = 0; m < total_amount; m += chunk)   
         {
             //if (k >= 5000) break; // for testing...
 

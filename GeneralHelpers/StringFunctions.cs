@@ -86,92 +86,26 @@ public static class StringHelpers
             return output_string;
         }
 
-        // Look for paragraph tags
+        RemoveTab(output_string, "p", "\n");
+        RemoveTab(output_string, "li", "\n\u2022 ");
+        RemoveTab(output_string, "ul", "");
+        RemoveTab(output_string, "ol", "");
 
-        while (output_string.Contains("<p"))
-        {
-            // replace any p start tags with a carriage return
-
-            int start_pos = output_string.IndexOf("<p", StringComparison.Ordinal);
-            int end_pos = output_string.IndexOf(">", start_pos, StringComparison.Ordinal);
-            output_string = output_string[..start_pos] + "\n" + output_string[(end_pos + 1)..];
-        }
-
-        output_string = output_string.Replace("</p>", "");
-
-        // Check for any list structures
-
-        if (output_string.Contains("<li"))
-        {
-            while (output_string.Contains("<li"))
-            {
-                // replace any li start tags with a carriage return and bullet
-
-                int start_pos = output_string.IndexOf("<li", StringComparison.Ordinal);
-                int end_pos = output_string.IndexOf(">", start_pos, StringComparison.Ordinal);
-                output_string = output_string[..start_pos] + "\n\u2022 " + output_string[(end_pos + 1)..];
-            }
-
-            // remove any list start and end tags
-
-            while (output_string.Contains("<ul"))
-            {
-                int start_pos = output_string.IndexOf("<ul", StringComparison.Ordinal);
-                int end_pos = output_string.IndexOf(">", start_pos, StringComparison.Ordinal);
-                output_string = output_string[..start_pos] + output_string[(end_pos + 1)..];
-            }
-
-            while (output_string.Contains("<ol"))
-            {
-                int start_pos = output_string.IndexOf("<ol", StringComparison.Ordinal);
-                int end_pos = output_string.IndexOf(">", start_pos, StringComparison.Ordinal);
-                output_string = output_string[..start_pos] + output_string[(end_pos + 1)..];
-            }
-
-            output_string = output_string.Replace("</li>", "").Replace("</ul>", "").Replace("</ol>", "");
-        }
-
-        while (output_string.Contains("<div"))
-        {
-            // remove any div start tags
-            int start_pos = output_string.IndexOf("<div", StringComparison.Ordinal);
-            int end_pos = output_string.IndexOf(">", start_pos, StringComparison.Ordinal);
-            output_string = output_string[..start_pos] + output_string[(end_pos + 1)..];
-        }
-
-        while (output_string.Contains("<span"))
-        {
-            // remove any span start tags
-            int start_pos = output_string.IndexOf("<span", StringComparison.Ordinal);
-            int end_pos = output_string.IndexOf(">", start_pos, StringComparison.Ordinal);
-            output_string = output_string[..start_pos] + output_string[(end_pos + 1)..];
-        }
-
-        output_string = output_string.Replace("</span>", "").Replace("</div>", "");
-
-        // check need to continue
-
-        if (!(output_string.Contains('<') && output_string.Contains('>')))
+        if (!(output_string.Contains('<') && output_string.Contains('>')))          // check need to continue
         {
             return output_string;
         }
-
+        
+        RemoveTab(output_string, "div", "");
+        RemoveTab(output_string, "span", "");        
+        RemoveTab(output_string, "a", "");     
+        
         // Assume these will be simple tags, without classes
         output_string = output_string.Replace("<b>", "").Replace("</b>", "").Replace("<i>", "").Replace("</i>", "");
         output_string = output_string.Replace("<em>", "").Replace("</em>", "").Replace("<u>", "").Replace("</u>", "");
         output_string = output_string.Replace("<strong>", "").Replace("</strong>", "");
 
-        while (output_string.Contains("<a"))
-        {
-            // remove any link start tags - appears to be very rare
-            int start_pos = output_string.IndexOf("<a", StringComparison.Ordinal);
-            int end_pos = output_string.IndexOf(">", start_pos, StringComparison.Ordinal);
-            output_string = output_string[..start_pos] + output_string[(end_pos + 1)..];
-        }
-
-        output_string = output_string.Replace("</a>", "");
-
-        // try and replace sub and super scripts
+        // try and replace any sub and super scripts
 
         while (output_string.Contains("<sub>"))
         {
@@ -238,7 +172,42 @@ public static class StringHelpers
         return output_string;
     }
 
+    private static string RemoveTab(string input_string, string tag, string substitute)
+    {
+        string start_tag = "<" + tag;
+        string end_tag = "</" + tag + ">";
+        int search_start = 0, start_of_tag = 0;
+        while (input_string.Contains(start_tag) && start_of_tag != -1)
+        {
+            // Although the while statement guarantees the presence of the tag
+            // a search for it may fail if the test below is failed, i.e. if it is not 
+            // a 'true' tag - ongoing search could therefore 'run off the end'
+            
+            start_of_tag = input_string.IndexOf(start_tag, search_start, StringComparison.Ordinal);
+            if (start_of_tag != -1)        
+            {
+                // check no immediately following non-space character
+                // and if that is the case look for the ending of the start tag
+                // remove the text, between and including the tags, replacing it if necessary.
+                // Then remove all corresponding end tags.
 
+                if (input_string[start_of_tag + start_tag.Length] == '>'
+                                        || input_string[start_of_tag + start_tag.Length] == ' ')
+                {
+                    int e_pos = input_string.IndexOf(">", start_of_tag, StringComparison.Ordinal);
+                    if (e_pos != -1)
+                    {
+                        input_string = input_string[..start_of_tag] + substitute + input_string[(e_pos + 1)..];
+                    }
+                }
+                search_start = start_of_tag + start_tag.Length;
+            }
+        }
+        input_string = input_string.Replace(end_tag, "");
+        return input_string;
+    }
+
+    
     public static string? RegulariseStringEndings(this string? input_string)
     {
         if (string.IsNullOrEmpty(input_string))
@@ -408,7 +377,7 @@ public static class StringHelpers
 
         string? name = in_name;
 
-        if (name.Contains("."))
+        if (name.Contains('.'))
         {
             // protect these exceptions to the remove full stop rule
             name = name.Replace(".com", "|com");
@@ -426,8 +395,12 @@ public static class StringHelpers
 
         name = name.ReplaceApos();
 
+        if (string.IsNullOrEmpty(name))
+        {
+            return null;
+        }
+        
         // Trim any odd' characters
-
         name = name!.Trim(',', '-', '*', ';', ' ');
 
         // try and deal with possible ambiguities (organisations with genuinely the same name)

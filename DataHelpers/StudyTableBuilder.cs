@@ -320,7 +320,7 @@ public class StudyTableBuilder
     
     public void create_table_study_iec_by_year_groups(string schema)
     {
-        create_iec_table(schema, "study_iec_pre12");
+        create_iec_table(schema, "study_iec_upto12");
         create_iec_table(schema, "study_iec_13to19");
         create_iec_table(schema, "study_iec_20on");
     }

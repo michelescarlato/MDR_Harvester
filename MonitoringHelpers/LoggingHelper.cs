@@ -194,7 +194,7 @@ public class LoggingHelper : ILoggingHelper
                 {
                     if (s.study_iec_storage_type! == "By Year Groupings")
                     {
-                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_pre12"));
+                        LogLine(StudyTableSummary(db_conn, schema, "study_iec_upto12"));
                         LogLine(StudyTableSummary(db_conn, schema, "study_iec_13to19"));
                         LogLine(StudyTableSummary(db_conn, schema, "study_iec_20on"));
                     }
