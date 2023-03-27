@@ -47,50 +47,27 @@ public class MonDataLayer : IMonDataLayer
         return last_id + 1;
     }
 
-
-    public IEnumerable<StudyFileRecord> FetchStudyFileRecords(int source_id, int harvest_type_id = 1)
-    {
-        string sql_string = GetRecordSelectList();
-        sql_string += " from sf.source_data_studies ";
-        sql_string += GetWhereClause(source_id, harvest_type_id);
-        sql_string += " order by local_path";
-        using NpgsqlConnection Conn = new(connString);
-        return Conn.Query<StudyFileRecord>(sql_string);
-    }
-
-
-    public IEnumerable<ObjectFileRecord> FetchObjectFileRecords(int source_id, int harvest_type_id = 1)
-    {
-        string sql_string = GetRecordSelectList();
-        sql_string += " from sf.source_data_objects";
-        sql_string += GetWhereClause(source_id, harvest_type_id);
-        sql_string += " order by local_path";
-
-        using NpgsqlConnection Conn = new(connString);
-        return Conn.Query<ObjectFileRecord>(sql_string);
-    }
-
-
     public int FetchFileRecordsCount(int source_id, string source_type,
-                                   int harvest_type_id = 1, DateTime? cutoff_date = null)
+                                   int harvest_type_id = 1, DateTime? cutoff_date = null, int days_ago = 0)
     {
         string sql_string = "select count(*) ";
         sql_string += source_type.ToLower() == "study" ? "from sf.source_data_studies"
                                              : "from sf.source_data_objects";
-        sql_string += GetWhereClause(source_id, harvest_type_id);
+        sql_string += GetWhereClause(source_id, harvest_type_id, days_ago);
 
         using NpgsqlConnection Conn = new(connString);
         return Conn.ExecuteScalar<int>(sql_string);
     }
 
 
-    public int FetchFullFileCount(int source_id, string source_type, int harvest_type_id)
+    public int FetchFullFileCount(int source_id, string source_type, int harvest_type_id, int days_ago = 0)
     {
         string sql_string = "select count(*) ";
         sql_string += source_type.ToLower() == "study" ? "from sf.source_data_studies"
                                              : "from sf.source_data_objects";
-        sql_string += " where source_id = " + source_id.ToString();
+        sql_string += " where source_id = " + source_id;
         sql_string += " and local_path is not null";
+        
         if (harvest_type_id == 3)
         {
             sql_string += " and for_testing = true";
@@ -101,38 +78,38 @@ public class MonDataLayer : IMonDataLayer
 
 
     public IEnumerable<StudyFileRecord> FetchStudyFileRecordsByOffset(int source_id, int offset_num,
-                                  int amount, int harvest_type_id = 1)
+                                  int amount, int harvest_type_id = 1, int days_ago = 0)
     {
         string sql_string = GetRecordSelectList();
         sql_string += " from sf.source_data_studies ";
-        sql_string += GetWhereClause(source_id, harvest_type_id);
+        sql_string += GetWhereClause(source_id, harvest_type_id, days_ago);
         sql_string += " order by local_path ";
-        sql_string += " offset " + offset_num.ToString() + " limit " + amount.ToString();
+        sql_string += " offset " + offset_num + " limit " + amount;
 
         using NpgsqlConnection Conn = new(connString);
         return Conn.Query<StudyFileRecord>(sql_string);
     }
 
     public IEnumerable<ObjectFileRecord> FetchObjectFileRecordsByOffset(int source_id, int offset_num,
-                                 int amount, int harvest_type_id = 1)
+                                 int amount, int harvest_type_id = 1, int days_ago = 0)
     {
         string sql_string = GetRecordSelectList();
         sql_string += " from sf.source_data_objects ";
-        sql_string += GetWhereClause(source_id, harvest_type_id);
+        sql_string += GetWhereClause(source_id, harvest_type_id, days_ago);
         sql_string += " order by local_path ";
-        sql_string += " offset " + offset_num.ToString() + " limit " + amount.ToString();
+        sql_string += " offset " + offset_num + " limit " + amount;
 
         using NpgsqlConnection Conn = new(connString);
         return Conn.Query<ObjectFileRecord>(sql_string);
     }
 
-    private string GetWhereClause(int source_id, int harvest_type_id)
+    private string GetWhereClause(int source_id, int harvest_type_id, int days_ago)
     {
         string where_clause = "";
         if (harvest_type_id == 1)
         {
             // Count all files.
-            where_clause = " where source_id = " + source_id.ToString();
+            where_clause = $" where source_id = {source_id} ";
         }
         else if (harvest_type_id == 2)
         {
@@ -144,14 +121,20 @@ public class MonDataLayer : IMonDataLayer
             // So files needed where their download date > import date, or they are new
             // and therefore have a null import date
 
-            where_clause = " where source_id = " + source_id.ToString() +
-                           " and (last_downloaded >= last_imported or last_imported is null) ";
+            where_clause = @$" where source_id  = {source_id} 
+                           and (last_downloaded >= last_imported or last_imported is null) ";
         }
         else if (harvest_type_id == 3)
         {
             // use records marked for testing only
-            where_clause = " where source_id = " + source_id.ToString() +
-                           " and for_testing = true ";
+            where_clause = @$" where source_id = {source_id} 
+                           and for_testing = true ";
+        }
+        else if (harvest_type_id == 4)
+        {
+            // use records not harvested recently (rather than download / import dates) - use for harvest repair
+            where_clause = @$" where source_id = {source_id} 
+                               and (last_harvested::date < now()::date - {days_ago} or last_harvested is null) ";
         }
         where_clause += " and local_path is not null";
         return where_clause;
@@ -166,27 +149,7 @@ public class MonDataLayer : IMonDataLayer
         return sql_file_select_string;
     }
 
-    // get record of interest
-
-    public StudyFileRecord? FetchStudyFileRecord(string sd_id, int source_id, string source_type)
-    {
-        using NpgsqlConnection Conn = new(connString);
-        string sql_string = GetRecordSelectList();
-        sql_string += " from sf.source_data_studies";
-        sql_string += " where sd_id = '" + sd_id + "' and source_id = " + source_id.ToString();
-        return Conn.Query<StudyFileRecord>(sql_string).FirstOrDefault();
-    }
-
-
-    public ObjectFileRecord? FetchObjectFileRecord(string sd_id, int source_id, string source_type)
-    {
-        using NpgsqlConnection Conn = new(connString);
-        string sql_string = GetRecordSelectList();
-        sql_string += " from sf.source_data_objects";
-        sql_string += " where sd_id = '" + sd_id + "' and source_id = " + source_id.ToString();
-        return Conn.Query<ObjectFileRecord>(sql_string).FirstOrDefault();
-    }
-
+    
     public void UpdateFileRecLastHarvested(int? id, string source_type, int last_harvest_id)
     {
         using NpgsqlConnection Conn = new(connString);

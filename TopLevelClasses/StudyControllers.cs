@@ -28,9 +28,12 @@ public class StudyController
         int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvestTypeId);
         int chunk = _source.harvest_chunk ?? 0;
         int k = 0;
-        for (int m = 0; m < total_amount; m += chunk)   
+
+        // total_amount = 1; // for testing
+        
+        for (int m = 0; m < total_amount; m += chunk)    // 
         {
-            //if (k >= 5000) break; // for testing...
+            //if (k >= 40000) break; // for testing...
 
             IEnumerable<StudyFileRecord> file_list = _monDataLayer
                     .FetchStudyFileRecordsByOffset(source_id, m, chunk, harvestTypeId);
@@ -59,6 +62,7 @@ public class StudyController
                         }
                     }
                 }
+                if (k % 100 == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
                 if (k % chunk == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
             }
         }

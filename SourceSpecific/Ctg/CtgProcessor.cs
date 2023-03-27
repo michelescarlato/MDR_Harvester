@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.Eventing.Reader;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using MDR_Harvester.Extensions;
@@ -244,47 +245,39 @@ public class CTGProcessor : IStudyProcessor
         SplitDate? update_post = null;
 
         var FirstPostDate = StatusModule.StudyFirstPostDateStruct;
-        if (FirstPostDate is not null)
+        string? first_post_type = FirstPostDate?.StudyFirstPostDateType;
+        if (first_post_type is "Actual" or "Estimate")
         {
-            string? first_post_type = FirstPostDate.StudyFirstPostDateType;
-            if (first_post_type is "Actual" or "Estimate")
+            first_post = FirstPostDate?.StudyFirstPostDate?.GetDatePartsFromCTGString();
+            if (first_post is not null && first_post_type == "Estimate")
             {
-                first_post = FirstPostDate.StudyFirstPostDate?.GetDatePartsFromCTGString();
-                if (first_post is not null && first_post_type == "Estimate")
-                {
-                    first_post.date_string += " (est.)";
-                }
+                first_post.date_string += " (est.)";
             }
         }
 
         bool results_present = false;
 
         var ResultsPostDate = StatusModule.ResultsFirstPostDateStruct;
-        if (ResultsPostDate is not null)
+        string? results_type = ResultsPostDate?.ResultsFirstPostDateType;
+        if (results_type is "Actual" or "Estimate")
         {
-            string? results_type = ResultsPostDate.ResultsFirstPostDateType;
-            if (results_type is not null &&
-                results_type is "Actual" or "Estimate")
+            results_post = ResultsPostDate?.ResultsFirstPostDate?.GetDatePartsFromCTGString();
+            if (results_post is not null && results_type == "Estimate")
             {
-                results_post = ResultsPostDate.ResultsFirstPostDate?.GetDatePartsFromCTGString();
-                if (results_post is not null && results_type == "Estimate")
-                {
-                    results_post.date_string += " (est.)";
-                }
-
-                // Assumption is that if results are available the results post
-                // must be present with an actual or estimated (not anticipated) date.
-                        
-                results_present = true;
+                results_post.date_string += " (est.)";
             }
+
+            // Assumption is that if results are available the results post
+            // must be present with an actual or estimated (not anticipated) date.
+                        
+            results_present = true;
         }
 
         var LastUpdateDate = StatusModule.LastUpdatePostDateStruct;
         if (LastUpdateDate is not null)
         {
             string? update_type = LastUpdateDate.LastUpdatePostDateType;
-            if (update_type is not null &&
-                update_type is "Actual" or "Estimate")
+            if (update_type is "Actual" or "Estimate")
             {
                 update_post = LastUpdateDate.LastUpdatePostDate?.GetDatePartsFromCTGString();
                 if (update_post is not null && update_type == "Estimate")
@@ -308,7 +301,7 @@ public class CTGProcessor : IStudyProcessor
                    
         // get and store study start date, if available
         var StudyStartDate = StatusModule.StartDateStruct;
-        if (StudyStartDate != null)
+        if (StudyStartDate is not null)
         {
             SplitDate? start_date = StudyStartDate.StartDate?.GetDatePartsFromCTGString();
             s.study_start_year = start_date?.year;
@@ -423,11 +416,10 @@ public class CTGProcessor : IStudyProcessor
                     }
                 }
             }
-
         }
 
 
-        if (DescriptionModule != null)
+        if (DescriptionModule is not null)
         {
             // CTG descriptions do not seem to include tags, but to be safe....
 
@@ -436,7 +428,7 @@ public class CTGProcessor : IStudyProcessor
 
 
         var condition_mesh_list = ConditionBrowseModule?.ConditionMeshList;
-        if (condition_mesh_list != null)
+        if (condition_mesh_list is not null)
         {
             var conds = condition_mesh_list.ConditionMesh;
             if (conds?.Any() is true)
@@ -452,7 +444,7 @@ public class CTGProcessor : IStudyProcessor
 
 
         var conditions_list = ConditionsModule?.ConditionList;
-        if (conditions_list != null)
+        if (conditions_list is not null)
         {
             var conds = conditions_list.Condition;
             if (conds?.Any() is true)
@@ -489,7 +481,7 @@ public class CTGProcessor : IStudyProcessor
 
 
         var keywords_list = ConditionsModule?.KeywordList;
-        if (keywords_list != null)
+        if (keywords_list is not null)
         {
             var keywords = keywords_list.Keyword;
             if (keywords?.Any() is true)
@@ -543,7 +535,7 @@ public class CTGProcessor : IStudyProcessor
         }
 
 
-        if (DesignModule != null)
+        if (DesignModule is not null)
         {
             s.study_type = DesignModule.StudyType;
             s.study_type_id = s.study_type.GetTypeId();
@@ -672,7 +664,7 @@ public class CTGProcessor : IStudyProcessor
         }
 
 
-        if (EligibilityModule != null)
+        if (EligibilityModule is not null)
         {
             s.study_gender_elig = EligibilityModule.Gender ?? "Not provided";
             if (s.study_gender_elig == "All")
@@ -713,10 +705,108 @@ public class CTGProcessor : IStudyProcessor
                     s.max_age_units_id = RHS.GetTimeUnitsId();
                 }
             }
+            
+            int study_iec_type = 0;
+            string? elig_statement = EligibilityModule.EligibilityCriteria;
+            if (elig_statement is not null)
+            {
+                elig_statement.RegulariseStringEndings();
+                string elig_low = elig_statement.ToLower();
+                if (elig_low.Contains("inclusion") && elig_low.Contains("exclusion"))
+                {
+                    // Need to be not too close too each other and not too near the end
+                    int inc_pos = elig_low.IndexOf("inclusion", 0, StringComparison.Ordinal);
+                    int exc_pos = elig_low.IndexOf("exclusion", 0, StringComparison.Ordinal);
+                    if (exc_pos - inc_pos > 12
+                        && elig_statement.Length - exc_pos > 4 && elig_statement.Length - exc_pos > 20)
+                    {
+                        // try and split on "exclusion"
+                        int num_inc_criteria = 0;
+                        string ic = elig_statement[..exc_pos];
+                        if (!string.IsNullOrEmpty(ic))
+                        {
+                            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
+                            if (crits is not null)
+                            {
+                                int seq_num = 0;
+                                foreach (Criterion cr in crits)
+                                {    
+                                    seq_num++;
+                                    iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                                        cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
+                                }
+                                study_iec_type = (crits.Count == 1) ? 2 : 4;
+                                num_inc_criteria = crits.Count;
+                            }
+                        }
+
+                        string? ec = elig_statement[exc_pos..];
+                        if (!string.IsNullOrEmpty(ec))
+                        {
+                            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
+                            if (crits is not null)
+                            {
+                                int seq_num = num_inc_criteria;
+                                foreach (Criterion cr in crits)
+                                {
+                                    seq_num++;
+                                    iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                                        cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
+                                }
+                                study_iec_type += (crits.Count == 1) ? 5 : 6;
+                            }
+                        }
+                    }
+                }
+                else if (elig_low.Contains("inclusion"))
+                {
+                    // Criteria listed for inclusion but no explicit exclusion criteria.
+                    
+                    List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, elig_statement, "inclusion");
+                    if (crits is not null)
+                    {
+                        int seq_num = 0;
+                        foreach (Criterion cr in crits)
+                        {    
+                            seq_num++;
+                            iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                                cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
+                        }
+                        study_iec_type = (crits.Count == 1) ? 1 : 2;
+                    }
+                }
+                else if (elig_low.Contains("eligibility"))
+                {
+                    // May be a single list couched as 'eligibility' rather than 'inclusion'
+                    
+                    List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, elig_statement, "eligibility");
+                    if (crits is not null)
+                    {
+                        int seq_num = 0;
+                        foreach (Criterion cr in crits)
+                        {
+                            seq_num++;
+                            iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                                cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
+                        }
+                        study_iec_type += (crits.Count == 1) ? 1 : 3;
+                    }
+                }
+                else
+                {
+                    // Difficult to interpret - add as a single statement.
+                    
+                    iec.Add(new StudyIEC(sid, 1, 3, "eligibility", "none", "All Elig", 
+                                                      0, 0, "0.AA", elig_statement));
+                    study_iec_type = 1;
+                }
+                
+            }
+            s.iec_level = study_iec_type;
         }
 
 
-        if (ContactsLocationsModule != null)
+        if (ContactsLocationsModule is not null)
         {
             var officials = ContactsLocationsModule.OverallOfficialList;
             if (officials is not null)
@@ -757,7 +847,7 @@ public class CTGProcessor : IStudyProcessor
                     }
                 }
             }
-
+            
 
             var Locationlist = ContactsLocationsModule.LocationList;
             if (Locationlist is not null)
@@ -834,7 +924,7 @@ public class CTGProcessor : IStudyProcessor
 
         // ipd information
 
-        if (IPDSharingModule != null)
+        if (IPDSharingModule is not null)
         {
             string sharing_statement = "";
             string? IPDSharing = IPDSharingModule.IPDSharing;

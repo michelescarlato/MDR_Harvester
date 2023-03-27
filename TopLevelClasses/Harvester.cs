@@ -92,10 +92,15 @@ class Harvester
         else
         {
             // Otherwise... Construct the sd tables. (Some sources may be data objects only.)
+            // Type 4 is for restarting / continuing an exiting harvest after an error and so
+            //  existing tables are not recreated. Type 4 not used in normal processing.
 
-            _loggingHelper.LogHeader("Recreate database tables");
-            SchemaBuilder sdb = new(source, _loggingHelper);
-            sdb.RecreateTables();
+            if (opts.harvest_type_id != 4)
+            {
+                _loggingHelper.LogHeader("Recreate database tables");
+                SchemaBuilder sdb = new(source, _loggingHelper);
+                sdb.RecreateTables();
+            }
 
             // Construct the harvest_event record.
 

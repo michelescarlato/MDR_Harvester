@@ -162,11 +162,11 @@ public class StorageDataLayer : IStorageDataLayer
                 target_table = "study_iec_20on";
             }
         }
-        else if (storage_type == "By Years")
+        else if (storage_type == "By Years") 
         {
             if (study_start_year is > 2014 and <= 2030)
             {
-                target_table = "study_iec_" + study_start_year.ToString()?[2..3];
+                target_table = "study_iec_" + study_start_year.ToString()?[2..];
             }
             else if (study_start_year is null or > 2030)
             {

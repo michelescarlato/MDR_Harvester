@@ -42,8 +42,6 @@ public class EUCTRProcessor : IStudyProcessor
         List<ObjectInstance> object_instances = new();
         List<ObjectDate> object_dates = new();
         
-        //IECHelpers iech = new();
-        
         string? sid = r.sd_sid;
 
         if (string.IsNullOrEmpty(sid))

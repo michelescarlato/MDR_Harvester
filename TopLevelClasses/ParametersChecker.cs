@@ -63,10 +63,18 @@ public class ParameterChecker
             // Check valid harvest type id.
 
             int harvest_type_id = opts.harvest_type_id;
-            if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3)
+            if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3 && harvest_type_id != 4)
             {
-                throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2 or 3");
+                throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2, 3 or 4");
             }
+            
+            // Check the I parameter has been provided if required.
+            
+            if (harvest_type_id == 4 && opts.SkipRecentDays is null)
+            {
+                throw new ArgumentException("Harvest type 4 requires an I parameter representing the days to skip");
+            }
+            
 
             // Check the source(s) validity.
             
@@ -140,7 +148,7 @@ public class Options
     [Option('s', "source_ids", Required = false, Separator = ',', HelpText = "Comma separated list of Integer ids of data sources.")]
     public IEnumerable<int>? source_ids { get; set; }
 
-    [Option('t', "harvest_type_id", Required = true, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 3 = test data only.")]
+    [Option('t', "harvest_type_id", Required = true, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 3 = test data only, 4 = Harvest repair.")]
     public int harvest_type_id { get; set; }
 
     [Option('E', "establish_expected_test_data", Required = false, HelpText = "If present only creates and fills tables for the 'expected' data. for comparison with processed test data")]
@@ -148,6 +156,9 @@ public class Options
 
     [Option('F', "harvest_all_test_data", Required = false, HelpText = "If present only creates and fills tables for the designated test data, for comparison with expected test data")]
     public bool harvest_all_test_data { get; set; }
+    
+    [Option('I', "skip_recent", Required = false, HelpText = "Integer id representing the number of days ago, to skip recent harvests - used for harvest type = 4 only (0 = today).")]
+    public int? SkipRecentDays { get; set; }
 }
 
 

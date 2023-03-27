@@ -333,7 +333,7 @@ public class StudyTableBuilder
         create_iec_table(schema, "study_iec_0910");
         create_iec_table(schema, "study_iec_1112");
         create_iec_table(schema, "study_iec_1314");
-        for (int i = 15; i < 30; i++)
+        for (int i = 15; i <= 30; i++)
         {
             create_iec_table(schema, $"study_iec_{i}");
         }

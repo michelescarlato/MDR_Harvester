@@ -208,7 +208,7 @@ public class LoggingHelper : ILoggingHelper
                         LogLine(StudyTableSummary(db_conn, schema, "study_iec_1314"));
                         for (int i = 15; i < 30; i++)
                         {
-                            LogLine(StudyTableSummary(db_conn, schema, "study_iec_{i}"));
+                            LogLine(StudyTableSummary(db_conn, schema, $"study_iec_{i}"));
                         }
                     }
                 }
@@ -278,12 +278,10 @@ public class LoggingHelper : ILoggingHelper
         {
             sql_string = "select count(distinct sd_sid) from " + schema + "." + tableName;
             int study_num = conn.ExecuteScalar<int>(sql_string);
-            return $"{res} records found in {schema}.{tableName}, from {study_num} studies";
+            string study_word = study_num > 1 ? "studies" : "study";
+            return $"{res} records found in {schema}.{tableName}, from {study_num} {study_word}";
         }
-        else
-        {
-            return $"{res} records found in {schema}.{tableName}";
-        }
+        return $"{res} records found in {schema}.{tableName}";
     }
 
 
@@ -296,12 +294,10 @@ public class LoggingHelper : ILoggingHelper
         {
             sql_string = "select count(distinct sd_oid) from " + schema + "." + tableName;
             int object_num = conn.ExecuteScalar<int>(sql_string);
-            return $"{res} records found in {schema}.{tableName}, from {object_num} objects";
+            string object_word = object_num > 1 ? "objects" : "object";
+            return $"{res} records found in {schema}.{tableName}, from {object_num} {object_word}";
         }
-        else
-        {
-            return $"{res} records found in {schema}.{tableName}";
-        }
+        return $"{res} records found in {schema}.{tableName}";
     }
 
     public void SendEmail(string errorMessageText)
