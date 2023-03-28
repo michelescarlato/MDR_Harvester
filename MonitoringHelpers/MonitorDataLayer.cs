@@ -48,7 +48,7 @@ public class MonDataLayer : IMonDataLayer
     }
 
     public int FetchFileRecordsCount(int source_id, string source_type,
-                                   int harvest_type_id = 1, DateTime? cutoff_date = null, int days_ago = 0)
+                                   int harvest_type_id = 1, int days_ago = 0)
     {
         string sql_string = "select count(*) ";
         sql_string += source_type.ToLower() == "study" ? "from sf.source_data_studies"
@@ -60,7 +60,7 @@ public class MonDataLayer : IMonDataLayer
     }
 
 
-    public int FetchFullFileCount(int source_id, string source_type, int harvest_type_id, int days_ago = 0)
+    public int FetchFullFileCount(int source_id, string source_type, int harvest_type_id)
     {
         string sql_string = "select count(*) ";
         sql_string += source_type.ToLower() == "study" ? "from sf.source_data_studies"
@@ -84,7 +84,14 @@ public class MonDataLayer : IMonDataLayer
         sql_string += " from sf.source_data_studies ";
         sql_string += GetWhereClause(source_id, harvest_type_id, days_ago);
         sql_string += " order by local_path ";
-        sql_string += " offset " + offset_num + " limit " + amount;
+        if (harvest_type_id == 4)
+        {
+            sql_string += " limit " + amount;  // offset does not work here as the pool of valid records decreases
+        }
+        else
+        {
+            sql_string += " offset " + offset_num + " limit " + amount;
+        }
 
         using NpgsqlConnection Conn = new(connString);
         return Conn.Query<StudyFileRecord>(sql_string);

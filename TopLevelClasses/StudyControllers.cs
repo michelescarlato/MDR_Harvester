@@ -1,4 +1,6 @@
-﻿namespace MDR_Harvester;
+﻿using System.Runtime.InteropServices.ComTypes;
+
+namespace MDR_Harvester;
 
 public class StudyController
 {
@@ -7,15 +9,17 @@ public class StudyController
     private readonly IStorageDataLayer _storageDataLayer;
     private readonly IStudyProcessor _processor;
     private readonly Source _source;
-
+    private readonly Options _opts;
+    
     public StudyController(ILoggingHelper loggingHelper, IMonDataLayer monDataLayer, IStorageDataLayer storageDataLayer,
-                          Source source, IStudyProcessor processor)
+                          Source source, Options opts, IStudyProcessor processor)
     {
         _loggingHelper = loggingHelper;
         _monDataLayer = monDataLayer;
         _storageDataLayer = storageDataLayer;
         _processor = processor;
         _source = source;
+        _opts = opts;
     }
 
     public int? LoopThroughFiles(int harvestTypeId, int harvestId)
@@ -25,7 +29,8 @@ public class StudyController
         // Set up the outer limit and get the relevant records for each pass.
 
         int source_id = _source.id;
-        int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvestTypeId);
+        int skip_recent_days = _opts.SkipRecentDays ?? 0;
+        int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvestTypeId, skip_recent_days);
         int chunk = _source.harvest_chunk ?? 0;
         int k = 0;
 
@@ -36,7 +41,7 @@ public class StudyController
             //if (k >= 40000) break; // for testing...
 
             IEnumerable<StudyFileRecord> file_list = _monDataLayer
-                    .FetchStudyFileRecordsByOffset(source_id, m, chunk, harvestTypeId);
+                    .FetchStudyFileRecordsByOffset(source_id, m, chunk, harvestTypeId, skip_recent_days);
 
             foreach (StudyFileRecord rec in file_list)
             {

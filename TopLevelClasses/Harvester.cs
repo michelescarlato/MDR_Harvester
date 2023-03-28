@@ -147,7 +147,7 @@ class Harvester
                 }
                 if (study_processor is not null)
                 {
-                    StudyController c = new(_loggingHelper, _monDataLayer, _storageDataLayer, source, study_processor);
+                    StudyController c = new(_loggingHelper, _monDataLayer, _storageDataLayer, source, opts, study_processor);
                     harvest.num_records_harvested = c.LoopThroughFiles(opts.harvest_type_id, harvest_id);
                 }
             }
