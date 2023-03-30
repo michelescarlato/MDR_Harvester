@@ -526,7 +526,7 @@ public class EUCTRProcessor : IStudyProcessor
                         }
                     }
 
-                    
+                     
                     if (item_code.Contains("E.7") || item_code.Contains("E.8"))
                     {
                         Tuple<int, string, int, string> new_feature = item_code switch

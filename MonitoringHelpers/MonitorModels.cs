@@ -64,7 +64,7 @@ public class HarvestEvent
     public HarvestEvent() { }
 }
 
-[Table("sf.source_data_studies")]
+[Table("mn.source_data")]
 public class StudyFileRecord
 {
     public int? id { get; set; }
@@ -75,7 +75,7 @@ public class StudyFileRecord
     public bool? assume_complete { get; set; }
     public int? download_status { get; set; }
     public string? local_path { get; set; }
-    public int? last_saf_id { get; set; }
+    public int? last_dl_id { get; set; }
     public DateTime? last_downloaded { get; set; }
     public int? last_harvest_id { get; set; }
     public DateTime? last_harvested { get; set; }
@@ -83,13 +83,13 @@ public class StudyFileRecord
     public DateTime? last_imported { get; set; }
 
     // constructor when a revision data can be expected (not always there)
-    public StudyFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_saf_id,
+    public StudyFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_dl_id,
                                           DateTime? _last_revised, string? _local_path)
     {
         source_id = _source_id;
         sd_id = _sd_id;
         remote_url = _remote_url;
-        last_saf_id = _last_saf_id;
+        last_dl_id = _last_dl_id;
         last_revised = _last_revised;
         download_status = 2;
         last_downloaded = DateTime.Now;
@@ -97,13 +97,13 @@ public class StudyFileRecord
     }
 
     // constructor when an 'assumed complete' judgement can be expected (not always there)
-    public StudyFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_saf_id,
+    public StudyFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_dl_id,
                                           bool? _assume_complete, string? _local_path)
     {
         source_id = _source_id;
         sd_id = _sd_id;
         remote_url = _remote_url;
-        last_saf_id = _last_saf_id;
+        last_dl_id = _last_dl_id;
         assume_complete = _assume_complete;
         download_status = 2;
         last_downloaded = DateTime.Now;
@@ -115,7 +115,7 @@ public class StudyFileRecord
 }
 
 
-[Table("sf.source_data_objects")]
+[Table("mn.source_data")]
 public class ObjectFileRecord
 {
     public int? id { get; set; }
@@ -126,7 +126,7 @@ public class ObjectFileRecord
     public bool? assume_complete { get; set; }
     public int? download_status { get; set; }
     public string? local_path { get; set; }
-    public int? last_saf_id { get; set; }
+    public int? last_dl_id { get; set; }
     public DateTime? last_downloaded { get; set; }
     public int? last_harvest_id { get; set; }
     public DateTime? last_harvested { get; set; }
@@ -134,13 +134,13 @@ public class ObjectFileRecord
     public DateTime? last_imported { get; set; }
 
     // constructor when a revision data can be expected (not always there)
-    public ObjectFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_saf_id,
+    public ObjectFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_dl_id,
                                           DateTime? _last_revised, string? _local_path)
     {
         source_id = _source_id;
         sd_id = _sd_id;
         remote_url = _remote_url;
-        last_saf_id = _last_saf_id;
+        last_dl_id = _last_dl_id;
         last_revised = _last_revised;
         download_status = 2;
         last_downloaded = DateTime.Now;
@@ -148,13 +148,13 @@ public class ObjectFileRecord
     }
 
     // constructor when an 'assumed complete' judgement can be expected (not always there)
-    public ObjectFileRecord(int _source_id, string _sd_id, string _remote_url, int _last_saf_id,
+    public ObjectFileRecord(int _source_id, string _sd_id, string _remote_url, int _last_dl_id,
                                           bool? _assume_complete, string _local_path)
     {
         source_id = _source_id;
         sd_id = _sd_id;
         remote_url = _remote_url;
-        last_saf_id = _last_saf_id;
+        last_dl_id = _last_dl_id;
         assume_complete = _assume_complete;
         download_status = 2;
         last_downloaded = DateTime.Now;

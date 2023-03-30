@@ -28,20 +28,19 @@ public class StudyController
         // First get the total number of records in the system for this source
         // Set up the outer limit and get the relevant records for each pass.
 
-        int source_id = _source.id;
         int skip_recent_days = _opts.SkipRecentDays ?? 0;
-        int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvestTypeId, skip_recent_days);
+        int amount_to_fetch = _monDataLayer.FetchFileRecordsCount(harvestTypeId, skip_recent_days);
         int chunk = _source.harvest_chunk ?? 0;
         int k = 0;
 
         // total_amount = 1; // for testing
         
-        for (int m = 0; m < total_amount; m += chunk)    // 
+        for (int m = 0; m < amount_to_fetch; m += chunk)    // 
         {
             //if (k >= 40000) break; // for testing...
 
             IEnumerable<StudyFileRecord> file_list = _monDataLayer
-                    .FetchStudyFileRecordsByOffset(source_id, m, chunk, harvestTypeId, skip_recent_days);
+                    .FetchStudyFileRecordsByOffset(m, chunk, harvestTypeId, skip_recent_days);
 
             foreach (StudyFileRecord rec in file_list)
             {

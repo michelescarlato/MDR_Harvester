@@ -41,7 +41,7 @@ class ExpectedDataBuilder
     {
         string sql_string = @"DROP TABLE IF EXISTS expected.source_studies;
         create table expected.source_studies as
-        select * from mon_sf.source_data_studies
+        select * from mon_mn.source_data
         where for_testing = true;";
 
         Execute_SQL(sql_string);
@@ -61,7 +61,7 @@ class ExpectedDataBuilder
     {
         string sql_string = @"DROP TABLE IF EXISTS expected.source_objects;
         create table expected.source_objects as
-        select * from mon_sf.source_data_objects
+        select * from mon_mn.source_data
         where for_testing = true;";
 
         Execute_SQL(sql_string);

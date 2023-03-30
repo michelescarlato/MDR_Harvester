@@ -114,7 +114,7 @@ class Harvester
             _loggingHelper.LogHeader("Process data");
             IStudyProcessor? study_processor = null;
             IObjectProcessor? object_processor = null;
-            harvest.num_records_available = _monDataLayer.FetchFullFileCount(source_id, source.source_type!, opts.harvest_type_id);
+            harvest.num_records_available = _monDataLayer.FetchFullFileCount(opts.harvest_type_id);
 
             if (source.source_type == "study")
             {

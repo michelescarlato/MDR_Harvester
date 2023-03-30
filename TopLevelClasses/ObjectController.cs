@@ -24,16 +24,15 @@ public class ObjectController
         // First get the total number of records in the system for this source
         // Set up the outer limit and get the relevant records for each pass.
 
-        int source_id = _source.id; 
-        int total_amount = _monDataLayer.FetchFileRecordsCount(source_id, _source.source_type!, harvest_type_id);
+        int amount_to_fetch = _monDataLayer.FetchFileRecordsCount(harvest_type_id);
         int chunk = _source.harvest_chunk ?? 0;
         int k = 0;
-        for (int m = 0; m < total_amount; m += chunk)
+        for (int m = 0; m < amount_to_fetch; m += chunk)
         {
             // if (k > 2000) break; // for testing...
 
             IEnumerable<ObjectFileRecord> file_list = _monDataLayer
-                    .FetchObjectFileRecordsByOffset(source_id, m, chunk, harvest_type_id);
+                    .FetchObjectFileRecordsByOffset(m, chunk, harvest_type_id);
 
             foreach (ObjectFileRecord rec in file_list)
             {
