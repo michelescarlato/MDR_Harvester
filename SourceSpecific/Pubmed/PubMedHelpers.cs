@@ -139,7 +139,8 @@ internal static class PubMedHelpers
         {
             return null;
         }
-        else if (ml_date_string.Length == 4)
+        
+        if (ml_date_string.Length == 4)
         {
             if (int.TryParse(ml_date_string, out int pub_year_try))
             {
@@ -189,8 +190,7 @@ internal static class PubMedHelpers
         }
 
         // Try and process the non-year part of the date
-        // First try to regularise separators
-        // and then replace any seasonal references.
+        // First try to regularise separators and then replace any seasonal references.
 
         non_year_date = non_year_date.Replace("/", "-").Replace("  ", " ");
         non_year_date = non_year_date.Replace(" - ", "-").Replace("- ", "-").Replace(" -", "-");
@@ -232,7 +232,7 @@ internal static class PubMedHelpers
             return new SplitDateRange(pub_year, smonth, sday, pub_year, emonth, eday, true, ml_date_string);
         }
 
-        else if (non_year_date.IndexOf("-", StringComparison.Ordinal) != -1)
+        if (non_year_date.IndexOf("-", StringComparison.Ordinal) != -1)
         {
             // Often two months separated by a hyphen, e.g."May-Jul".
 
@@ -248,11 +248,11 @@ internal static class PubMedHelpers
             }
             return new SplitDateRange(pub_year, smonth, null, pub_year, emonth, null, true, ml_date_string);
         }
+        
+        // If nothing else possible.
 
-        else
-        {
-            return new SplitDateRange(pub_year, null, null, pub_year, null, null, false, ml_date_string);
-        }
+        return new SplitDateRange(pub_year, null, null, pub_year, null, null, false, ml_date_string);  
+
     }
 
 
@@ -275,17 +275,16 @@ internal static class PubMedExtensions
         {
             return 0;
         }
-        else
+
+        try
         {
-            try
-            {
-                return (int)(Enum.Parse<MonthsLong>(month_name));
-            }
-            catch (ArgumentException)
-            {
-                return 0;
-            }
+            return (int)(Enum.Parse<MonthsLong>(month_name));
         }
+        catch (ArgumentException)
+        {
+            return 0;
+        }
+
     }
 
 
@@ -295,16 +294,14 @@ internal static class PubMedExtensions
         {
             return 0;
         }
-        else
+
+        try
         {
-            try
-            {
-                return (int)(Enum.Parse<Months3>(month_abbrev));
-            }
-            catch (ArgumentException)
-            {
-                return 0;
-            }
+            return (int)(Enum.Parse<Months3>(month_abbrev));
+        }
+        catch (ArgumentException)
+        {
+            return 0;
         }
     }
 }

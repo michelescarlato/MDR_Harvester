@@ -342,9 +342,6 @@ public class ObjectTableBuilder
           , pissn                  VARCHAR         NULL
           , eissn                  VARCHAR         NULL
           , journal_title          VARCHAR         NULL
-          , publisher_id           INT             NULL
-          , publisher              VARCHAR         NULL
-          , publisher_suffix       VARCHAR         NULL
         );
         CREATE INDEX journal_details_sd_oid ON {schema}.journal_details(sd_oid);";
 

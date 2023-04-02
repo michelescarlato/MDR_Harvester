@@ -123,15 +123,18 @@ public class ParameterChecker
             _loggingHelper.LogParseError("Error {n}: Tag was {Tag}", n.ToString(), e.Tag.ToString());
             if (e.GetType().Name == "UnknownOptionError")
             {
-                _loggingHelper.LogParseError("Error {n}: Unknown option was {UnknownOption}", n.ToString(), ((UnknownOptionError)e).Token);
+                _loggingHelper.LogParseError("Error {n}: Unknown option was {UnknownOption}", n.ToString(), 
+                                              ((UnknownOptionError)e).Token);
             }
             if (e.GetType().Name == "MissingRequiredOptionError")
             {
-                _loggingHelper.LogParseError("Error {n}: Missing option was {MissingOption}", n.ToString(), ((MissingRequiredOptionError)e).NameInfo.NameText);
+                _loggingHelper.LogParseError("Error {n}: Missing option was {MissingOption}", n.ToString(), 
+                                             ((MissingRequiredOptionError)e).NameInfo.NameText);
             }
             if (e.GetType().Name == "BadFormatConversionError")
             {
-                _loggingHelper.LogParseError("Error {n}: Wrongly formatted option was {MissingOption}", n.ToString(), ((BadFormatConversionError)e).NameInfo.NameText);
+                _loggingHelper.LogParseError("Error {n}: Wrongly formatted option was {MissingOption}", n.ToString(), 
+                                              ((BadFormatConversionError)e).NameInfo.NameText);
             }
         }
         _loggingHelper.LogLine("MDR_Downloader application aborted");

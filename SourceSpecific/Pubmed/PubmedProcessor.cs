@@ -46,6 +46,7 @@ public class PubmedProcessor : IObjectProcessor
         List<ObjectOrganisation> organisations = new();
         List<ObjectComment> comments = new();
         List<ObjectDBLink> db_ids = new();
+        List<ObjectDBLink> journal_details = new();
 
         string author_string = "";
         string journal_source = "";
@@ -199,7 +200,7 @@ public class PubmedProcessor : IObjectProcessor
 
 
         // Having established whether a non-null article title exists, and the presence or
-        // not of a vernaculat title in a particular language, this section examines
+        // not of a vernacular title in a particular language, this section examines
         // the possible relationship between the two.
 
         if (atitle is not null)
@@ -513,7 +514,7 @@ public class PubmedProcessor : IObjectProcessor
                         default:
                             {
                                 date_type = 0;
-                                string qText = "An unexpexted status (" + pub_status + ") found a date in the history section, pmid {sdoid}";
+                                string qText = "An unexpected status (" + pub_status + ") found a date in the history section, pmid {sdoid}";
                                 _logging_helper.LogLine(qText, sdoid);
                                 break;
                             }
@@ -662,10 +663,7 @@ public class PubmedProcessor : IObjectProcessor
 
                         case "doi":
                             {
-                                if (fob.doi is null)
-                                {
-                                    fob.doi = value.Trim();
-                                }
+                                fob.doi ??= value.Trim();     // i.e. if doi not already obtained
                                 source_elocation_string += "doi:" + value + ". ";
                                 break;
                             }
@@ -810,7 +808,7 @@ public class PubmedProcessor : IObjectProcessor
                             }
                         default:
                             {
-                                string qText = "A unexpexted article id type (" + id_type + ") found a date in the article id section, for pmid {sdoid}";
+                                string qText = "A unexpected article id type (" + id_type + ") found a date in the article id section, for pmid {sdoid}";
                                 _logging_helper.LogLine(qText, sdoid);
                                 break;
                             }
@@ -826,12 +824,10 @@ public class PubmedProcessor : IObjectProcessor
         {
             if (i.identifier_type_id == 16)
             {
-                // pmid
                 foreach (ObjectDate dt in dates)
                 {
-                    if (dt.date_type_id == 62)
+                    if (dt.date_type_id == 62)  // pmid
                     {
-                        // date added to PubMed
                         i.identifier_date = dt.date_as_string;
                         break;
                     }
@@ -1286,6 +1282,7 @@ public class PubmedProcessor : IObjectProcessor
         fob.object_topics = topics;
         fob.object_db_ids = db_ids;
         fob.object_comments = comments;
+        fob.journal_details = jd;
 
         return fob;
     }

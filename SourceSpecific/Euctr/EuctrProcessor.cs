@@ -8,7 +8,7 @@ public class EUCTRProcessor : IStudyProcessor
 {
     public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper)
     {
-        // set up json reader and deserialise file to a BioLiNCC object.
+        // set up json reader and deserialise file to a Euctr object.
 
         var json_options = new JsonSerializerOptions()
         {
@@ -30,7 +30,6 @@ public class EUCTRProcessor : IStudyProcessor
         List<StudyIdentifier> identifiers = new();
         List<StudyTitle> titles = new();
         List<StudyOrganisation> organisations = new();
-        List<StudyPerson> people = new();
         List<StudyTopic> topics = new();
         List<StudyFeature> features = new();
         List<StudyCountry> countries = new();
@@ -42,7 +41,7 @@ public class EUCTRProcessor : IStudyProcessor
         List<ObjectInstance> object_instances = new();
         List<ObjectDate> object_dates = new();
         
-        string? sid = r.sd_sid;
+        string sid = r.sd_sid;
 
         if (string.IsNullOrEmpty(sid))
         {
@@ -54,12 +53,16 @@ public class EUCTRProcessor : IStudyProcessor
         s.sd_sid = sid;
         s.datetime_of_data_fetch = download_datetime;
 
-        // By definition with the EU CTR. all studies
-        // are interventional trials. Status must be
-        // derived.
+        // By definition with the EU CTR all studies are interventional trials. 
+        // This already applied in download phase, but alert if not the case.
+        
+        s.study_type = r.study_type;
+        s.study_type_id = s.study_type.GetTypeId();
 
-        s.study_type = "Interventional";
-        s.study_type_id = 11;
+        if (s.study_type_id != 11)
+        {
+            _logging_helper.LogLine($"Study type recorded as {s.study_type} - !!!unusual!!! - for {s.sd_sid}");
+        }
 
         string? status = r.trial_status;
         if (!string.IsNullOrEmpty(status))
@@ -73,12 +76,19 @@ public class EUCTRProcessor : IStudyProcessor
                 "Not Authorised" => new Tuple<int, string?>(11, "Withdrawn"),
                 _ => new Tuple<int, string?>(0, null)
             };
+
+            if (status == "Ongoing" && !string.IsNullOrEmpty(r.recruitment_status))
+            {
+                // Largely empty at the moment - possible values collected, 
+                // to distinguish (later) between pre, during and post recruitment
+                _logging_helper.LogLine($"For info: Study recruitment status given as {r.recruitment_status} for {s.sd_sid}");
+            }
+
             s.study_status_id = new_status.Item1;
             s.study_status = new_status.Item2;
         }
 
-        // study start year and month
-        // public string start_date { get; set; } in ISO yyyy-MM-dd format.
+        // Study start year and month - start_date should be in ISO yyyy-MM-dd format.
 
         string? start_date = r.start_date;
         if (!string.IsNullOrEmpty(start_date) &&
@@ -89,49 +99,42 @@ public class EUCTRProcessor : IStudyProcessor
             s.study_start_month = start.Month;
         }
 
-        // contributor - sponsor.
+        // Contributors 
 
-        string? sponsor_name = "No organisation name provided in source data";
+        string? sponsor_name = "No organisation name provided in source data";    // initial default
         string? sponsor = r.sponsor_name;
         if (sponsor.IsNotPlaceHolder() && sponsor.AppearsGenuineOrgName())
         {
             sponsor_name = sponsor?.TidyOrgName(sid);
             string? lc_sponsor = sponsor_name?.ToLower();
             if (!string.IsNullOrEmpty(lc_sponsor) && lc_sponsor.Length > 1
-                                                  && lc_sponsor != "dr" && lc_sponsor != "no profit")
+                && lc_sponsor != "dr" && lc_sponsor != "no profit")
             {
                 organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, sponsor_name));
             }
         }
 
-        // may get funders or other supporting organisations.
+        // May get funders or other supporting organisations.
 
-        var sponsors = r.sponsors;
+        var sponsors = r.organisations;
         if (sponsors?.Any() is true)
         {
-            foreach (var d_line in sponsors)
+            foreach (EMAOrganisation org in sponsors)
             {
-                string? item_name = d_line.item_name;
-                if (item_name == "Name of organisation providing support")
+                string? org_n = org.org_name;
+                if (org_n is not null
+                    && !string.Equals(org_n, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
                 {
-                    var values = d_line.item_values;
-                    if (values?.Any() is true)
+                    if (org_n.IsNotPlaceHolder() && org_n.AppearsGenuineOrgName())
                     {
-                        string? org_value = values[0].value;
-                        if (org_value.IsNotPlaceHolder() && org_value.AppearsGenuineOrgName())
+                        string lc_orgn = org_n.ToLower();
+                        if (lc_orgn.Length > 1 && lc_orgn != "dr" && lc_orgn != "no profit")
                         {
-                            string? funder = org_value?.TidyOrgName(sid);
-                            if (funder != sponsor_name)
-                            {
-                                // Check a funder is not simply the sponsor.
-
-                                string? lc_funder = funder?.ToLower();
-                                if (!string.IsNullOrEmpty(lc_funder) && lc_funder.Length > 1
-                                                                     && lc_funder != "dr" && lc_funder != "no profit")
-                                {
-                                    organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder));
-                                }
-                            }
+                            // May be a sponsor name different from any already there 
+                            // but much more likely to be a funder.
+                            
+                            string? org_name = org_n.TidyOrgName(sid);
+                            organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null, org_name));
                         }
                     }
                 }
@@ -139,262 +142,139 @@ public class EUCTRProcessor : IStudyProcessor
         }
 
 
-        // Study identifiers - 
-        // do the euctr id first... then do the sponsor's id.
+        // Study identifiers 
 
-        identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", 100123, "EU Clinical Trials Register",
-            null, null));
-
-        string? sponsor_id = r.sponsor_id;
-        if (!string.IsNullOrEmpty(sponsor_id))
+        if (r.identifiers?.Any() == true)
         {
-            string sp_name = !string.IsNullOrEmpty(sponsor_name)
-                ? sponsor_name
-                : "No organisation name provided in source data";
-            int? sp_id = !string.IsNullOrEmpty(sponsor_name) ? null : 12;
-            identifiers.Add(new StudyIdentifier(sid, sponsor_id, 14, "Sponsor ID", sp_id, sp_name, null, null));
+            identifiers.AddRange(
+                r.identifiers.Select(i => new StudyIdentifier(sid, i.identifier_value, i.identifier_type_id, 
+                                      i.identifier_type, i.identifier_org_id, i.identifier_org))
+                );
+        }
+        
+        // string? second_language = r.member_state.GetLanguageFromMemberState();  // no longer used
+        
+        
+        // Titles 
+        
+        // May need to sort out which is which, especially with 'scientific acronyms'.
+        
+        string? public_title = r.public_title;
+        string? sci_title = r.scientific_title;
+        string? acro = r.acronym;
+        string? sci_acro = r.scientific_acronym;
+        
+        // not uncommon situations
+         
+        if (string.IsNullOrEmpty(acro) && !string.IsNullOrEmpty(sci_acro))
+        {
+            acro = sci_acro;
         }
 
-
-        // Identifier section includes titles.
-
-        bool display_title_exists = false;
-        var idents = r.identifiers;
-        if (idents?.Any() is true)
+        if (string.IsNullOrEmpty(public_title) && !string.IsNullOrEmpty(acro) && acro.Length > 20)
         {
-            string? second_language = "";
-            foreach (var d_line in idents)
+            public_title = acro;
+        }
+        
+        if (string.IsNullOrEmpty(public_title) && !string.IsNullOrEmpty(sci_acro) && sci_acro.Length > 20)
+        {
+            public_title = sci_acro;
+        }
+
+        if (!string.IsNullOrEmpty(acro) && acro.Length <= 20)
+        {
+            string acro_lc = acro.ToLower();
+            if (acro_lc.EndsWith(" trial"))
             {
-                string? item_code = d_line.item_code;
-                switch (item_code)
+                acro = acro[..acro_lc.LastIndexOf(" trial", StringComparison.Ordinal)];
+            }
+
+            if (acro_lc.EndsWith(" study"))
+            {
+                acro = acro[..acro_lc.LastIndexOf(" study", StringComparison.Ordinal)];
+            }
+
+            if (acro_lc.StartsWith("the "))
+            {
+                acro = acro[4..];
+            }
+        }
+        
+        bool default_title_identified = false;
+        if (!string.IsNullOrEmpty(public_title) && public_title.IsNotPlaceHolder())
+        {
+            public_title = public_title.Trim().ReplaceApos()!;
+            titles.Add(new StudyTitle(sid, public_title, 15, "Registry public title", "en",
+                                           11, true, "From the EU CTR"));
+            s.display_title = public_title;
+            default_title_identified = true;
+        }
+
+        
+        if (!string.IsNullOrEmpty(sci_title) && sci_title.IsNotPlaceHolder())
+        {
+            if (!sci_title.NameAlreadyPresent(titles))
+            {
+                sci_title = sci_title.Trim().ReplaceApos();
+                titles.Add(new StudyTitle(sid, sci_title, 16, "Registry scientific title", "en",
+                                            11, !default_title_identified, "From the EU CTR"));
+                if (!string.IsNullOrEmpty(public_title))
                 {
-                    case "A.1":
-                    {
-                        // 'member state concerned'
-                        // used here to estimate any non English title text listed
-                        // (GetLanguage... function beneath main ProcessData function).
-
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            string? member_state = values[0].value;
-                            if (!string.IsNullOrEmpty(member_state))
-                            {
-                                second_language = member_state.GetLanguageFromMemberState();
-                            }
-                        }
-                        break;
-                    }
-
-                    case "A.3":
-                    {
-                        // Study scientific titles - may be multiple titles (but may just repeat).
-                        // The first title is in English, any second in the country's own language/
-
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            int value_num = 0;
-                            foreach (item_value v in values)
-                            {
-                                string? title = v.value;
-                                value_num++;
-                                if (title is not null && title.Length >= 4)
-                                {
-                                    if (title.IsNotPlaceHolder())
-                                    {
-                                        title = title.Trim().ReplaceApos();
-                                        if (!title!.NameAlreadyPresent(titles))
-                                        {
-                                            string? lang_code = value_num == 1 ? "en" : second_language;
-                                            int lang_use_id = value_num == 1 ? 11 : 22;
-                                            titles.Add(new StudyTitle(sid, title, 16, "Registry scientific title",
-                                                lang_code, lang_use_id, false, "From the EU CTR"));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    }
-
-                    case "A.3.1":
-                    {
-                        // Study public titles - may be multiple titles (but may just repeat).
-                        // The first title is in English, any second in the country's own language.
-
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            int value_num = 0;
-                            foreach (item_value v in values)
-                            {
-                                string? title = v.value;
-                                value_num++;
-                                if (title is not null && title.Length >= 4)
-                                {
-                                    if (title.IsNotPlaceHolder())
-                                    {
-                                        title = title.Trim().ReplaceApos()!;
-                                        if (! title.NameAlreadyPresent(titles))
-                                        {
-                                            string? lang_code = value_num == 1 ? "en" : second_language;
-                                            int lang_use_id = value_num == 1 ? 11 : 22;
-                                            titles.Add(new StudyTitle(sid, title, 15, "Registry public title",
-                                                lang_code, lang_use_id, value_num == 1, "From the EU CTR"));
-                                            if (value_num == 1)
-                                            {
-                                                // A default value has been stored and this will signify the 
-                                                // display title.
-                                                s.display_title = title;
-                                                display_title_exists = true;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    }
-
-                    case "A.3.2":
-                    {
-                        // Study Acronym(s) - may be multiple (but may just repeat).
-                        // The first acronym uses English, the second the country's own language.
-
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            foreach (item_value v in values)
-                            {
-                                string? acronym = v.value;
-                                if (!string.IsNullOrEmpty(acronym))
-                                {
-                                    string acro_lc = acronym.Trim().ToLower();
-                                    if (!acro_lc.StartsWith("not ") && !acro_lc.StartsWith("non ") && acro_lc != "none"
-                                        && acro_lc.Length > 2 && acro_lc != "n/a" && acro_lc != "n.a." 
-                                        && !acro_lc.StartsWith("no ap") && !acro_lc.StartsWith("no av"))
-                                    {
-                                        if (acro_lc.EndsWith(" trial"))
-                                        {
-                                            acronym = acronym[..acro_lc.LastIndexOf(" trial", StringComparison.Ordinal)];
-                                        }
-                                        if (acro_lc.EndsWith(" study"))
-                                        {
-                                            acronym = acronym[..acro_lc.LastIndexOf(" study", StringComparison.Ordinal)];
-                                        }
-                                        if (acro_lc.StartsWith("the "))
-                                        {
-                                            acronym = acronym[4..];
-                                        }
-                                        acronym = acronym.ReplaceApos();
-                                        
-                                        if (!acronym!.NameAlreadyPresent(titles) && acronym!.Length < 18)
-                                        {
-                                            titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation",
-                                                false, "From the EU CTR"));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    }
-
-                    case "A.5.1":
-                    {
-                        // identifier: ISRCTN (International Standard Randomised Controlled Trial)
-                        // Number, if one present.
-
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            string? isrctn_id = values[0].value;
-                            if (isrctn_id is not null && isrctn_id.ToLower().StartsWith("isrctn"))
-                            {
-                                identifiers.Add(new StudyIdentifier(sid, isrctn_id, 11, "Trial Registry ID",
-                                    100126, "ISRCTN", null, null));
-                            }
-                        }
-                        break;
-                    }
-
-                    case "A.5.2":
-                    {
-                        // identifier: NCT Number if one present.
-
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            string? nct_id = values[0].value;
-                            if (nct_id is not null && nct_id.ToLower().StartsWith("nct"))
-                            {
-                                identifiers.Add(new StudyIdentifier(sid, nct_id, 11, "Trial Registry ID",
-                                    100120, "ClinicalTrials.gov", null, null));
-                            }
-                        }
-                        break;
-                    }
-
-                    case "A.5.3":
-                    {
-                        // identifier: WHO UTN Number, if one present.
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            string? who_id = values[0].value;
-                            if (who_id is not null && who_id.ToLower().StartsWith("u1111"))
-                            {
-                                identifiers.Add(new StudyIdentifier(sid, who_id, 11, "Trial Registry ID",
-                                    100115, "International Clinical Trials Registry Platform", null, null));
-                            }
-                        }
-                        break;
-                    }
+                    s.display_title = sci_title;
                 }
+                default_title_identified = true;
             }
         }
 
-        // Tidy up title data.
-        // First ensure that there is a default and display title.
-
-        if (!display_title_exists)
+        if (!string.IsNullOrEmpty(acro) && acro.IsNotPlaceHolder())
         {
-            // No public title has been stored, so
-            // use the registry title - should always be one.
-
-            foreach (var t in titles)
+            if (!acro.NameAlreadyPresent(titles))
             {
-                if (t.title_type_id == 16)
+                acro = acro.Trim().ReplaceApos();
+                string? acro_lc = acro?.ToLower();
+                if (acro_lc is not null && 
+                    !acro_lc.StartsWith("not ") && !acro_lc.StartsWith("non ") && acro_lc != "none"
+                    && acro_lc.Length > 2 && acro_lc != "n/a" && acro_lc != "n.a."
+                    && !acro_lc.StartsWith("no ap") && !acro_lc.StartsWith("no av"))
                 {
-                    t.is_default = true;
-                    s.display_title = t.title_text;
-                    display_title_exists = true;
-                    break;
+                    titles.Add(new StudyTitle(sid, acro, 14, "Acronym or Abbreviation", "en",
+                                                11, !default_title_identified, "From the EU CTR"));
+                    if (!string.IsNullOrEmpty(public_title) && !string.IsNullOrEmpty(sci_title))
+                    {
+                        s.display_title = acro;
+                    }
+                    default_title_identified = true;
                 }
             }
         }
-
-        if (!display_title_exists)
+        
+        if (!string.IsNullOrEmpty(sci_acro) && sci_acro.IsNotPlaceHolder())
         {
-            // Unlikely, but just in case - use an acronym.
-
-            foreach (var t in titles)
+            if (!sci_acro.NameAlreadyPresent(titles))
             {
-                if (t.title_type_id == 14)
+                sci_acro = sci_acro.Trim().ReplaceApos();
+                string? acro_lc = sci_acro?.ToLower();
+                if (acro_lc is not null && 
+                    !acro_lc.StartsWith("not ") && !acro_lc.StartsWith("non ") && acro_lc != "none"
+                    && acro_lc.Length > 2 && acro_lc != "n/a" && acro_lc != "n.a."
+                    && !acro_lc.StartsWith("no ap") && !acro_lc.StartsWith("no av"))
                 {
-                    t.is_default = true;
-                    s.display_title = t.title_text;
-                    display_title_exists = true;
-                    break;
+                    titles.Add(new StudyTitle(sid, sci_acro, 14, "Acronym or Abbreviation", "en",
+                        11, !default_title_identified, "From the EU CTR"));
+                    if (!string.IsNullOrEmpty(public_title) && !string.IsNullOrEmpty(sci_title)
+                                                            && !string.IsNullOrEmpty(acro))
+                    {
+                        s.display_title = acro;
+                    }
+                    default_title_identified = true;
                 }
             }
         }
-
+        
         // Add in an explanatory message... if still no title (!) -
         // there are a few early trials in EUCTR where this is the case
 
-        if (!display_title_exists)
+        if (!default_title_identified)
         {
             s.display_title = sid + " (No meaningful title provided)";
         }
@@ -407,157 +287,73 @@ public class EUCTRProcessor : IStudyProcessor
             s.display_title = s.display_title[..400] + "...";
         }
 
-
+        
+        // sStudy Description
+        
+        string? objs = r.primary_objectives;
+        if (objs is not null && objs.Length >= 16 
+            && !objs.ToLower().StartsWith("see ") && !objs.ToLower().StartsWith("not "))
+        {
+            string study_objectives = !objs.ToLower().StartsWith("primary")
+                ? "Primary objectives: " + objs
+                : objs;
+            s.brief_description = study_objectives;
+        }
+        
+        string? end_points = r.primary_endpoints;
+        if (end_points is not null && end_points.Length >= 16 &&
+            !end_points.ToLower().StartsWith("see ") &&
+            !end_points.ToLower().StartsWith("not "))
+        {
+            string study_endpoints = !end_points.ToLower().StartsWith("primary")
+                    ? "Primary endpoints: " + end_points
+                    : end_points;
+            
+            s.brief_description += string.IsNullOrEmpty(s.brief_description)
+                ? study_endpoints
+                : "\n" + study_endpoints;
+        }
+        
         // Study design info
 
-        string? study_description = null;
-        int study_iec_type = 0;
-        
-        var feats = r.features;
-        if (feats?.Any() is true)
+        if (r.features?.Any() == true)
         {
-            foreach (var d_line in feats)
+            foreach(EMAFeature f in r.features)
             {
-                string? item_code = d_line.item_code;
-                if (item_code is not null)
+                features.Add(new StudyFeature(sid, f.feature_id, f.feature_name,
+                    f.feature_value_id, f.feature_value_name));
+            }
+        }
+
+        // Conditions
+
+        string? named_condition = r.medical_condition;
+        if (!string.IsNullOrEmpty(named_condition) 
+            && !named_condition.Contains('\r') && !named_condition.Contains('\n') 
+            && named_condition.Length < 100)
+        {
+            conditions.Add(new StudyCondition(sid, r.medical_condition, null, null, null));
+        }
+
+        // MedDRA version and level details not used
+        // Term captured for possible MESH / ICD equivalence.
+
+        var meddra_terms = r.meddra_terms;
+        if (meddra_terms?.Any() is true)
+        {
+            foreach (var t in meddra_terms)
+            {
+                if (t.term is not null)
                 {
-                    if (item_code == "E.1.1")
-                    {
-                        // Condition(s) under study.
-
-                        var values = d_line.item_values;
-                        if (values?.Any() is true)
-                        {
-                            foreach (var item_value in values)
-                            {
-                                string? name = item_value.value;
-                                if (!string.IsNullOrEmpty(name) && !name.Contains('\r') && !name.Contains('\n') &&
-                                    name.Length < 100)
-                                {
-                                    conditions.Add(new StudyCondition(sid, name, null, null, null));
-                                }
-                            }
-                        }
-                    }
-
-                    if (item_code == "E.2.1" || item_code == "E.5.1")
-                    {
-                        // E.2.1 = primary objectives (may be multiple, i.e. in 2 languages, but may just repeat)
-                        // case "E.5.1" = primary end points.
-                        // Both are used to construct a study description.
-
-                        if (item_code == "E.2.1")
-                        {
-                            var values = d_line.item_values;
-                            if (values?.Any() is true)
-                            {
-                                int indiv_value_num = 0;
-                                string? study_objectives = null;
-                                foreach (var v in values)
-                                {
-                                    indiv_value_num++;
-                                    string? primary_obs = v.value?.StringClean();
-
-                                    if (primary_obs is not null && primary_obs.Length >= 16 &&
-                                        !primary_obs.ToLower().StartsWith("see ") &&
-                                        !primary_obs.ToLower().StartsWith("not "))
-                                    {
-                                        if (indiv_value_num == 1)
-                                        {
-                                            study_objectives = !primary_obs.ToLower().StartsWith("primary")
-                                                ? "Primary objectives: " + primary_obs
-                                                : primary_obs;
-                                        }
-                                        else
-                                        {
-                                            study_objectives +=
-                                                "\n(" + primary_obs + ")"; // Usually non English version.
-                                        }
-                                    }
-                                }
-
-                                // Start the study description with study objectives, if they are present.
-
-                                if (study_objectives is not null)
-                                {
-                                    study_description = study_objectives;
-                                }
-                            }
-                        }
-
-                        if (item_code == "E.5.1")
-                        {
-                            var values = d_line.item_values;
-                            if (values?.Any() is true)
-                            {
-                                int indiv_value_num = 0;
-                                string? study_endpoints = null;
-                                foreach (var v in values)
-                                {
-                                    indiv_value_num++;
-                                    string? end_points = v.value?.StringClean();
-
-                                    if (end_points is not null && end_points.Length >= 16 &&
-                                        !end_points.ToLower().StartsWith("see ") &&
-                                        !end_points.ToLower().StartsWith("not "))
-                                    {
-                                        if (indiv_value_num == 1)
-                                        {
-                                            study_endpoints = !end_points.ToLower().StartsWith("primary")
-                                                ? "Primary endpoints: " + end_points
-                                                : end_points;
-                                        }
-                                        else
-                                        {
-                                            study_endpoints += "\n(" + end_points + ")";
-                                        }
-                                    }
-                                }
-
-                                // Continue the study description with study endpoints, if they are present.
-
-                                if (study_endpoints is not null)
-                                {
-                                    study_description += string.IsNullOrEmpty(study_description)
-                                        ? study_endpoints
-                                        : "\n" + study_endpoints;
-                                }
-                            }
-                        }
-                    }
-
-                     
-                    if (item_code.Contains("E.7") || item_code.Contains("E.8"))
-                    {
-                        Tuple<int, string, int, string> new_feature = item_code switch
-                        {
-                            "E.7.1" => new Tuple<int, string, int, string>(20, "phase", 110, "Phase 1"),
-                            "E.7.2" => new Tuple<int, string, int, string>(20, "phase", 120, "Phase 2"),
-                            "E.7.3" => new Tuple<int, string, int, string>(20, "phase", 130, "Phase 3"),
-                            "E.7.4" => new Tuple<int, string, int, string>(20, "phase", 135, "Phase 4"),
-                            "E.8.1.1" => new Tuple<int, string, int, string>(22, "allocation type", 205, "Randomised"),
-                            "E.8.1.2" => new Tuple<int, string, int, string>(24, "masking", 500, "None (Open Label)"),
-                            "E.8.1.3" => new Tuple<int, string, int, string>(24, "masking", 505, "Single"),
-                            "E.8.1.4" => new Tuple<int, string, int, string>(24, "masking", 510, "Double"),
-                            "E.8.1.5" => new Tuple<int, string, int, string>(23, "intervention model", 305,
-                                "Parallel assignment"),
-                            "E.8.1.6" => new Tuple<int, string, int, string>(23, "intervention model", 310,
-                                "Crossover assignment"),
-                            _ => new Tuple<int, string, int, string>(0, "", 0, ""),
-                        };
-
-                        if (new_feature.Item1 != 0)
-                        {
-                            features.Add(new StudyFeature(sid, new_feature.Item1, new_feature.Item2,
-                                new_feature.Item3, new_feature.Item4));
-                        }
-                    }
+                    conditions.Add(new StudyCondition(sid, t.term, 16, "MedDRA", t.code));
                 }
             }
         }
         
-        // Inclusion / exclusion criteria
         
+        // Inclusion / exclusion criteria
+
+        int study_iec_type = 0;
         int num_inc_criteria = 0;
         string? ic = r.inclusion_criteria;
         if (!string.IsNullOrEmpty(ic))
@@ -597,338 +393,116 @@ public class EUCTRProcessor : IStudyProcessor
         }
                
         s.iec_level = study_iec_type;
+        
 
-        // eligibility
+        // Eligibility
 
-        var population = r.population;
-        if (population?.Any() is true)
+        s.study_gender_elig = r.gender;
+        s.study_gender_elig_id = r.gender.GetGenderEligId();
+
+        if (r.minage is not null)
         {
-            var p_groups = new Dictionary<string, bool>
+            if (r.minage.Contains('('))    // Not years - need to extract units.
             {
-                { "includes_under18", false },
-                { "includes_in_utero", false },
-                { "includes_preterm", false },
-                { "includes_newborns", false },
-                { "includes_infants", false },
-                { "includes_children", false },
-                { "includes_ados", false },
-                { "includes_adults", false },
-                { "includes_elderly", false },
-                { "includes_women", false },
-                { "includes_men", false },
-            };
-
-            foreach (var d_line in population)
-            {
-                // Each line indicates which of the age / gender groups should be set as true.
-
-                string? item_code = d_line.item_code;
-                string group_type = item_code switch
+                int left_bracket_pos = r.minage.IndexOf('(');
+                string min_age_num = r.minage[..left_bracket_pos].Trim();
+                if (int.TryParse(min_age_num, out int age))
                 {
-                    "F.1.1" => "includes_under18",
-                    "F.1.1.1" => "includes_in_utero",
-                    "F.1.1.2" => "includes_preterm",
-                    "F.1.1.3" => "includes_newborns",
-                    "F.1.1.4" => "includes_infants",
-                    "F.1.1.5" => "includes_children",
-                    "F.1.1.6" => "includes_ados",
-                    "F.1.2" => "includes_adults",
-                    "F.1.3" => "includes_elderly",
-                    "F.2.1" => "includes_women",
-                    "F.2.2" => "includes_men",
-                    _ => ""
-                };
-
-                if (group_type != "")
-                {
-                    p_groups[group_type] = true;
+                    s.min_age = age;
                 }
-            }
-
-            // get gender eligibility information
-
-            if (p_groups["includes_men"] && p_groups["includes_women"])
-            {
-                s.study_gender_elig = "All";
-                s.study_gender_elig_id = 900;
-            }
-            else if (p_groups["includes_women"])
-            {
-                s.study_gender_elig = "Female";
-                s.study_gender_elig_id = 905;
-            }
-            else if (p_groups["includes_men"])
-            {
-                s.study_gender_elig = "Male";
-                s.study_gender_elig_id = 910;
+                string units = r.minage[left_bracket_pos..].Trim('(', ')', ' ').ToLower();
+                if (units == "days")
+                {
+                    s.min_age_units = "Days";
+                }
+                if (units == "weeks")
+                {
+                    s.min_age_units = "Weeks";
+                }
+                if (units == "months")
+                {
+                    s.min_age_units = "Months";
+                }
             }
             else
             {
-                s.study_gender_elig = "Not provided";
-                s.study_gender_elig_id = 915;
-            }
-
-            // Try to establish age limits
-
-            if (!p_groups["includes_under18"])
-            {
-                // No children or adolescents included.
-                // If 'elderly' are included no age maximum is presumed.
-
-                if (p_groups["includes_adults"] && p_groups["includes_elderly"])
+                if (int.TryParse(r.minage, out int age))
                 {
-                    s.min_age = 18;
+                    s.min_age = age;
                     s.min_age_units = "Years";
-                    s.min_age_units_id = 17;
                 }
-                else if (p_groups["includes_adults"])
+            } 
+            s.min_age_units_id = s.min_age_units.GetTimeUnitsId();
+        }
+        
+        if (r.maxage is not null)
+        {
+            if (r.maxage.Contains('('))    // Not years - need to extract units.
+            {
+                int left_bracket_pos = r.maxage.IndexOf('(');
+                string max_age_num = r.maxage[..left_bracket_pos].Trim();
+                if (int.TryParse(max_age_num, out int age))
                 {
-                    s.min_age = 18;
-                    s.min_age_units = "Years";
-                    s.min_age_units_id = 17;
-                    s.max_age = 64;
+                    s.max_age = age;
+                }
+                string units = r.maxage[left_bracket_pos..].Trim('(', ')', ' ').ToLower();
+                if (units == "days")
+                {
+                    s.max_age_units = "Days";
+                }
+                if (units == "weeks")
+                {
+                    s.max_age_units = "Weeks";
+                }
+                if (units == "months")
+                {
+                    s.max_age_units = "Months";
+                }
+            }
+            else
+            {
+                if (int.TryParse(r.maxage, out int age))
+                {
+                    s.max_age = age;
                     s.max_age_units = "Years";
                     s.max_age_units_id = 17;
                 }
-                else if (p_groups["includes_elderly"])
-                {
-                    s.min_age = 65;
-                    s.min_age_units = "Years";
-                    s.min_age_units_id = 17;
-                }
             }
-            else
-            {
-                // Some under 18s included
-                // First identify the situation where under-18s, adults and elderly are all included
-                // corresponds to no age restrictions
-
-                if (p_groups["includes_under18"] && p_groups["includes_adults"] && p_groups["includes_elderly"])
-                {
-                    // Leave min and max ages blank
-                }
-                else
-                {
-                    // First try and obtain a minimum age.
-                    // Start with the youngest included and work up.
-
-                    if (p_groups["includes_in_utero"] || p_groups["includes_preterm"] || p_groups["includes_newborns"])
-                    {
-                        s.min_age = 0;
-                        s.min_age_units = "Days";
-                        s.min_age_units_id = 14;
-                    }
-                    else if (p_groups["includes_infants"])
-                    {
-                        s.min_age = 28;
-                        s.min_age_units = "Days";
-                        s.min_age_units_id = 14;
-                    }
-                    else if (p_groups["includes_children"])
-                    {
-                        s.min_age = 2;
-                        s.min_age_units = "Years";
-                        s.min_age_units_id = 17;
-                    }
-                    else if (p_groups["includes_ados"])
-                    {
-                        s.min_age = 12;
-                        s.min_age_units = "Years";
-                        s.min_age_units_id = 17;
-                    }
-
-                    // Then try and obtain a maximum age.
-                    // Start with the oldest included and work down.
-
-                    if (p_groups["includes_adults"])
-                    {
-                        s.max_age = 64;
-                        s.max_age_units = "Years";
-                        s.max_age_units_id = 17;
-                    }
-                    else if (p_groups["includes_ados"])
-                    {
-                        s.max_age = 17;
-                        s.max_age_units = "Years";
-                        s.max_age_units_id = 17;
-                    }
-                    else if (p_groups["includes_children"])
-                    {
-                        s.max_age = 11;
-                        s.max_age_units = "Years";
-                        s.max_age_units_id = 17;
-                    }
-                    else if (p_groups["includes_infants"])
-                    {
-                        s.max_age = 23;
-                        s.max_age_units = "Months";
-                        s.max_age_units_id = 16;
-                    }
-                    else if (p_groups["includes_newborns"])
-                    {
-                        s.max_age = 27;
-                        s.max_age_units = "Days";
-                        s.max_age_units_id = 14;
-                    }
-                    else if (p_groups["includes_in_utero"] || p_groups["includes_preterm"])
-                    {
-                        s.max_age = 0;
-                        s.max_age_units = "Days";
-                        s.max_age_units_id = 14;
-                    }
-                }
-            }
+            s.max_age_units_id = s.max_age_units.GetTimeUnitsId();
         }
-
-
-        // topics (mostly IMPs)
-
-        List<IMP> imp_list = new();
-        var imps = r.imps;
-        if (imps?.Any() is true)
-        {
-            int current_num = 0;
-            IMP? imp = null;
-            
-            foreach (var impLine in imps)
-            {
-                int imp_num = impLine.imp_number;
-
-                if (imp_num > current_num)
-                {
-                    // new imp class required to hold the values found below
-                    // store any old one that exists first
-
-                    if (imp is not null)
-                    {
-                        imp_list.Add(imp);
-                    }
-                    current_num = imp_num;
-                    imp = new IMP(current_num);
-                }
-
-                string? item_code = impLine.item_code;
-                if (item_code is not null && imp is not null)
-                {
-                    switch (item_code)
-                    {
-                        case "D.2.1.1.1":
-                        {
-                            // Trade name
-                            var values = impLine.item_values;
-                            if (values?.Any() is true)
-                            {
-                                string? topic_name = values[0].value;
-                                string? name = topic_name?.ToLower();
-                                if (!string.IsNullOrEmpty(name) && name != "not available"
-                                     && name != "n/a" && name != "na" &&
-                                     name != "not yet established" && name != "not yet extablished")
-                                {
-                                    imp.trade_name = topic_name!.Replace(((char)174).ToString(), ""); // drop reg mark
-                                }
-                            }
-
-                            break;
-                        }
-                        case "D.3.1":
-                        {
-                            // Product name
-                            var values = impLine.item_values;
-                            if (values?.Any() is true)
-                            {
-                                string? topic_name = values[0].value;
-                                string? name = topic_name?.ToLower();
-                                if (!string.IsNullOrEmpty(name) && name != "not available"
-                                     && name != "n/a" && name != "na" &&
-                                     name != "not yet established" && name != "not yet extablished")
-                                {
-                                    imp.product_name = topic_name!.Replace(((char)174).ToString(), ""); // drop reg mark
-                                }
-                            }
-
-                            break;
-                        }
-                        case "D.3.8":
-                        {
-                            // INN
-                            var values = impLine.item_values;
-                            if (values?.Any() is true)
-                            {
-                                string? topic_name = values[0].value;
-                                string? name = topic_name?.ToLower();
-                                if (!string.IsNullOrEmpty(name) && name != "not available"
-                                     && name != "n/a" && name != "na" &&
-                                     name != "not yet established" && name != "not yet extablished")
-                                {
-                                    imp.inn = topic_name!;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Add the last one (if there have been any). 
-            if (imp is not null)
-            {
-                imp_list.Add(imp);
-            }
-
-            // Process the imp list to get the best topic name' from those available
-            // use the product name, or the INN, or the trade name, in that order,
-            // and add the IMP as a topic, type 'chemical / agent'.
-
-            if (imp_list.Count > 0)
-            {
-
-                foreach (IMP i in imp_list)
-                {
-                    string imp_name = "";
-                    if (i.product_name is not null)
-                    {
-                        imp_name = i.product_name;
-                    }
-                    else if (i.inn is not null)
-                    {
-                        imp_name = i.inn;
-                    }
-                    else if (i.trade_name is not null)
-                    {
-                        imp_name = i.trade_name;
-                    }
-
-                    if (imp_name != "" && !imp_name.IMPAlreadyThere(topics))
-                    {
-                        topics.Add(new StudyTopic(sid, 12, "chemical / agent", imp_name));
-                    }
-                }
-            }
-        }
-
-
-        // MedDRA version and level details not used
-        // Term captured for possible MESH / ICD equivalence.
-
-        var meddra_terms = r.meddra_terms;
-        if (meddra_terms?.Any() is true)
-        {
-            foreach (var t in meddra_terms)
-            {
-                if (t.term is not null)
-                {
-                    conditions.Add(new StudyCondition(sid, t.term, 16, "MedDRA", t.code));
-                }
-            }
-        }
-
         
-        var cs = r.countries;
-        if (cs?.Any() is true)
+        
+        // Topics ( = IMPs)
+
+        if (r.imp_topics?.Any() == true)
         {
-            foreach (var cline in cs)
+            foreach (EMAImp i in r.imp_topics)
             {
-                string? country_name = cline.name?.Trim().ReplaceApos();
+                // Get name from product name, trade name or inn - in that order
+                string? imp_name = i.product_name;
+                if (string.IsNullOrEmpty(imp_name) && !string.IsNullOrEmpty(i.trade_name))
+                {
+                    imp_name = i.trade_name;
+                }
+                if (string.IsNullOrEmpty(imp_name) && !string.IsNullOrEmpty(i.inn))
+                {
+                    imp_name = i.inn;
+                }
+
+                topics.Add(!string.IsNullOrEmpty(i.cas_number)
+                    ? new StudyTopic(sid, 12, "chemical / agent", imp_name, "CAS", 23, i.cas_number)
+                    : new StudyTopic(sid, 12, "chemical / agent", imp_name));
+            }
+        }
+        
+        
+        // Countries
+        
+ if (r.countries?.Any() is true)
+        {
+            foreach ( EMACountry cline in r.countries)
+            {
+                string? country_name = cline.country_name?.Trim().ReplaceApos();
                 string? country_status = cline.status?.Trim();
                 if (country_name is not null)
                 {
@@ -942,7 +516,7 @@ public class EUCTRProcessor : IStudyProcessor
                     }
                     else
                     {
-                        int? status_id = string.IsNullOrEmpty(country_status) ? null : country_status.GetStatusId();
+                        int? status_id = country_status.GetStatusId();
                         countries.Add(new StudyCountry(sid, country_name, status_id, country_status));
                     }
                 }
@@ -952,16 +526,15 @@ public class EUCTRProcessor : IStudyProcessor
 
         // DATA OBJECTS and their attributes
 
-        // ----------------------------------------------------------
-        // initial data object is the EUCTR registry entry
-        // ----------------------------------------------------------
+
+        // Initial data object is the EUCTR registry entry.
 
         string object_title = "EU CTR registry entry";
         string object_display_title = s.display_title + " :: EU CTR registry entry";
         SplitDate? entered_in_db = null;
-        if (r.entered_in_db is not null)
+        if (!string.IsNullOrEmpty(r.date_registration))
         {
-            entered_in_db = r.entered_in_db.GetDatePartsFromISOString();
+            entered_in_db = r.date_registration.GetDatePartsFromISOString();
         }
 
         int? registry_pub_year = (entered_in_db is not null) ? entered_in_db.year : s.study_start_year;
@@ -971,25 +544,26 @@ public class EUCTRProcessor : IStudyProcessor
             23, "Text", 13, "Trial Registry entry", 100123, "EU Clinical Trials Register",
             12, download_datetime));
 
-        // data object title is the single display title...
-        object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-            22, "Study short name :: object type", true));
+        // Data object title is the single display title.
+        
+        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, 
+                              "Study short name :: object type", true));
 
-        // date of registry entry
+        // Date of registry entry.
+        
         if (entered_in_db != null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 12, "Available",
-                entered_in_db.year, entered_in_db.month, entered_in_db.day, entered_in_db.date_string));
+                      entered_in_db.year, entered_in_db.month, entered_in_db.day, entered_in_db.date_string));
         }
 
-        // instance url 
-        string details_url = r.details_url!; // cannot be null, else there would be no data!
+        // Instance url
+        
+        string details_url = r.details_url!;       // cannot be null, else there would be no data!
         object_instances.Add(new ObjectInstance(sd_oid, 100123, "EU Clinical Trials Register",
-            details_url, true, 35, "Web text"));
+                             details_url, true, 35, "Web text"));
 
-        // ----------------------------------------------------------
-        // if there is a results url, add that in as well
-        // ----------------------------------------------------------
+        // If there is a results url, add that in as well.
 
         string? results_url = r.results_url;
         if (!string.IsNullOrEmpty(results_url))
@@ -998,9 +572,9 @@ public class EUCTRProcessor : IStudyProcessor
             object_display_title = s.display_title + " :: EU CTR results entry";
             sd_oid = sid + " :: 28 :: " + object_title;
 
-            // get the date data if available
+            // Get the date data if available.
 
-            string? results_first_date = r.results_first_date;
+            string? results_first_date = r.results_date_posted;
             string? results_revision_date = r.results_revision_date;
             SplitDate? results_date = null;
             SplitDate? results_revision = null;
@@ -1017,32 +591,34 @@ public class EUCTRProcessor : IStudyProcessor
             }
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_pub_year,
-                23, "Text", 28, "Trial registry results summary", 100123,
-                "EU Clinical Trials Register", 12, download_datetime));
+                            23, "Text", 28, "Trial registry results summary", 100123,
+                           "EU Clinical Trials Register", 12, download_datetime));
 
-            // data object title is the single display title...
+            // Data object title is the single display title.
+            
             object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                22, "Study short name :: object type", true));
+                            22, "Study short name :: object type", true));
 
-            // instance url 
+            // Instance url 
+            
             object_instances.Add(new ObjectInstance(sd_oid, 100123, "EU Clinical Trials Register",
-                results_url, true, 35, "Web text"));
+                            results_url, true, 35, "Web text"));
 
-            // dates
+            // Dates
+            
             if (results_date is not null)
             {
                 object_dates.Add(new ObjectDate(sd_oid, 12, "Available",
                     results_date.year, results_date.month, results_date.day, results_date.date_string));
             }
-
             if (results_revision is not null)
             {
                 object_dates.Add(new ObjectDate(sd_oid, 18, "Updated",
                     results_revision.year, results_revision.month, results_revision.day, results_revision.date_string));
             }
 
-            // if there is a reference to a CSR pdf to download...
-            // Seems to be on the web pages in two forms
+            // If there is a reference to a CSR pdf to download include that.
+            // Seems to be on the web pages in two forms.
 
             // Form A 
 
@@ -1086,17 +662,17 @@ public class EUCTRProcessor : IStudyProcessor
                     sd_oid = sid + " :: 79 :: " + object_title;
 
                     data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_date?.year,
-                        23, "Text", 79, "CSR summary", null, sponsor_name, 11, download_datetime));
+                              23, "Text", 79, "CSR summary", null, sponsor_name, 11, download_datetime));
 
-                    // data object title is the single display title...
+                    // Data object title is the single display title.
+                    
                     object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                        title_type_id, title_type, true));
+                              title_type_id, title_type, true));
 
                     // instance url 
                     object_instances.Add(new ObjectInstance(sd_oid, 100123, "EU Clinical Trials Register",
-                        results_summary_link, true, 11, "PDF"));
+                               results_summary_link, true, 11, "PDF"));
                 }
-
             }
 
             // Form B
@@ -1115,53 +691,22 @@ public class EUCTRProcessor : IStudyProcessor
                 data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_date?.year,
                     23, "Text", 79, "CSR summary", null, sponsor_name, 11, download_datetime));
 
-                // data object title is the single display title...
+                // Data object title is the single display title.
+                
                 object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
                     title_type_id, title_type, true));
 
-                // instance url 
+                // Instance url
+                
                 object_instances.Add(new ObjectInstance(sd_oid, 100123, "EU Clinical Trials Register",
                     results_pdf_link, true, 11, "PDF"));
 
             }
         }
 
-
-        // Edit contributors - try to ensure properly categorised.
-        // All contributors originally down as organisations
-        // Try and see if some are actually people
-        
-        List<StudyOrganisation> orgs2 = new();
-        if (organisations.Count > 0)
-        {
-            foreach (StudyOrganisation g in organisations)
-            { 
-                bool add = true;
-                string? org_name = g.organisation_name?.ToLower();
-                if (org_name is not null && !org_name.AppearsGenuineOrgName())
-                {
-                    string? person_full_name = g.organisation_name.TidyPersonName();
-                    if (person_full_name is not null)
-                    {
-                        people.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
-                            null, null, g.organisation_name));
-                        add = false;
-                    }
-                }
-                if (add)
-                {
-                    orgs2.Add(g);
-                }
-            }
-        }
-
-
-        s.brief_description = study_description;
-
         s.identifiers = identifiers;
         s.titles = titles;
-        s.organisations = orgs2;
-        s.people = people;
+        s.organisations = organisations;
         s.topics = topics;
         s.features = features;
         s.countries = countries;
