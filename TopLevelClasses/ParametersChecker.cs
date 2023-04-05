@@ -113,7 +113,6 @@ public class ParameterChecker
     {
         _loggingHelper.OpenNoSourceLogFile();
         _loggingHelper.LogHeader("UNABLE TO PARSE PARAMETERS");
-        _loggingHelper.LogHeader("Error in input parameters");
         _loggingHelper.LogLine("Error in the command line arguments - they could not be parsed");
 
         int n = 0;

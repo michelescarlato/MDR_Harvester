@@ -159,7 +159,7 @@ public class MonDataLayer : IMonDataLayer
         sql_string += " set last_harvest_id = " + last_harvest_id + ", ";
         sql_string += " last_harvested = current_timestamp";
         sql_string += " where id = " + id;
-        Conn.Execute(sql_string);
+        Conn.Execute(sql_string); 
     }
 
     public int StoreHarvestEvent(HarvestEvent harvest)

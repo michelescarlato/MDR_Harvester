@@ -196,12 +196,13 @@ public class YodaProcessor : IStudyProcessor
             }
         }
 
-        string? conditions_studied = r.conditions_studied;
+        string? conditions_studied = r.conditions_studied.ReplaceApos();
         if (!string.IsNullOrEmpty(conditions_studied) && conditions_studied != "Healthy Volunteers")
         {
             conditions.Add(new StudyCondition(sid, conditions_studied, null, null, null));
         }
 
+        
         // Create study references (pmids).
         
         var refs = r.study_references;
