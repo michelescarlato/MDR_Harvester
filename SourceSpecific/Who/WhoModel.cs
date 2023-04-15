@@ -66,25 +66,32 @@ public class Secondary_Id
     public string? sec_id { get; set; }
     public string? processed_id { get; set; }
     public int? sec_id_source { get; set; }
-
-    public bool? ShouldSerializesec_id_source()
-    {
-        return sec_id_source.HasValue;
-    }
+    public int? sec_id_type_id { get; set; }
+    public string? sec_id_type { get; set; }
 
     public Secondary_Id(string? _source_field, string? _sec_id,
-                        string? _processed_id, int? _sec_id_source)
+        string? _processed_id, int? _sec_id_source)
     {
         source_field = _source_field;
         sec_id = _sec_id;
         processed_id = _processed_id;
         sec_id_source = _sec_id_source;
     }
+    
+    public Secondary_Id(string? _source_field, string? _sec_id,
+        string? _processed_id, int? _sec_id_source, int? _sec_id_type_id, string? _sec_id_type)
+    {
+        source_field = _source_field;
+        sec_id = _sec_id;
+        processed_id = _processed_id;
+        sec_id_source = _sec_id_source;
+        sec_id_type_id = _sec_id_type_id;
+        sec_id_type = _sec_id_type;
+    }
 
     public Secondary_Id()
     { }
 }
-
 
 public class SecIdBase
 {

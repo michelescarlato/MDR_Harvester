@@ -97,8 +97,7 @@ public class StudyCentre
     public string? country { get; set; }
 
     public StudyCentre()
-    {
-    }
+    { }
 
     public StudyCentre(string? _name, string? _address, string? _city,
               string? _state, string? _country)
@@ -134,8 +133,7 @@ public class StudyOutput
 
 
     public StudyOutput()
-    {
-    }
+    { }
 
     public StudyOutput(string? _description, string? _productionNotes,
                        string? _outputType, string? _artefactType, string? _dateCreated,
@@ -172,8 +170,7 @@ public class StudyAttachedFile
     public bool? @public { get; set; }
 
     public StudyAttachedFile()
-    {
-    }
+    { }
 
     public StudyAttachedFile(string? _description, string? _name, string? _id, bool? _public)
     {
@@ -197,8 +194,7 @@ public class StudyContact
     public string? email { get; set; }
 
     public StudyContact()
-    {
-    }
+    { }
 
     public StudyContact(string? _forename, string? _surname, string? _orcid,
                         string? _contactType, string? _address,
@@ -227,8 +223,7 @@ public class StudySponsor
     public string? country { get; set; }
 
     public StudySponsor()
-    {
-    }
+    { }
 
     public StudySponsor(string? _organisation, string? _website,
         string? _sponsorType, string? _gridId,
@@ -249,8 +244,7 @@ public class StudyFunder
     public string? fundRef { get; set; }
 
     public StudyFunder()
-    {
-    }
+    { }
 
     public StudyFunder(string? _name, string? _fundRef)
     {

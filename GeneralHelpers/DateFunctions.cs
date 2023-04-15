@@ -4,6 +4,54 @@ namespace MDR_Harvester.Extensions;
 
 public static class DateStringExtensions
 {
+    private static SplitDate? GetDateFromParts(string year_string, string month_string, string day_string)
+    {
+        // convert strings into integers and month abbreviation.
+        
+        int? year_num = null, month_num = null, day_num = null;
+        string? month_as3 = null;
+        
+        if (int.TryParse(year_string, out int y))
+        {
+            year_num = y;
+        }
+        if (int.TryParse(month_string, out int m))
+        {
+            month_num = m;
+        }
+        if (int.TryParse(day_string, out int d))
+        {
+            day_num = d;
+        }
+        if (month_num is not null && month_num > 0)
+        {
+            month_as3 = ((Months3)month_num).ToString();
+        }
+        
+        string? date_as_string;     // Get date as standard string.
+        if (year_num is not null && month_as3 is not null && day_num is not null)
+        {
+            date_as_string = year_num + " " + month_as3 + " " + day_num;
+        }
+        else if (year_num is not null && month_as3 is not null && day_num is null)
+        {
+            date_as_string = year_num.ToString() + ' ' + month_as3;
+        }
+        else if (year_num is not null && month_as3 is null && day_num is null)
+        {
+            date_as_string = year_num.ToString();
+        }
+        else
+        {
+            date_as_string = null;
+        }
+
+        return date_as_string == null 
+            ? null 
+            : new SplitDate(year_num, month_num, day_num, date_as_string);
+    }
+    
+    
     public static SplitDate? GetDatePartsFromCTGString(this string dateString)
     {
         // Designed to deal with CTG dates...
@@ -15,11 +63,9 @@ public static class DateStringExtensions
             return null;
         }
 
-        string? year_string, month_name, day_string, month_as3 = null;
-        int? year_num = null, day_num = null;
-
         // First split the string on any comma.
-
+        
+        string? year_string, month_name, day_string;
         int comma_pos = dateString.IndexOf(',');
         if (comma_pos > 0)
         {
@@ -40,222 +86,119 @@ public static class DateStringExtensions
             day_string = "";
         }
 
-        // convert strings into integers and month abbreviation.
-
-        if (int.TryParse(year_string, out int y))
-        {
-            year_num = y;
-        }
-        int month_num = GetMonthAsInt(month_name);
-        if (month_num != 0)
-        {
-            month_as3 = ((Months3)month_num).ToString();
-        }
-        if (int.TryParse(day_string, out int d))
-        {
-            day_num = d;
-        }
-
-        // Get date as string.
-
-        string? date_as_string;
-        if (year_num is not null && month_as3 is not null && day_num is not null)
-        {
-            date_as_string = year_num.ToString() + " " + month_as3 + " " + day_num.ToString();
-        }
-        else if (year_num is not null && month_as3 is not null && day_num is null)
-        {
-            date_as_string = year_num.ToString() + ' ' + month_as3;
-        }
-        else if (year_num is not null && month_as3 is null && day_num is null)
-        {
-            date_as_string = year_num.ToString();
-        }
-        else
-        {
-            date_as_string = null;
-        }
-
-        return date_as_string == null 
-            ? null 
-            : new SplitDate(year_num, month_num, day_num, date_as_string);
+        string month_string = GetMonthAsInt(month_name).ToString();
+        return GetDateFromParts(year_string, month_string, day_string);
     }
 
-      
-    public static SplitDate? GetDatePartsFromEUCTRString(this string dateString)
+    
+    public static SplitDate? GetDatePartsFromEuropeanString(this string dateString)
     {
-        // date here is in the format dd Mon yyyy, e.g. 16 Aug 2017.
+        // Dates in different EU sources nay be in different formats
+        // including dd/MM/yyyy, yyyy-MM-dd, and dd MMM yyyy, e.g. 16 Aug 2017.
+        // This function checks the format before calling the appropriate 
+        // date conversion function.
 
         if (string.IsNullOrEmpty(dateString))
         {
             return null;
         }
-
-        // check format.
-
+        if (Regex.Match(dateString, @"^\d{2}/\d{2}/\d{4}$").Success)
+        {
+            return GetDatePartsFromEUString(dateString);
+        }
+        if (Regex.Match(dateString, @"^\d{4}-\d{2}-\d{2}$").Success)
+        {
+            return GetDatePartsFromISOString(dateString);
+        }
         if (Regex.Match(dateString, @"^\d{2} \w{3} \d{4}$").Success)
         {
-            int? year_num = null, day_num = null;
-
-            string day_string = dateString.Substring(0, 2);
-            string month_string = dateString.Substring(3, 3);
-            string year_string = dateString.Substring(7, 4);
-
-            // convert strings into integers.
-
-            if (int.TryParse(year_string, out int y))
-            {
-                year_num = y;
-            }
-            if (int.TryParse(day_string, out int d))
-            {
-                day_num = d;
-            }
-            int month_num = GetMonth3AsInt(month_string);
-
-
-            if (year_num != null && month_num != 0 && day_num != null)
-            {
-                // get date as standard string.
-
-                string date_as_string = year_num.ToString() + " " + month_string + " " + day_num.ToString();
-
-                return new SplitDate(year_num, month_num, day_num, date_as_string);
-            }
-            else
-            {
-                return null;
-            }
+            return GetDatePartsFromEUCTRString(dateString);
         }
-        else
+        return null;
+    }
+
+    
+    public static SplitDate? GetDatePartsFromEUCTRString(this string dateString)
+    {
+        // date here is in the format dd MMM yyyy, e.g. 16 Aug 2017.
+
+        if (string.IsNullOrEmpty(dateString))
+        {
+            return null;
+        }
+        if (!Regex.Match(dateString, @"^\d{2} \w{3} \d{4}$").Success)
         {
             return null;
         }
 
+        string day_string = dateString.Substring(0, 2);
+        string month_as3string = dateString.Substring(3, 3);
+        string year_string = dateString.Substring(7, 4);
+        string month_string = GetMonth3AsInt(month_as3string).ToString();
+        return GetDateFromParts(year_string, month_string, day_string);
     }
 
 
     public static SplitDate? GetDatePartsFromUSString(this string dateString)
     {
-        // date here is in the format mm/dd/yyyy, e.g. 25/06/2018.
+        // date here is in the format mm/dd/yyyy, e.g. 06/25/2018.
 
         if (string.IsNullOrEmpty(dateString))
         {
             return null;
         }
-
-        // check format.
-
-        if (Regex.Match(dateString, @"^\d{2}/\d{2}/\d{4}$").Success)
-        {
-            int? year_num = null, month_num = null, day_num = null;
-            string? month_as3 = null;
-
-            string month_string = dateString.Substring(0, 2);
-            string day_string = dateString.Substring(3, 2);
-            string year_string = dateString.Substring(6, 4);
-
-            // convert strings into integers
-            if (int.TryParse(year_string, out int y))
-            {
-                year_num = y;
-            }
-            if (int.TryParse(month_string, out int m))
-            {
-                month_num = m;
-            }
-            if (month_num is not null && month_num > 0)
-            {
-                month_as3 = ((Months3)month_num).ToString();
-            }
-            if (int.TryParse(day_string, out int d))
-            {
-                day_num = d;
-            }
-
-            if (year_num is not null && month_as3 is not null && day_num is not null)
-            {
-                // Get date with standard string.
-
-                string date_as_string = year_num.ToString() + " " + month_as3 + " " + day_num.ToString();
-                return new SplitDate(year_num, month_num, day_num, date_as_string);
-            }
-            else
-            {
-                return null;
-            }
-        }
-        else
+        if (!Regex.Match(dateString, @"^\d{2}/\d{2}/\d{4}$").Success)
         {
             return null;
         }
 
+        string month_string = dateString.Substring(0, 2);
+        string day_string = dateString.Substring(3, 2);
+        string year_string = dateString.Substring(6, 4);
+        return GetDateFromParts(year_string, month_string, day_string);
     }
 
-
-    public static SplitDate? GetDatePartsFromISOString(this string dateString)
+    public static SplitDate? GetDatePartsFromEUString(this string dateString)
     {
-        // input date string, if present, is in the form of "yyyy-mm-dd".
+        // date here is in the format dd/mm/yyyy, e.g. 25/06/2018.
 
         if (string.IsNullOrEmpty(dateString))
         {
             return null;
         }
-        
-        // check format and possible alternative.
-
-        if (Regex.Match(dateString, @"^\d{8}$").Success)
-        {
-            // If presented without hyphens add them to create the standard format.
-
-            dateString = dateString.Substring(0, 4) + "-" + dateString.Substring(4, 2) + "-" + dateString.Substring(6, 2);
-        }
-
-        if (Regex.Match(dateString, @"^\d{4}-\d{2}-\d{2}$").Success)
-        {
-            int? year_num = null, month_num = null, day_num = null;
-            string? month_as3 = null;
-
-            string year_string = dateString.Substring(0, 4);
-            string month_string = dateString.Substring(5, 2);
-            string day_string = dateString.Substring(8, 2);
-
-            // convert strings into integers
-            // convert strings into integers
-            if (int.TryParse(year_string, out int y))
-            {
-                year_num = y;
-            }
-            if (int.TryParse(month_string, out int m))
-            {
-                month_num = m;
-            }
-            if (month_num is not null && month_num > 0)
-            {
-                month_as3 = ((Months3)month_num).ToString();
-            }
-            if (int.TryParse(day_string, out int d))
-            {
-                day_num = d;
-            }
-
-            if (year_num is not null && month_as3 is not null && day_num is not null)
-            {
-                // get date with standard string.
-
-                string date_as_string = year_num.ToString() + " " + month_as3 + " " + day_num.ToString();
-                return new SplitDate(year_num, month_num, day_num, date_as_string);
-            }
-            else
-            {
-                return null;
-            }
-        }
-        else
+        if (!Regex.Match(dateString, @"^\d{2}/\d{2}/\d{4}$").Success)
         {
             return null;
         }
 
+        string day_string = dateString.Substring(0, 2);        
+        string month_string = dateString.Substring(3, 2);
+        string year_string = dateString.Substring(6, 4);
+        return GetDateFromParts(year_string, month_string, day_string);
+    }
+    
+    public static SplitDate? GetDatePartsFromISOString(this string dateString)
+    {
+        // input date string is in the form of "yyyy-MM-dd", sometimes just yyyyMMdd.
+
+        if (string.IsNullOrEmpty(dateString))
+        {
+            return null;
+        }
+        if (Regex.Match(dateString, @"^\d{8}$").Success)   // Add hyphens to create the standard format.
+        {
+            dateString = dateString.Substring(0, 4) + "-" + dateString.Substring(4, 2) 
+                         + "-" + dateString.Substring(6, 2);
+        }
+        if (!Regex.Match(dateString, @"^\d{4}-\d{2}-\d{2}$").Success)
+        {
+            return null;
+        }
+
+        string year_string = dateString.Substring(0, 4);
+        string month_string = dateString.Substring(5, 2);
+        string day_string = dateString.Substring(8, 2);
+        return GetDateFromParts(year_string, month_string, day_string);
     }
 
 
@@ -265,18 +208,8 @@ public static class DateStringExtensions
         {
             return null;
         }
-        else
-        {
-            SplitDate? SD = inputDate.GetDatePartsFromCTGString();
-            if (SD is null)
-            { 
-                return null;
-            }
-            else
-            {
-                return SD.date_string;
-            }
-        }
+        SplitDate? SD = inputDate.GetDatePartsFromCTGString();
+        return SD?.date_string;
     }
 
 
@@ -310,7 +243,6 @@ public enum MonthsFull
     January = 1, February, March, April, May, June,
     July, August, September, October, November, December
 };
-
 
 public enum Months3
 {

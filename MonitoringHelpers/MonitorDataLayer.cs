@@ -45,9 +45,13 @@ public class MonDataLayer : IMonDataLayer
         using NpgsqlConnection Conn = new(monConnString);
         string sql_string = "select max(id) from sf.harvest_events ";
         int last_id = Conn.ExecuteScalar<int>(sql_string);
-        return last_id + 1;
+        int new_id = last_id + 1;
+        sql_string = $"Insert into sf.harvest_events(id) values ({new_id})";
+        Conn.Execute(sql_string);
+        return new_id;
     }
 
+    
     public int FetchFileRecordsCount(int harvest_type_id = 1, int days_ago = 0)
     {
         string sql_string = "select count(*) from mn.source_data ";
@@ -162,10 +166,10 @@ public class MonDataLayer : IMonDataLayer
         Conn.Execute(sql_string); 
     }
 
-    public int StoreHarvestEvent(HarvestEvent harvest)
+    public bool StoreHarvestEvent(HarvestEvent harvest)
     {
         using NpgsqlConnection Conn = new(monConnString);
-        return (int)Conn.Insert(harvest);
+        return Conn.Update(harvest);
     }
 }
 

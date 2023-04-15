@@ -67,7 +67,7 @@ public class StudyController
                     }
                 }
                 if (k % 100 == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
-                if (k % chunk == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
+                //if (k % chunk == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
             }
         }
 

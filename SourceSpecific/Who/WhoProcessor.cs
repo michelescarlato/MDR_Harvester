@@ -44,8 +44,6 @@ public class WHOProcessor : IStudyProcessor
         List<ObjectInstance> data_object_instances = new();
 
         WhoHelpers wh = new();
-        //IECHelpers iech = new();
-        
         string? sid = r.sd_sid;
 
         if (string.IsNullOrEmpty(sid))
@@ -63,7 +61,6 @@ public class WHOProcessor : IStudyProcessor
         // Do initial identifier representing the registry id.
 
         SplitDate? registration_date = null;
-        //string? date_registration = r.date_registration;  
         if (!string.IsNullOrEmpty(r.date_registration))
         {
             registration_date = r.date_registration.GetDatePartsFromISOString();
@@ -473,63 +470,130 @@ public class WHOProcessor : IStudyProcessor
                 int? sec_id_source = id.sec_id_source;
                 string? processed_id = id.processed_id;
 
-                if (sec_id_source is not null)
+                if (sec_id_source is not null && id.sec_id_type is not null)   // Already identified in DL process
                 {
-                    if (sec_id_source == 102000)
-                    {
-                        identifiers.Add(new StudyIdentifier(sid, processed_id, 41, "Regulatory Body ID", 102000, "Anvisa (Brazil)"));
-                    }
-                    else if (sec_id_source == 102001)
-                    {
-                        identifiers.Add(new StudyIdentifier(sid, processed_id, 12, "Ethics Review ID", 102001, "Comitê de Ética em Pesquisa (local) (Brazil)"));
-                    }
-                    else
-                    {
-                        source_name = wh.GetSourceName(sec_id_source);
-                        identifiers.Add(new StudyIdentifier(sid, processed_id, 11, "Trial Registry ID", sec_id_source, source_name));
-                    }
+                    source_name = wh.GetSourceName(sec_id_source);
+                    identifiers.Add(new StudyIdentifier(sid, processed_id, id.sec_id_type_id, id.sec_id_type, sec_id_source, source_name));
                 }
-
-                if (sec_id_source is null && sponsor_name is not null && processed_id is not null)
+                else if (sec_id_source is null && sponsor_name is not null && processed_id is not null)
                 {
-                    string sponsor_name_lower = sponsor_name.ToLower();
-                    if (sponsor_name_lower == "na" || sponsor_name_lower == "n/a" || sponsor_name_lower == "no"
-                        || sponsor_name_lower == "none" || sponsor_name_lower == "not available"
-                        || sponsor_name_lower == "no sponsor" || sponsor_name == "-" || sponsor_name == "--")
+                    processed_id = processed_id.Trim('-', ':', ' ', '/', '*', '.');
+                    if (processed_id.Length > 2)
                     {
-                        identifiers.Add(new StudyIdentifier(sid, processed_id, 1, "Type not provided", 12, "No organisation name provided in source data"));
-                    }
-                    else if (source_id == 100116)
-                    {
-                        identifiers.Add(wh.GetANZIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
-                    }
-                    else if (source_id == 100118)
-                    {
-                        StudyIdentifier? si = wh.GetChineseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name);
-                        if (si is not null)
+                        string sponsor_name_lower = sponsor_name.ToLower();
+                        if (source_id == 100116)
                         {
-                            identifiers.Add(si);
+                            identifiers.Add(wh.TryToGetANZIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
                         }
-                    }
-                    else if (source_id == 100127)
-                    {
-                        identifiers.Add(wh.GetJapaneseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
-                    }
-                    else
-                    {
-                        if (sponsor_is_org is true)
+                        else if (source_id == 100118)
                         {
-                            identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name));
+                            StudyIdentifier? si =
+                                wh.TryToGetChineseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name);
+                            if (si is not null)
+                            {
+                                identifiers.Add(si);
+                            }
+                        }
+                        else if (source_id == 100127)
+                        {
+                            identifiers.Add(wh.TryToGetJapaneseIdentifier(sid, processed_id, sponsor_is_org,
+                                sponsor_name));
+                        }
+                        else if (source_id == 100132)
+                        {
+                            List<string> possible_ids = new();
+                            
+                            // May be compound...
+                            
+                            if (processed_id.Contains("//"))
+                            {
+                                possible_ids = SplitNTRIdString(processed_id, "//");
+                            }
+                            else if (processed_id.Contains("/ "))
+                            {
+                                possible_ids = SplitNTRIdString(processed_id, "/ ");
+                            }
+                            else if (processed_id.Contains(" /"))
+                            {
+                                possible_ids = SplitNTRIdString(processed_id, " /");
+                            }
+                            else
+                            {
+                                possible_ids.Add(processed_id);
+                            }
+                            
+                            foreach(string poss_id in possible_ids)
+                            {
+                                StudyIdentifier? si =
+                                    wh.TryToGetDutchIdentifier(sid, poss_id, sponsor_is_org, sponsor_name);
+                                if (si is not null)
+                                {
+                                    identifiers.Add(si);
+                                }
+                            }
+                        }
+                        else if (sponsor_name_lower is "na" or "n/a" or "no" or "none" or "not available"
+                                     or "no sponsor"
+                                 || sponsor_name is "-" or "--")
+                        {
+                            identifiers.Add(new StudyIdentifier(sid, processed_id, 1, "Type not provided",
+                                12, "No organisation name provided in source data"));
+                        }
+                        else if (sponsor_is_org is true)
+                        {
+                            identifiers.Add(
+                                new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name));
                         }
                         else
                         {
-                            identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, 
-                                             "No organisation name provided in source data"));
+                            identifiers.Add(new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12,
+                                "No organisation name provided in source data"));
                         }
                     }
                 }
             }
         }
+
+
+        List<string> SplitNTRIdString(string input_string, string splitter)
+        {
+            List<string> possible_ids = new();
+            string[] sections = input_string.Split(splitter);
+            if (sections.Length == 2)
+            {
+                sections[0] = sections[0].Trim('(', ')', ' ');
+                if (sections[0].ToLower() != "ccmo" && sections[0].ToLower() != "abr")
+                {
+                    possible_ids.Add(sections[0].Trim());
+                }
+                sections[1] = sections[1].Trim('(', ')', ' ');
+                if (sections[1].ToLower() != "ccmo" && sections[1].ToLower() != "abr")
+                {
+                    possible_ids.Add(sections[1].Trim());
+                }
+            }
+            else if (sections.Length == 3 && sections[1].Contains(':'))
+            {
+                int colon_pos = sections[1].IndexOf(':');
+                string part_1 = sections[0] + " : " + sections[1][(colon_pos + 1)..];
+                string part_2 = sections[1][..colon_pos] + " : " + sections[2];
+                possible_ids.Add(part_1.Trim());
+                possible_ids.Add(part_2.Trim());
+
+            }
+            else
+            {
+                foreach (string sec in sections)
+                {
+                    if (sec.ToLower() != "ccmo" && sec.ToLower() != "abr")
+                    {
+                        possible_ids.Add(sec.Trim());
+                    }
+                }
+            }
+            return possible_ids;
+        }
+        
 
 
         // Study conditions.
@@ -591,47 +655,42 @@ public class WHOProcessor : IStudyProcessor
         int num_inc_criteria = 0;
         int study_iec_type = 0;
 
-        //if (sid is "ACTRN12605000136240" or "ACTRN12605000320657" 
-       //         or "ACTRN12605000390684" or "ACTRN12605000529640" )
-       // {
-            if (!string.IsNullOrEmpty(ic))
+        if (!string.IsNullOrEmpty(ic))
+        {
+            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
+            if (crits is not null)
             {
-                List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
-                if (crits is not null)
+                int seq_num = 0;
+                foreach (Criterion cr in crits)
                 {
-                    int seq_num = 0;
-                    foreach (Criterion cr in crits)
-                    {
-                        seq_num++;
-                        iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
-                            cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
-                    }
-
-                    study_iec_type = (crits.Count == 1) ? 2 : 4;
-                    num_inc_criteria = crits.Count;
+                    seq_num++;
+                    iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                        cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
                 }
-            }
 
-            if (!string.IsNullOrEmpty(ec))
+                study_iec_type = (crits.Count == 1) ? 2 : 4;
+                num_inc_criteria = crits.Count;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(ec))
+        {
+            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
+            if (crits is not null)
             {
-                List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
-                if (crits is not null)
+                int seq_num = num_inc_criteria;
+                foreach (Criterion cr in crits)
                 {
-                    int seq_num = num_inc_criteria;
-                    foreach (Criterion cr in crits)
-                    {
-                        seq_num++;
-                        iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
-                            cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
-                    }
-
-                    study_iec_type += (crits.Count == 1) ? 5 : 6;
+                    seq_num++;
+                    iec.Add(new StudyIEC(sid, seq_num, cr.CritTypeId, cr.CritType,
+                        cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString, cr.CritText));
                 }
+
+                study_iec_type += (crits.Count == 1) ? 5 : 6;
             }
+        }
 
-            s.iec_level = study_iec_type;
-        //}
-
+        s.iec_level = study_iec_type;
 
 
         // Create data object records.
@@ -800,7 +859,6 @@ public class WHOProcessor : IStudyProcessor
                                     url_link, true, resource_type_id, resource_type));
             }
         }
-
 
         var countryList = r.country_list;
         if (countryList?.Any() is true)

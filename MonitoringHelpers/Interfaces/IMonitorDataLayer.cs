@@ -15,6 +15,6 @@ public interface IMonDataLayer
     
     int GetNextHarvestEventId();
     bool SourceIdPresent(int source_id);
-    int StoreHarvestEvent(HarvestEvent harvest);
+    bool StoreHarvestEvent(HarvestEvent harvest);
     void UpdateFileRecLastHarvested(int? id, string source_type, int last_harvest_id);
 }

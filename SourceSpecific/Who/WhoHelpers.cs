@@ -1,4 +1,6 @@
-﻿namespace MDR_Harvester.Who;
+﻿using System.Text.RegularExpressions;
+
+namespace MDR_Harvester.Who;
 
 internal class WhoHelpers
 {
@@ -29,6 +31,9 @@ internal class WhoHelpers
             100131 => "Thai Clinical Trials Register",
             100132 => "Netherlands National Trial Register",
             101989 => "Lebanon Clinical Trials Registry",
+            109108 => "International Traditional Medicine Clinical Trials Registry",
+            102000 => "Anvisa (Brazil)",
+            102001 => "Comitê de Ética em Pesquisa (local) (Brazil)",
             _ => null
         };
     }
@@ -60,12 +65,14 @@ internal class WhoHelpers
             100131 => "Thai ",
             100132 => "Dutch ",
             101989 => "Lebanese ",
+            109108 => "Traditional Medicine ",
             _ => null
         };
     }
     
 
-    internal StudyIdentifier GetANZIdentifier(string sid, string processed_id, bool? sponsor_is_org, string sponsor_name)
+    internal StudyIdentifier TryToGetANZIdentifier(string sid, string processed_id, 
+                                                   bool? sponsor_is_org, string sponsor_name)
     {
         // australian nz identifiers
         if (processed_id.StartsWith("ADHB"))
@@ -327,7 +334,8 @@ internal class WhoHelpers
     }
 
 
-    internal StudyIdentifier? GetChineseIdentifier(string sid, string processed_id, bool? sponsor_is_org, string sponsor_name)
+    internal StudyIdentifier? TryToGetChineseIdentifier(string sid, string processed_id, 
+                                                        bool? sponsor_is_org, string sponsor_name)
     {
         if (processed_id.EndsWith("#32"))    // first ignore these (small sub group)
         {
@@ -353,7 +361,8 @@ internal class WhoHelpers
     }
 
 
-    internal StudyIdentifier GetJapaneseIdentifier(string sid, string processed_id, bool? sponsor_is_org, string sponsor_name)
+    internal StudyIdentifier TryToGetJapaneseIdentifier(string sid, string processed_id, 
+                                                        bool? sponsor_is_org, string sponsor_name)
     {
         if (processed_id.StartsWith("JapicCTI"))
         {
@@ -376,6 +385,132 @@ internal class WhoHelpers
         return sponsor_is_org is true 
                        ? new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name) 
                        : new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, "No organisation name provided in source data");
+    }
+    
+    
+    internal StudyIdentifier? TryToGetDutchIdentifier(string sid, string processed_id, 
+                                                     bool? sponsor_is_org, string sponsor_name)
+    {
+        processed_id = processed_id.Replace("dossiernummer", "").Trim();
+        processed_id = processed_id.Replace("dossiernr", "").Trim();
+        processed_id = processed_id.Replace("project", "").Trim();
+        processed_id = processed_id.Replace("research file", "").Trim();
+        processed_id = processed_id.Replace("number", "").Trim();
+        processed_id = processed_id.Replace("nummer", "").Trim();
+        processed_id = processed_id.Replace("nr.", "").Trim();
+        processed_id = processed_id.Replace("of the financer", "").Trim();
+        processed_id = processed_id.Replace("Toetsingonline", "").Trim();
+        processed_id = processed_id.Trim('-', ':', ' ', '/', '*', '.');
+
+        if (processed_id.Length < 3 || processed_id == "001" || processed_id == "0001")
+        {
+            return null;
+        }
+        
+        if (Regex.Match(processed_id, @"^NL(\s?|-?|\.?)\d{5}\.\d{3}\.\d{2}").Success)
+        {
+            return new StudyIdentifier(sid, processed_id, 41, "Regulatory Body ID", 109113, "CCMO");
+        }
+        if (processed_id.Contains("CCMO", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("CCMO", "").Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 41, "Regulatory Body ID", 109113, "CCMO");
+        }
+        if (processed_id.Contains("ABR", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("ABR", "").Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 41, "Regulatory Body ID", 109113, "CCMO");
+        }
+        if (processed_id.Contains("ZonMw", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("ZonMw", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 13, "Funder’s ID", 109113, "ZonMw");
+        }
+
+        if (processed_id.Contains("MEC-U", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("MEC-UC", "METC-U", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        if (processed_id.Contains("MEC AMC", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("MEC AMC", "METC AMC", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        if (processed_id.Contains("MEC azM/UM", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("MEC azM/UM", "METC azM/UM", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        if (processed_id.Contains("MEC Brabant", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("MEC Brabant", "METC Brabant", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        if (processed_id.Contains("MEC ErasmusMC", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("MEC ErasmusMC", "METC ErasmusMC", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        if (processed_id.Contains("MEC Isala", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("MEC Isala", "METC Isala", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        if (processed_id.Contains("MEC Leiden", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("MEC Leiden", "METC Leiden", StringComparison.OrdinalIgnoreCase).Trim();
+        }
+        
+        if (processed_id.ToLower().Contains("METC-U", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC-U", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", 109115, "Medical Research Ethics Committees United");
+        }
+        if (processed_id.ToLower().Contains("METC AMC", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC AMC", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", 109116, "METC Amsterdam UMC");
+        }
+        if (processed_id.ToLower().Contains("METC azM/UM", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC azM/UM", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", 109117, "METC Academisch Ziekenhuis Maastricht / Universiteit Maastricht");
+        }
+        if (processed_id.ToLower().Contains("METC Brabant", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC Brabant ", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", 109118, "METC Brabant");
+        }
+        if (processed_id.ToLower().Contains("METC ErasmusMC", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC ErasmusMC", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", 109119, "METC Erasmus Medisch Centrum Rotterdam");
+        }
+        if (processed_id.ToLower().Contains("METC Isala", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC Isala", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", 109120, "METC Isala klinieken Zwolle");
+        }
+        if (processed_id.ToLower().Contains("METC Leiden", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC Leiden", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", 109121, "METC Leiden Den Haag Delft");
+        }
+        if (processed_id.ToLower().Contains("METC", StringComparison.OrdinalIgnoreCase))
+        {
+            processed_id = processed_id.Replace("METC", "", StringComparison.OrdinalIgnoreCase).Trim();
+            processed_id = processed_id.Trim(' ', ':', '-');
+            return new StudyIdentifier(sid, processed_id, 12, "Ethics review ID", null, sponsor_name);
+        }
+
+        return sponsor_is_org is true 
+            ? new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name) 
+            : new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, "No organisation name provided in source data");
     }
 }
 

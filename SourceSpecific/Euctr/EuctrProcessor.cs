@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Text.Json;
+﻿using System.Text.Json;
 using MDR_Harvester.Extensions;
 
 namespace MDR_Harvester.Euctr;
@@ -88,15 +87,13 @@ public class EUCTRProcessor : IStudyProcessor
             s.study_status = new_status.Item2;
         }
 
-        // Study start year and month - start_date should be in ISO yyyy-MM-dd format.
+        // Study start_date may be in ISO yyyy-MM-dd format or EU dd/MM/yyyy format.
 
-        string? start_date = r.start_date;
-        if (!string.IsNullOrEmpty(start_date) &&
-            DateTime.TryParseExact(start_date, "yyyy-MM-dd", new CultureInfo("en-UK"), DateTimeStyles.AssumeLocal,
-                out DateTime start))
+        SplitDate? start = r.start_date?.GetDatePartsFromEuropeanString();
+        if (start is not null)
         {
-            s.study_start_year = start.Year;
-            s.study_start_month = start.Month;
+            s.study_start_year = start.year;
+            s.study_start_month = start.month;
         }
 
         // Contributors 
@@ -151,9 +148,6 @@ public class EUCTRProcessor : IStudyProcessor
                                       i.identifier_type, i.identifier_org_id, i.identifier_org))
                 );
         }
-        
-        // string? second_language = r.member_state.GetLanguageFromMemberState();  // no longer used
-        
         
         // Titles 
         
@@ -274,7 +268,7 @@ public class EUCTRProcessor : IStudyProcessor
         // Add in an explanatory message... if still no title (!) -
         // there are a few early trials in EUCTR where this is the case
 
-        if (!default_title_identified)
+        if (string.IsNullOrEmpty(s.display_title))
         {
             s.display_title = sid + " (No meaningful title provided)";
         }
@@ -330,7 +324,7 @@ public class EUCTRProcessor : IStudyProcessor
         string? named_condition = r.medical_condition;
         if (!string.IsNullOrEmpty(named_condition) 
             && !named_condition.Contains('\r') && !named_condition.Contains('\n') 
-            && named_condition.Length < 100)
+            && named_condition.Length < 200)
         {
             conditions.Add(new StudyCondition(sid, r.medical_condition, null, null, null));
         }
@@ -498,7 +492,7 @@ public class EUCTRProcessor : IStudyProcessor
         
         // Countries
         
- if (r.countries?.Any() is true)
+        if (r.countries?.Any() is true)
         {
             foreach ( EMACountry cline in r.countries)
             {
@@ -534,7 +528,7 @@ public class EUCTRProcessor : IStudyProcessor
         SplitDate? entered_in_db = null;
         if (!string.IsNullOrEmpty(r.date_registration))
         {
-            entered_in_db = r.date_registration.GetDatePartsFromISOString();
+            entered_in_db = r.date_registration.GetDatePartsFromEuropeanString();
         }
 
         int? registry_pub_year = (entered_in_db is not null) ? entered_in_db.year : s.study_start_year;
@@ -581,13 +575,13 @@ public class EUCTRProcessor : IStudyProcessor
             int? results_pub_year = null;
             if (!string.IsNullOrEmpty(results_first_date))
             {
-                results_date = results_first_date.GetDatePartsFromEUCTRString();
+                results_date = results_first_date.GetDatePartsFromEuropeanString();
                 results_pub_year = results_date?.year;
             }
 
             if (!string.IsNullOrEmpty(results_revision_date))
             {
-                results_revision = results_revision_date.GetDatePartsFromEUCTRString();
+                results_revision = results_revision_date.GetDatePartsFromEuropeanString();
             }
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_pub_year,
