@@ -339,9 +339,11 @@ public class ObjectTableBuilder
         CREATE TABLE {schema}.journal_details(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR         NOT NULL
+          , journal_title          VARCHAR         NULL
           , pissn                  VARCHAR         NULL
           , eissn                  VARCHAR         NULL
-          , journal_title          VARCHAR         NULL
+          , journal_nlm_id         VARCHAR         NULL
+          , journal_iso_abbrev     VARCHAR         NULL
         );
         CREATE INDEX journal_details_sd_oid ON {schema}.journal_details(sd_oid);";
 

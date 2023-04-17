@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices.ComTypes;
-
-namespace MDR_Harvester;
+﻿namespace MDR_Harvester;
 
 public class StudyController
 {

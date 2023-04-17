@@ -624,25 +624,26 @@ public class ObjectTopic
     public string? sd_oid { get; set; }
     public int? topic_type_id { get; set; }
     public string? topic_type { get; set; }
-    public bool? mesh_coded { get; set; }
+    public string? original_value { get; set; }
+    public int? original_ct_type_id { get; set; }
+    public string? original_ct_type { get; set; }
+    public string? original_ct_code { get; set; }
     public string? mesh_code { get; set; }
     public string? mesh_value { get; set; }
-    public int? original_ct_id { get; set; }
-    public string? original_ct_code { get; set; }
-    public string? original_value { get; set; }
+
 
     // used for a mesh coded topic
 
     public ObjectTopic(string? _sd_oid, int? _topic_type_id, string? _topic_type,
-                 bool? _mesh_coded, string? _mesh_code, string? _mesh_value)
+                 string? _mesh_code, string? _mesh_value)
     {
         sd_oid = _sd_oid;
         topic_type_id = _topic_type_id;
         topic_type = _topic_type;
-        mesh_coded = _mesh_coded;
         mesh_code = _mesh_code;
         mesh_value = _mesh_value;
-        original_ct_id = 14;
+        original_ct_type_id = 14;
+        original_ct_type = "MeSH";
         original_ct_code = _mesh_code;
         original_value = _mesh_value;
     }
@@ -655,21 +656,20 @@ public class ObjectTopic
         sd_oid = _sd_oid;
         topic_type_id = _topic_type_id;
         topic_type = _topic_type;
-        mesh_coded = false;
-        original_ct_id = 0;
+        original_ct_type_id = 0;
         original_value = _topic_value;
     }
 
     // non mesh coded topic - but coded using another system - comments also possible
 
     public ObjectTopic(string? _sd_oid, int? _topic_type_id, string? _topic_type, 
-        string? _topic_value, int? _original_ct_id, string? _original_ct_code)
+        string? _topic_value, int? _original_ct_type_id, string? _original_ct_type, string? _original_ct_code)
     {
         sd_oid = _sd_oid;
         topic_type_id = _topic_type_id;
         topic_type = _topic_type;
-        mesh_coded = false;
-        original_ct_id = _original_ct_id;
+        original_ct_type_id = _original_ct_type_id;
+        original_ct_type = _original_ct_type;
         original_ct_code = _original_ct_code;
         original_value = _topic_value;
     }
@@ -788,6 +788,8 @@ public class JournalDetails
     public string? journal_title { get; set; }
     public string? pissn { get; set; }
     public string? eissn { get; set; }
+    public string? journal_nlm_id  { get; set; }
+    public string? journal_iso_abbrev { get; set; }
 
     public JournalDetails(string _sd_oid, string _journal_title)
     {

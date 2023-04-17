@@ -232,13 +232,16 @@ internal static class PubMedHelpers
             return new SplitDateRange(pub_year, smonth, sday, pub_year, emonth, eday, true, ml_date_string);
         }
 
-        if (non_year_date.IndexOf("-", StringComparison.Ordinal) != -1)
+        if (non_year_date[3] == '-' && non_year_date.Length >= 7)
         {
             // Often two months separated by a hyphen, e.g."May-Jul".
 
             string s_month = non_year_date[..3];
             string e_month = non_year_date[4..].Trim();
-            e_month = e_month[..3];
+            if (e_month.Length > 3)
+            {
+                e_month = e_month[..3];
+            }
             int start_month = s_month.GetMonth3AsInt();
             int end_month = e_month.GetMonth3AsInt();
             if (start_month != 0 && end_month != 0)

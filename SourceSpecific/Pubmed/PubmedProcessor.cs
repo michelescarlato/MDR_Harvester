@@ -46,7 +46,6 @@ public class PubmedProcessor : IObjectProcessor
         List<ObjectOrganisation> organisations = new();
         List<ObjectComment> comments = new();
         List<ObjectDBLink> db_ids = new();
-        List<ObjectDBLink> journal_details = new();
 
         string author_string = "";
         string journal_source = "";
@@ -110,7 +109,7 @@ public class PubmedProcessor : IObjectProcessor
         // Obtain article title(s).
         // Usually just a single title present in English, but may be an additional
         // title in the 'vernacular', with a translation in English. Translated titles
-        // are in square brackets and may be followed by a comment in parantheses. 
+        // are in square brackets and may be followed by a comment in parentheses. 
         // First set up the set of required variables.
 
         string? atitle = r.articleTitle;
@@ -121,7 +120,7 @@ public class PubmedProcessor : IObjectProcessor
         else
         {
             string qText = $"The {sdoid} citation does not have an article title";
-            _logging_helper.LogLine(qText, sdoid);
+            _logging_helper.LogLine(qText);
         }
         string? vtitle = r.vernacularTitle;
         if (!string.IsNullOrEmpty(vtitle))
@@ -129,20 +128,20 @@ public class PubmedProcessor : IObjectProcessor
             vtitle = vtitle.ReplaceTags().ReplaceApos();
         }
 
-        // Check the vernaculat title is not the same as the article title - can happen 
+        // Check the vernacular title is not the same as the article title - can happen 
         // very rarely and if it is the case the vernacular title should be ignored.
 
         if (atitle is not null && vtitle is not null && vtitle == atitle)
         {
             vtitle = null;
             string qText = $"The article and vernacular titles seem identical, for pmid {sdoid}";
-            _logging_helper.LogLine(qText, sdoid);
+            _logging_helper.LogLine(qText);
         }
 
         // If a vernacular title try and find its language if possible - it is not given explicitly.
         // All methods imperfect but seem to work in most situations so far. First try to use a
         // listed non English language, then try the country of the journal, then see if it is
-        // a Canadian journal (which may be published in ther USA).
+        // a Canadian journal (which may be published in the USA).
 
         string vlang_code = "";
         string? journal_title = r.journalTitle;
@@ -228,7 +227,7 @@ public class PubmedProcessor : IObjectProcessor
                 else if (atitle.EndsWith(")"))
                 {
                     // Work back from the end to get the matching left parenthesis.
-                    // Because the comment may itself contain parantheses necessary to
+                    // Because the comment may itself contain parentheses necessary to
                     // match the matching left bracket. Obtain comment, and article title,
                     // and log if this seems impossible to do.
 
@@ -248,16 +247,16 @@ public class PubmedProcessor : IObjectProcessor
                     if (bracket_count > 0)
                     {
                         string qText = $"Title '{atitle}' starts with '[', ends with ')', but unable to match parentheses, for pmid {sdoid}";
-                        _logging_helper.LogLine(qText, sdoid);
+                        _logging_helper.LogLine(qText);   
                     }
                 }
                 else
                 {
-                    // Log if a square bracket at the start is not matched by an ending bracket or paranthesis.
-
-                    string qText = "The title starts with a '[' but there is no matching ']' or ')' at the end of the title. Title = "
-                                       + atitle + ", for pmid {sdoid}";
-                    _logging_helper.LogLine(qText, sdoid);
+                    // Log if a square bracket at the start is not matched by an ending bracket or parenthesis.
+                    // In fact Usually benign - e.g. [ is in chemical name. No longer need to log
+                   // string qText = "The title starts with a '[' but there is no matching ']' or ')' at the end of the title. Title = "
+                       //                + atitle + $", for pmid {sdoid}";
+                    //_logging_helper.LogLine(qText);
                 }
 
                 // Store the title(s) - square brackets being present.
@@ -319,13 +318,16 @@ public class PubmedProcessor : IObjectProcessor
             }
         }
 
-
         // get some basic journal information, as this is useful for helping to 
         // determine the country of origin, and for identifying the publisher,
         // as well as later (in creating citation string). The journal name
         // and issn numbers for electronic and / or paper versions are obtained.
 
-        JournalDetails jd = new(sdoid, journal_title ?? "");
+        JournalDetails jd = new(sdoid, journal_title ?? "")
+        {
+            journal_nlm_id = r.journalNlmUniqueID,
+            journal_iso_abbrev = r.journalISOAbbreviation
+        };
         var issns = r.ISSNList;
         if (issns?.Any() is true)
         {
@@ -381,6 +383,7 @@ public class PubmedProcessor : IObjectProcessor
             }
         }
 
+        
         // Get the journal publication date.
 
         string publication_date_string = "";    // Used to summarise the date(s) in the display title.
@@ -460,7 +463,7 @@ public class PubmedProcessor : IObjectProcessor
                     else
                     {
                         string qText = $"Unexpected date type ({date_type}) found in an article date element, pmid {sdoid}"; 
-                        _logging_helper.LogLine(qText, sdoid);
+                        _logging_helper.LogLine(qText);
                     }
                 }
             }
@@ -472,12 +475,11 @@ public class PubmedProcessor : IObjectProcessor
         var history_dates = r.History;
         if (history_dates?.Any() is true)
         {
-            string? pub_status = null;
             int date_type = 0;
             string? date_type_name = null;
             foreach (HistoryDate hd in history_dates)
             {
-                pub_status = hd.PubStatus;
+                var pub_status = hd.PubStatus;
                 if (!string.IsNullOrEmpty(pub_status))
                 {
                     // get date_type
@@ -514,8 +516,8 @@ public class PubmedProcessor : IObjectProcessor
                         default:
                             {
                                 date_type = 0;
-                                string qText = "An unexpected status (" + pub_status + ") found a date in the history section, pmid {sdoid}";
-                                _logging_helper.LogLine(qText, sdoid);
+                                string qText = "An unexpected status (" + pub_status + $") found a date in the history section, pmid {sdoid}";
+                                _logging_helper.LogLine(qText);
                                 break;
                             }
                     }
@@ -547,7 +549,7 @@ public class PubmedProcessor : IObjectProcessor
                     topic_ct_code = ch.UI;
                 }
 
-                topics.Add(new ObjectTopic(sdoid, 12, "chemical / agent", true, topic_ct_code, chemName));
+                topics.Add(new ObjectTopic(sdoid, 12, "chemical / agent", topic_ct_code, chemName));
             }
         }
 
@@ -582,7 +584,7 @@ public class PubmedProcessor : IObjectProcessor
 
                     if (new_topic)
                     {
-                        topics.Add(new ObjectTopic(sdoid, 0, topic_type, true, topic_ct_code, desc));
+                        topics.Add(new ObjectTopic(sdoid, 0, topic_type, topic_ct_code, desc));
                     }
                 }
             }
@@ -618,7 +620,7 @@ public class PubmedProcessor : IObjectProcessor
 
                     if (new_topic)
                     {
-                        topics.Add(new ObjectTopic(sdoid, 0, topic_type, true, topic_ct_code, desc));
+                        topics.Add(new ObjectTopic(sdoid, 0, topic_type, topic_ct_code, desc));
                     }
                 }
             }
@@ -630,12 +632,9 @@ public class PubmedProcessor : IObjectProcessor
         var keywords_lists = r.KeywordList;
         if (keywords_lists?.Any() is true)
         {
-            string? this_owner = r.keywordOwner;
-            int ct_id = (this_owner == "NOTNLM") ? 11 : 0;
-
             foreach (var kw in keywords_lists)
             {
-                topics.Add(new ObjectTopic(sdoid, 11, "keyword", kw.Value, ct_id, null));
+                topics.Add(new ObjectTopic(sdoid, 11, "keyword", kw.Value));
             }   
         }
 
@@ -662,11 +661,16 @@ public class PubmedProcessor : IObjectProcessor
                             }
 
                         case "doi":
+                        {
+                            value = value.Replace("https://", "");
+                            value = value.Replace("http://", "");
+                            if (value.StartsWith("10."))
                             {
-                                fob.doi ??= value.Trim();     // i.e. if doi not already obtained
+                                fob.doi ??= value.Trim(); // i.e. if doi not already obtained
                                 source_elocation_string += "doi:" + value + ". ";
-                                break;
                             }
+                            break;
+                        }
                     }
                 }
             }
@@ -694,7 +698,7 @@ public class PubmedProcessor : IObjectProcessor
                             identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
 
                             instances.Add(new ObjectInstance(sdoid, 100133, "National Library of Medicine",
-                            "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
+                            "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id, true,
                             36, "Web text with download"));
                         }
                         else
@@ -736,10 +740,9 @@ public class PubmedProcessor : IObjectProcessor
                                 {
                                     if (fob.doi != other_id)
                                     {
-                                        string qText = $"Two different dois have been supplied: {fob.doi}";
+                                        string qText = $"Two different doi s have been supplied: {fob.doi}";
                                         qText += $" from ELocation, and {other_id} from Article Ids, pmid {sdoid}";
-                                        _logging_helper.LogLine(qText, sdoid);
-                                        break;
+                                        _logging_helper.LogLine(qText);
                                     }
                                 }
                                 break;
@@ -766,8 +769,8 @@ public class PubmedProcessor : IObjectProcessor
                                 if (PubMedHelpers.IdNotPresent(identifiers, 16, other_id))
                                 {
                                     // should be present already! - if a different value log it a a query
-                                    string qText = "Two different values for pmid found: record pmiod is {sdoid}, but in article ids the value " + other_id + " is listed";
-                                    _logging_helper.LogLine(qText, sdoid);
+                                    string qText = $"Two different values for pmid found: record pmid is {sdoid}, but in article ids the value " + other_id + " is listed";
+                                    _logging_helper.LogLine(qText);
                                     identifiers.Add(new ObjectIdentifier(sdoid, 16, "PMID", sdoid, 100133, "National Library of Medicine"));
                                 }
                                 break;
@@ -788,7 +791,7 @@ public class PubmedProcessor : IObjectProcessor
                                     identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
 
                                     instances.Add(new ObjectInstance(sdoid, 100133, "National Library of Medicine",
-                                    "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
+                                    "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id, true,
                                     36, "Web text with download"));
                                 }
                                 break;
@@ -801,15 +804,15 @@ public class PubmedProcessor : IObjectProcessor
                                     identifiers.Add(new ObjectIdentifier(sdoid, 31, "PMCID", other_id, 100133, "National Library of Medicine"));
 
                                     instances.Add(new ObjectInstance(sdoid, 100133, "National Library of Medicine",
-                                    "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id.ToString(), true,
+                                    "https://www.ncbi.nlm.nih.gov/pmc/articles/" + other_id, true,
                                     36, "Web text with download"));
                                 }
                                 break;
                             }
                         default:
                             {
-                                string qText = "A unexpected article id type (" + id_type + ") found a date in the article id section, for pmid {sdoid}";
-                                _logging_helper.LogLine(qText, sdoid);
+                                string qText = "A unexpected article id type (" + id_type + $") found a date in the article id section, for pmid {sdoid}";
+                                _logging_helper.LogLine(qText);
                                 break;
                             }
                     }
@@ -835,7 +838,7 @@ public class PubmedProcessor : IObjectProcessor
             }
 
             // pmid date may be available as an entrez date
-            else if (i.identifier_type_id == 16 && i.identifier_date == null)
+            else if (i is { identifier_type_id: 16, identifier_date: null })
             {
                 // pmid
                 foreach (ObjectDate dt in dates)
@@ -934,7 +937,7 @@ public class PubmedProcessor : IObjectProcessor
                     full_name = (given_name + " " + family_name + suffix).Trim();
                 }
 
-                full_name = full_name?.ReplaceApos();
+                full_name = full_name.ReplaceApos();
 
                 // should only ever be a single ORCID identifier.
 
@@ -952,9 +955,8 @@ public class PubmedProcessor : IObjectProcessor
                         {
                             string qText = $"person {full_name} (linked to {sdoid}) identifier ";
                             qText += "is not an ORCID (" + identifier + " (source =" + identifier_source + "))";
-                            _logging_helper.LogLine(qText, sdoid);
+                            _logging_helper.LogLine(qText);
                             identifier = null;
-                            identifier_source = null; // do not store in db
                         }
                     }
                 }
@@ -977,7 +979,6 @@ public class PubmedProcessor : IObjectProcessor
                             }
                             else
                             {
-                                string? affil_identifier = aff.IdentifierValue;
                                 string? affil_ident_source = aff.IdentifierSource;
                                 if (affil_ident_source == "INSI")
                                 {
@@ -1069,27 +1070,23 @@ public class PubmedProcessor : IObjectProcessor
 
         // Derive Journal source string (used as a descriptive element)...
         // Constructed as <MedlineTA>. Date;<Volume>(<Issue>):<Pagination>. <ELocationID>.
-        // Needs to be extended to take into account the publication model and thus the other poossible dates
+        // Needs to be extended to take into account the publication model and thus the other possible dates
         // see https://www.nlm.nih.gov/bsd/licensee/elements_article_source.html
 
         string medline_ta = r.journalMedlineTA ?? "";
         if (medline_ta != "")
         {
-            medline_ta = medline_ta + ". ";
+            medline_ta += ". ";
         }
 
         string volume = r.journalVolume ?? "";
         string issue = r.journalIssue ?? "";
-        if (issue == null)
+        if (issue != "")
         { 
-            issue = "";
-        }
-        else
-        {
             issue = "(" + issue + ")";
         }
 
-        string? pagination = r.medlinePgn ?? "";   
+        string pagination = r.medlinePgn ?? "";   
         if (!string.IsNullOrEmpty(pagination))
         {
             pagination = ":" + pagination;
@@ -1099,17 +1096,12 @@ public class PubmedProcessor : IObjectProcessor
         string vip = volume + issue + pagination;
         vip = (vip == "") ? "" : vip + ". ";
 
-        if (string.IsNullOrEmpty(source_elocation_string))
-        {
-            source_elocation_string = "";
-        }
-        else
+        if (!string.IsNullOrEmpty(source_elocation_string))
         {
             source_elocation_string = source_elocation_string.Trim();
         }
 
-        string public_date = "";
-        string elec_date = "";
+        string? public_date, elec_date;
             
         switch (r.pubModel)
         {
@@ -1129,19 +1121,19 @@ public class PubmedProcessor : IObjectProcessor
                     // The electronic publishing date is then shown afterwards, as "Epub YYY MMM DD".
 
                     public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    elec_date = (electronic_date_string != "") ? electronic_date_string + ". " : "";
                     journal_source = medline_ta + public_date + vip + "Epub " + elec_date + source_elocation_string;
                     break;
                 }
 
             case "Electronic":
                 {
-                    // Here there is no published hardcopy print version of the item. 
+                    // Here there is no published hard copy print version of the item. 
                     // If there is an ArticleDate element present in the citation it is used as the source of the publication date in the journal source string.
                     // If no ArticleDate element was provided the publication date is assumed to be that of an electronic publication.
                     // In either case there is no explicit indication that this is an electronic publication in the citation.
 
-                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    elec_date = (electronic_date_string != "") ? electronic_date_string + ". " : "";
                     if (elec_date == "")
                     {
                         elec_date = (publication_date_string != null) ? publication_date_string + ". " : "";
@@ -1156,7 +1148,7 @@ public class PubmedProcessor : IObjectProcessor
                     // The source is followed by the print date notation using the content of the PubDate element.
 
                     public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    elec_date = (electronic_date_string != "") ? electronic_date_string + ". " : "";
                     journal_source = medline_ta + elec_date + vip + "Print " + public_date + source_elocation_string;
                     break;
                 }
@@ -1168,7 +1160,7 @@ public class PubmedProcessor : IObjectProcessor
                     // but the eCollection date can be obtained from the PubDate element.
 
                     public_date = (publication_date_string != null) ? publication_date_string + ". " : "";
-                    elec_date = (electronic_date_string != null) ? electronic_date_string + ". " : "";
+                    elec_date = (electronic_date_string != "") ? electronic_date_string + ". " : "";
                     journal_source = medline_ta + elec_date + vip + "eCollection " + public_date + source_elocation_string;
                     break;
                 }

@@ -11,8 +11,8 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapVarchar("sd_oid", x => x.sd_oid)
         .MapVarchar("sd_sid", x => x.sd_sid)
         .MapVarchar("title", x => x.title)
-        .MapVarchar("display_title", x => x.display_title)
         .MapVarchar("version", x => x.version)
+        .MapVarchar("display_title", x => x.display_title)
         .MapVarchar("doi", x => x.doi)
         .MapInteger("doi_status_id", x => x.doi_status_id)
         .MapInteger("publication_year ", x => x.publication_year)
@@ -62,9 +62,9 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapInteger("title_type_id", x => x.title_type_id)
         .MapVarchar("title_type", x => x.title_type)
         .MapVarchar("title_text", x => x.title_text)
-        .MapBoolean("is_default", x => x.is_default)
         .MapVarchar("lang_code", x => x.lang_code)
         .MapInteger("lang_usage_id", x => x.lang_usage_id)
+        .MapBoolean("is_default", x => x.is_default)
         .MapVarchar("comments", x => x.comments);
 
     public PostgreSQLCopyHelper<ObjectInstance> objectInstancesHelper { get; } = 
@@ -87,13 +87,13 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapInteger("date_type_id", x => x.date_type_id)
         .MapVarchar("date_type", x => x.date_type)
         .MapBoolean("date_is_range", x => x.date_is_range)
+        .MapVarchar("date_as_string", x => x.date_as_string)
         .MapInteger("start_year", x => x.start_year)
         .MapInteger("start_month", x => x.start_month)
         .MapInteger("start_day", x => x.start_day)
         .MapInteger("end_year", x => x.end_year)
         .MapInteger("end_month", x => x.end_month)
         .MapInteger("end_day", x => x.end_day)
-        .MapVarchar("date_as_string", x => x.date_as_string)
         .MapVarchar("details", x => x.details);
 
     public PostgreSQLCopyHelper<ObjectPerson> objectPeopleHelper { get; } = 
@@ -119,13 +119,13 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
 
     public PostgreSQLCopyHelper<ObjectIdentifier> objectIdentifiersHelper { get; } =
         new PostgreSQLCopyHelper<ObjectIdentifier>("sd", "object_identifiers")
-            .MapVarchar("sd_oid", x => x.sd_oid)
-            .MapInteger("identifier_type_id", x => x.identifier_type_id)
-            .MapVarchar("identifier_type", x => x.identifier_type)
-            .MapVarchar("identifier_value", x => x.identifier_value)
-            .MapInteger("identifier_org_id", x => x.identifier_org_id)
-            .MapVarchar("identifier_org", x => x.identifier_org)
-            .MapVarchar("identifier_date", x => x.identifier_date);
+        .MapVarchar("sd_oid", x => x.sd_oid)
+        .MapVarchar("identifier_value", x => x.identifier_value)
+        .MapInteger("identifier_type_id", x => x.identifier_type_id)
+        .MapVarchar("identifier_type", x => x.identifier_type)
+        .MapInteger("identifier_org_id", x => x.identifier_org_id)
+        .MapVarchar("identifier_org", x => x.identifier_org)
+        .MapVarchar("identifier_date", x => x.identifier_date);
 
     public PostgreSQLCopyHelper<ObjectDescription> objectDescriptionsHelper { get; } = 
         new PostgreSQLCopyHelper<ObjectDescription>("sd", "object_descriptions")
@@ -162,13 +162,13 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapVarchar("sd_oid", x => x.sd_oid)
         .MapInteger("topic_type_id", x => x.topic_type_id)
         .MapVarchar("topic_type", x => x.topic_type)
-        .MapBoolean("mesh_coded", x => x.mesh_coded)
-        .MapVarchar("mesh_code", x => x.mesh_code)
-        .MapVarchar("mesh_value", x => x.mesh_value)
-        .MapInteger("original_ct_id", x => x.original_ct_id)
+        .MapVarchar("original_value", x => x.original_value)
+        .MapInteger("original_ct_type_id", x => x.original_ct_type_id)
+        .MapVarchar("original_ct_type", x => x.original_ct_type)
         .MapVarchar("original_ct_code", x => x.original_ct_code)
-        .MapVarchar("original_value", x => x.original_value);
-
+        .MapVarchar("mesh_code", x => x.mesh_code)
+        .MapVarchar("mesh_value", x => x.mesh_value);
+        
     public PostgreSQLCopyHelper<ObjectRight> objectRightsHelper { get; } = 
         new PostgreSQLCopyHelper<ObjectRight>("sd", "object_rights")
         .MapVarchar("sd_oid", x => x.sd_oid)
