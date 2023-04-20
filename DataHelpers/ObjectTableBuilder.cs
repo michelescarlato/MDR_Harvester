@@ -120,8 +120,8 @@ public class ObjectTableBuilder
         CREATE TABLE {schema}.object_instances(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
           , sd_oid                 VARCHAR        NOT NULL
-          , repository_org_id      INT             NULL
-          , repository_org         VARCHAR         NULL
+          , system_id              INT             NULL
+          , system                 VARCHAR         NULL
           , url                    VARCHAR         NULL
           , url_accessible         BOOLEAN         NULL
           , url_last_checked       DATE            NULL
@@ -262,8 +262,8 @@ public class ObjectTableBuilder
           , identifier_value       VARCHAR         NULL
           , identifier_type_id     INT             NULL
           , identifier_type        VARCHAR         NULL
-          , identifier_org_id      INT             NULL
-          , identifier_org         VARCHAR         NULL
+          , source_id              INT             NULL
+          , source                 VARCHAR         NULL
           , identifier_date        VARCHAR         NULL
         );
         CREATE INDEX object_identifiers_sd_oid ON {schema}.object_identifiers(sd_oid);";

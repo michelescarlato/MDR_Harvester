@@ -137,15 +137,15 @@ public class YodaProcessor : IStudyProcessor
                 string? identifier_value = i.identifier_value; 
                 int? identifier_type_id = i.identifier_type_id; 
                 string? identifier_type = i.identifier_type;
-                int? identifier_org_id = i.identifier_org_id;  
-                string? identifier_org = i.identifier_org?.ReplaceApos();
+                int? source_id = i.source_id;  
+                string? source = i.source?.ReplaceApos();
 
-                if (identifier_org_id == 0)
+                if (source_id == 0)
                 {
-                    identifier_org_id = null;  // 0 is inserted in the JSON file by default
+                    source_id = null;  // Otherwise 0 is inserted in the JSON file by default
                 }
                 identifiers.Add(new StudyIdentifier(sid, identifier_value, identifier_type_id, identifier_type,
-                                                    identifier_org_id, identifier_org));
+                                                    source_id, source));
             }
         }
 

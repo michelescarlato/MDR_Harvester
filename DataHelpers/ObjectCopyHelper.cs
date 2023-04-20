@@ -70,8 +70,8 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
     public PostgreSQLCopyHelper<ObjectInstance> objectInstancesHelper { get; } = 
         new PostgreSQLCopyHelper<ObjectInstance>("sd", "object_instances")
         .MapVarchar("sd_oid", x => x.sd_oid)
-        .MapInteger("repository_org_id", x => x.repository_org_id)
-        .MapVarchar("repository_org", x => x.repository_org)
+        .MapInteger("system_id", x => x.system_id)
+        .MapVarchar("system", x => x.system)
         .MapVarchar("url", x => x.url)
         .MapBoolean("url_accessible", x => x.url_accessible)
         .MapDate("url_last_checked", x => x.url_last_checked)
@@ -123,8 +123,8 @@ public class ObjectCopyHelpers : IObjectCopyHelpers
         .MapVarchar("identifier_value", x => x.identifier_value)
         .MapInteger("identifier_type_id", x => x.identifier_type_id)
         .MapVarchar("identifier_type", x => x.identifier_type)
-        .MapInteger("identifier_org_id", x => x.identifier_org_id)
-        .MapVarchar("identifier_org", x => x.identifier_org)
+        .MapInteger("source_id", x => x.source_id)
+        .MapVarchar("source", x => x.source)
         .MapVarchar("identifier_date", x => x.identifier_date);
 
     public PostgreSQLCopyHelper<ObjectDescription> objectDescriptionsHelper { get; } = 

@@ -70,20 +70,20 @@ public class Identifier
     public string? identifier_type { get; set; }
 
     public string? identifier_value { get; set; }
-    public int? identifier_org_id { get; set; }
-    public string? identifier_org { get; set; }
+    public int? source_id { get; set; }
+    public string? source { get; set; }
 
     public Identifier()
     { }
 
     public Identifier(int? _identifier_type_id, string? _identifier_type, string? _identifier_value,
-                      int? _identifier_org_id, string? _identifier_org)
+                      int? _source_id, string? _source)
     {
         identifier_type_id = _identifier_type_id;
         identifier_type = _identifier_type;
         identifier_value = _identifier_value;
-        identifier_org_id = _identifier_org_id;
-        identifier_org = _identifier_org;
+        source_id = _source_id;
+        source = _source;
     }
 }
 

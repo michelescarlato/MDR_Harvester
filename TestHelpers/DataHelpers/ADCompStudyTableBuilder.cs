@@ -55,8 +55,8 @@ public class ADCompStudyTableBuilder
           , sd_sid                 VARCHAR         NOT NULL
           , identifier_type_id     INT             NULL
           , identifier_value       VARCHAR         NULL
-          , identifier_org_id      INT             NULL
-          , identifier_org         VARCHAR         NULL
+          , source_id      INT             NULL
+          , source         VARCHAR         NULL
           , identifier_date        VARCHAR         NULL
           , identifier_link        VARCHAR         NULL
         );

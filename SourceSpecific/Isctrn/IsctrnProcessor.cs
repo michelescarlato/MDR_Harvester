@@ -46,7 +46,6 @@ public class IsrctnProcessor : IStudyProcessor
         List<ObjectInstance> object_instances = new();
 
         IsrctnHelpers ih = new();
-        //IECHelpers iech = new();
 
         string? sid = r.sd_sid;
 
@@ -128,11 +127,9 @@ public class IsrctnProcessor : IStudyProcessor
         s.study_type_id = s.study_type.GetTypeId();
 
         // Study status from overall study status or more commonly from dates.
-        // 'StatusOverride' field will only have a value if status is
-        // 'Suspended' or 'Stopped'.
+        // 'StatusOverride' field will only have a value if status is 'Suspended' or 'Stopped'.
         // More commonly compare dates with today to get current status.
-        // Means periodic full import or a separate mechanism to update 
-        // statuses against dates.
+        // Means periodic full import or a separate mechanism to update statuses against dates.
         // It appears that all 4 dates are always available.
 
         s.study_status = r.overallStatusOverride;
@@ -359,7 +356,7 @@ public class IsrctnProcessor : IStudyProcessor
                     if (iType != "To be determined" && iType != "To be determned")
                     {
                         identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id, iType,
-                                                            ident.identifier_org_id, ident.identifier_org, null, null));
+                                                            ident.source_id, ident.source, null, null));
                     }
                     else
                     {

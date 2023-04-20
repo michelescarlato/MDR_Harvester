@@ -328,8 +328,8 @@ public class ObjectTitle
 public class ObjectInstance
 {
     public string? sd_oid { get; set; }
-    public int? repository_org_id { get; set; }
-    public string? repository_org { get; set; }
+    public int? system_id { get; set; }
+    public string? system { get; set; }
     public string? url { get; set; }
     public bool? url_accessible { get; set; }
     public DateTime? url_last_checked { get; set; }
@@ -339,13 +339,13 @@ public class ObjectInstance
     public string? resource_size_units { get; set; }
     public string? resource_comments { get; set; }
 
-    public ObjectInstance(string _sd_oid, int? _repository_org_id, string? _repository_org, 
+    public ObjectInstance(string _sd_oid, int? _system_id, string? _system, 
                 string? _url, bool? _url_accessible,
                 int? _resource_type_id, string? _resource_type)
     {
         sd_oid = _sd_oid;
-        repository_org_id = _repository_org_id;
-        repository_org = _repository_org;
+        system_id = _system_id;
+        system = _system;
         url = _url;
         url_accessible = _url_accessible;
         resource_type_id = _resource_type_id;
@@ -353,14 +353,14 @@ public class ObjectInstance
     }
 
 
-    public ObjectInstance(string? _sd_oid, int? _repository_org_id, string? _repository_org, 
+    public ObjectInstance(string? _sd_oid, int? _system_id, string? _system, 
                 string? _url, bool? _url_accessible,
                 int? _resource_type_id, string? _resource_type,
                 string? _resource_size, string? _resource_size_units)
     {
         sd_oid = _sd_oid;
-        repository_org_id = _repository_org_id;
-        repository_org = _repository_org;
+        system_id = _system_id;
+        system = _system;
         url = _url;
         url_accessible = _url_accessible;
         resource_type_id = _resource_type_id;
@@ -370,14 +370,14 @@ public class ObjectInstance
     }
 
 
-    public ObjectInstance(string? _sd_oid, int? _repository_org_id, string? _repository_org, 
+    public ObjectInstance(string? _sd_oid, int? _system_id, string? _system, 
                 string? _url, bool? _url_accessible,
                 int? _resource_type_id, string? _resource_type,
                 string? _resource_size, string? _resource_size_units, string? _resource_comments)
     {
         sd_oid = _sd_oid;
-        repository_org_id = _repository_org_id;
-        repository_org = _repository_org;
+        system_id = _system_id;
+        system = _system;
         url = _url;
         url_accessible = _url_accessible;
         resource_type_id = _resource_type_id;
@@ -399,19 +399,19 @@ public class ObjectIdentifier
     public int? identifier_type_id { get; set; }
     public string? identifier_type { get; set; }
     public string? identifier_value { get; set; }
-    public int? identifier_org_id { get; set; }
-    public string? identifier_org { get; set; }
+    public int? source_id { get; set; }
+    public string? source { get; set; }
     public string? identifier_date { get; set; }
 
     public ObjectIdentifier(string _sd_oid, int? _type_id, string? _type_name,
-            string? _id_value, int? _org_id, string? _org_name)
+            string? _id_value, int? _source_id, string? _source)
     {
         sd_oid = _sd_oid;
         identifier_type_id = _type_id;
         identifier_type = _type_name;
         identifier_value = _id_value;
-        identifier_org_id = _org_id;
-        identifier_org = _org_name;
+        source_id = _source_id;
+        source = _source;
     }
 }
 

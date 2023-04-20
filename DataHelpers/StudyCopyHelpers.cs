@@ -13,8 +13,8 @@ public class StudyCopyHelpers : IStudyCopyHelpers
         .MapVarchar("identifier_value", x => x.identifier_value)
         .MapInteger("identifier_type_id", x => x.identifier_type_id)
         .MapVarchar("identifier_type", x => x.identifier_type)
-        .MapInteger("identifier_org_id", x => x.identifier_org_id)
-        .MapVarchar("identifier_org", x => x.identifier_org)
+        .MapInteger("source_id", x => x.source_id)
+        .MapVarchar("source", x => x.source)
         .MapVarchar("identifier_date", x => x.identifier_date)
         .MapVarchar("identifier_link", x => x.identifier_link);
 

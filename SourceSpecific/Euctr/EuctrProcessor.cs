@@ -145,7 +145,7 @@ public class EUCTRProcessor : IStudyProcessor
         {
             identifiers.AddRange(
                 r.identifiers.Select(i => new StudyIdentifier(sid, i.identifier_value, i.identifier_type_id, 
-                                      i.identifier_type, i.identifier_org_id, i.identifier_org))
+                                      i.identifier_type, i.source_id, i.source))
                 );
         }
         

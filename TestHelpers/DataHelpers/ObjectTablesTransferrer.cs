@@ -65,11 +65,11 @@ class ObjectTablesTransferrer
     public void TransferObjectInstances()
     {
         string sql_string = @"INSERT INTO sdcomp.object_instances(source_id, sd_oid,
-        instance_type_id, instance_type, repository_org_id, repository_org,
+        instance_type_id, instance_type, system_id, system,
         url, url_accessible, url_last_checked, resource_type_id, resource_type, 
         resource_size, resource_size_units, resource_comments)
         SELECT " + _source_id + @", sd_oid,
-        instance_type_id, instance_type, repository_org_id, repository_org,
+        instance_type_id, instance_type, system_id, system,
         url, url_accessible, url_last_checked, resource_type_id, resource_type, 
         resource_size, resource_size_units, resource_comments
         FROM sd.object_instances";
@@ -169,12 +169,12 @@ class ObjectTablesTransferrer
     public void TransferObjectidentifiers()
     {
         string sql_string = @"INSERT INTO sdcomp.object_identifiers(source_id, sd_oid, 
-        identifier_value, identifier_type_id, identifier_type, identifier_org_id, 
-        identifier_org, identifier_org_ror_id,
+        identifier_value, identifier_type_id, identifier_type, source_id, 
+        source, source_ror_id,
         identifier_date)
         SELECT " + _source_id + @", sd_oid, 
-        identifier_value, identifier_type_id, identifier_type, identifier_org_id, 
-        identifier_org, identifier_org_ror_id,
+        identifier_value, identifier_type_id, identifier_type, source_id, 
+        source, source_ror_id,
         identifier_date
         FROM sd.object_identifiers";
 

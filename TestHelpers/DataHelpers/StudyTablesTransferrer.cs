@@ -44,11 +44,11 @@ class StudyTablesTransferrer
     public void TransferStudyIdentifiers()
     {
         string sql_string = @"INSERT INTO sdcomp.study_identifiers(source_id, sd_sid,
-        identifier_value, identifier_type_id, identifier_type, identifier_org_id, 
-        identifier_org, identifier_org_ror_id, identifier_date, identifier_link)
+        identifier_value, identifier_type_id, identifier_type, source_id, 
+        source, source_ror_id, identifier_date, identifier_link)
         SELECT " + _source_id + @", sd_sid,
-        identifier_value, identifier_type_id, identifier_type, identifier_org_id, 
-        identifier_org, identifier_org_ror_id, identifier_date, identifier_link
+        identifier_value, identifier_type_id, identifier_type, source_id, 
+        source, source_ror_id, identifier_date, identifier_link
         FROM sd.study_identifiers";
 
         Execute_SQL(sql_string);

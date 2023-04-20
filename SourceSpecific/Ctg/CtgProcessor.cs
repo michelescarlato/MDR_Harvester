@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.Eventing.Reader;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using MDR_Harvester.Extensions;
@@ -210,11 +209,11 @@ public class CTGProcessor : IStudyProcessor
                     if (string.IsNullOrEmpty(org_study_id) || (id_value.Trim().ToLower() != org_study_id.Trim().ToLower()))
                     {
                         string? identifier_type = sec_id.SecondaryIdType;
-                        string? identifier_org = sec_id.SecondaryIdDomain?.TidyOrgName(sid);
+                        string? id_source = sec_id.SecondaryIdDomain?.TidyOrgName(sid);
 
                         // Deduce as much as possible about the secondary id, using its value, type and org.
 
-                        IdentifierDetails idd = ih.GetCTGIdentifierProps(identifier_type, identifier_org, id_value);
+                        IdentifierDetails idd = ih.GetCTGIdentifierProps(identifier_type, id_source, id_value);
 
                         // Add the secondary identifier
                         identifiers.Add(new StudyIdentifier(sid, idd.id_value, idd.id_type_id, idd.id_type,

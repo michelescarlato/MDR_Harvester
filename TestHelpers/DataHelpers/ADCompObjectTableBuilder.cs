@@ -110,8 +110,8 @@ public class ADCompObjectTableBuilder
             id                     INT             GENERATED ALWAYS AS IDENTITY (START WITH 4001 INCREMENT BY 1) PRIMARY KEY
           , sd_oid                 CHAR(24)        NULL
           , instance_type_id       INT             NOT NULL 
-          , repository_org_id      INT             NULL
-          , repository_org         VARCHAR         NULL
+          , system_id      INT             NULL
+          , system         VARCHAR         NULL
           , url                    VARCHAR         NULL
           , url_accessible         BOOLEAN         NULL
           , url_last_checked       DATE            NULL
@@ -238,8 +238,8 @@ public class ADCompObjectTableBuilder
           , sd_oid                 CHAR(24)        NULL
           , identifier_value       VARCHAR         NULL
           , identifier_type_id     INT             NULL
-          , identifier_org_id      INT             NULL
-          , identifier_org         VARCHAR         NULL
+          , source_id      INT             NULL
+          , source         VARCHAR         NULL
           , identifier_date        VARCHAR         NULL
         );
         CREATE INDEX object_identifiers_sd_oid ON adcomp.object_identifiers(sd_oid);";
