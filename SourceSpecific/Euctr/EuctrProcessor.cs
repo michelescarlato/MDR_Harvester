@@ -143,10 +143,40 @@ public class EUCTRProcessor : IStudyProcessor
 
         if (r.identifiers?.Any() == true)
         {
-            identifiers.AddRange(
-                r.identifiers.Select(i => new StudyIdentifier(sid, i.identifier_value, i.identifier_type_id, 
-                                      i.identifier_type, i.source_id, i.source))
-                );
+            foreach (EMAIdentifier ident in r.identifiers)
+            {
+                if (ident.identifier_value is not null)
+                {
+                    // Need to check for 'nil' values 
+                    
+                    bool add_id = true;
+                    string ident_lc = ident.identifier_value.ToLower();
+                    if (ident_lc is "pending" or "nd" or "na" or "n/a" or "n.a."
+                        or "none" or "n/a." or "no" or "none" or "pending")
+                    {
+                        add_id = false;
+                    }
+                    if (ident_lc.StartsWith("not ") || ident_lc.StartsWith("to be ")
+                        || ident_lc.StartsWith("not-") || ident_lc.StartsWith("not_")
+                        || ident_lc.StartsWith("notapplic") || ident_lc.StartsWith("notavail")
+                        || ident_lc.StartsWith("tobealloc") || ident_lc.StartsWith("tobeapp"))
+                    {
+                        add_id = false;
+                    }
+                    if (ident_lc is "n.a" or "in progress" or "applied for" 
+                        or "non applicable" or "none available" or "applying for" 
+                        or "being applied" or "to follow")
+                    {
+                        add_id = false;
+                    }
+   
+                    if (add_id)
+                    {
+                        identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id,
+                            ident.identifier_type, ident.source_id, ident.source));
+                    }
+                }
+            }
         }
         
         // Titles 

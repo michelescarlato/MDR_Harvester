@@ -1,4 +1,6 @@
 ﻿
+using System.Text.RegularExpressions;
+
 namespace MDR_Harvester.Ctg;
 
 internal class CTGHelpers
@@ -21,12 +23,6 @@ internal class CTGHelpers
         {
             id.id_type_id = 1;
             id.id_type = "No type given in source data";
-        }
-
-        else if (id_type == "Other Identifier")
-        {
-            id.id_type_id = 90;
-            id.id_type = "Other";
         }
 
         else if (id_type == "U.S. NIH Grant/Contract")
@@ -184,79 +180,138 @@ internal class CTGHelpers
                     id.id_type = "Ethics Review ID";
                 }
 
-                else if (idorg.ToLower().Contains("ethics") || idorg == "Independent Review Board" || idorg.Contains("IRB"))
+                else if (idorg.ToLower().Contains("ethics") || idorg == "Independent Review Board" 
+                                                            || idorg.Contains("IRB"))
                 {
                     // ethics approval number
                     id.id_type_id = 12;
                     id.id_type = "Ethics Review ID";
+                }
+            }
+            
+        }
+        
+        else if (id_type == "Other Identifier")
+        {
+             id.id_type_id = 90;
+             id.id_type = "Other";
+        }
+
+        if (id.id_type_id is 1 or 90 && !string.IsNullOrEmpty(id_org))
+        {
+            // if source has no alpha characters then probably source and 
+            // value should be inverted (if not the same).
+            
+            if (!Regex.Match(id_org, @"[A-Za-z]").Success)
+            {
+                if (id_org != id_value)
+                {
+                    (id_value, id_org) = (id_org, id_value);
+                }
+            }
+
+            if (id_org == "UTN" || Regex.Match(id_value, @"^1111-").Success)
+            {
+                // WHO universal trail number
+                id.id_org_id = 100115;
+                id.id_org = "International Clinical Trials Registry Platform";
+                id.id_type_id = 11;
+                id.id_type = "Trial Registry ID";
+            }
+
+            else if (id_org.ToLower().Contains("ansm") || id_org.ToLower().Contains("rcb")
+                    || id_org.ToLower().Contains("afssaps") || Regex.Match(id_value, @"^\d{4}-A\d{5}-\d{2}$").Success)
+            {
+                // French ANSM number
+                id.id_org_id = 101408;
+                id.id_org = "Agence Nationale de Sécurité du Médicament";
+                id.id_type_id = 41;
+                id.id_type = "Regulatory Body ID";
+            }
+
+            else if (id_org.ToLower().StartsWith("isrctn"))
+            {
+                id.id_org_id = 100126;
+                id.id_org = "ISRCTN";
+                id.id_type_id = 11;
+                id.id_type = "Trial Registry ID";
+            }
+ 
+            else if (id_org == "IRAS" || id_org.StartsWith("IRAS"))
+            {
+                // uk IRAS number
+                id.id_org_id = 101409;
+                id.id_org = "Health Research Authority";
+                id.id_type_id = 41;
+                id.id_type = "Regulatory Body ID";
+            }
+
+            else if (id_org == "JHMIRB" || id_org == "JHM IRB")
+            {
+                // ethics approval number
+                id.id_org_id = 100190;
+                id.id_org = "Johns Hopkins University";
+                id.id_type_id = 12;
+                id.id_type = "Ethics Review ID";
+            }
+
+            else if (id_org.ToLower().Contains("ethics") || id_org == "Independent Review Board" ||
+                id_org == "Institutional Review Board" || id_org.Contains("IRB"))
+            {
+                // ethics approval number
+                id.id_type_id = 12;
+                id.id_type = "Ethics Review ID";
+                id.id_org_id = 102374;
+                id.id_org = "Unspecified IRB / Ethics Review Board";
+            }
+
+            else if (Regex.Match(id_value, @"^CDR\d{10}$").Success)
+            {
+                // CDR number
+                id.id_type_id = 49;
+                id.id_type = "CDR number";
+                id.id_org_id = 100162;
+                id.id_org = "National Cancer Institute";
+            }
+            
+            else if (id_org.ToLower() == "pdq")
+            {
+                // NCI Physician Database id
+                id.id_org_id = 100162;
+                id.id_org = "National Cancer Institute";
+            }
+            
+            else if (id_org is "Breast International Group" or "Eastern Cooperative Oncology Group" 
+                     or "Gynecologic Oncology Group" or "Pediatric Oncology Group" 
+                     or "Radiation Therapy Oncology Group" or "South Weest Oncology Group" 
+                     or "Children’s Oncology Group" or "Children’s Cancer Group" or "ECOG" or "SWOG" )
+            {
+                id.id_type_id = 50;
+                id.id_type = "Research Collaboration ID";
+            }
+            
+            else if (id_org.ToLower().StartsWith("eu ct") || id_org.ToLower().StartsWith("eu trial") ||
+                     id_org.ToLower().StartsWith("eudract") || id_org.ToLower().StartsWith("ema") ||
+                     id_org.ToLower().StartsWith("eu clinical trials") ||
+                     id_org.ToLower().StartsWith("european medicines"))
+
+            {
+                if (!id_value.Contains("p/") && !id_value.Contains("pip") && !id_value.Contains("eupa")
+                    && !id_value.Contains("irb") && !id_value.Contains("med"))
+                {
+                    id.id_org_id = 100123;
+                    id.id_org = "EU Clinical Trials Register";
+                    id.id_type_id = 11;
+                    id.id_type = "Trial Registry ID";
                 }
             }
         }
 
-        if (id.id_type_id is 1 or 90)
+        if (id_value.Length > 4 && id_value[..4] == "NCI-")
         {
-            if (id_org is not null)
-            {
-                if (id_org == "UTN")
-                {
-                    // WHO universal trail number
-                    id.id_org_id = 100115;
-                    id.id_org = "International Clinical Trials Registry Platform";
-                    id.id_type_id = 11;
-                    id.id_type = "Trial Registry ID";
-                }
-
-                else if (id_org.ToLower().Contains("ansm") || id_org.ToLower().Contains("rcb"))
-                {
-                    // French ANSM number
-                    id.id_org_id = 101408;
-                    id.id_org = "Agence Nationale de Sécurité du Médicament";
-                    id.id_type_id = 41;
-                    id.id_type = "Regulatory Body ID";
-                }
-
-                else if (id_org == "IRAS")
-                {
-                    // uk IRAS number
-                    id.id_org_id = 101409;
-                    id.id_org = "Health Research Authority";
-                    id.id_type_id = 41;
-                    id.id_type = "Regulatory Body ID";
-                }
-
-                else if (id_org == "JHMIRB" || id_org == "JHM IRB")
-                {
-                    // ethics approval number
-                    id.id_org_id = 100190;
-                    id.id_org = "Johns Hopkins University";
-                    id.id_type_id = 12;
-                    id.id_type = "Ethics Review ID";
-                }
-
-                else if (id_org.ToLower().Contains("ethics") || id_org == "Independent Review Board" ||
-                    id_org == "Institutional Review Board" || id_org.Contains("IRB"))
-                {
-                    // ethics approval number
-                    id.id_type_id = 12;
-                    id.id_type = "Ethics Review ID";
-                    id.id_org_id = 102374;
-                    id.id_org = "Unspecified IRB / Ethics Review Board";
-                }
-
-                else if (id_org.ToLower() == "pdq")
-                {
-                    // NCI Physician Database id
-                    id.id_org_id = 100162;
-                    id.id_org = "National Cancer Institute";
-                }
-            }
-
-            if (id_value.Length > 4 && id_value[..4] == "NCI-")
-            {
-                // NCI id
-                id.id_org_id = 100162;
-                id.id_org = "National Cancer Institute";
-            }
+            // NCI id
+            id.id_org_id = 100162;
+            id.id_org = "National Cancer Institute";
         }
 
         return id;

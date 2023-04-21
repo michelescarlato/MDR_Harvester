@@ -13,10 +13,22 @@ internal class IsrctnHelpers
 
         IsrctnIdentifierDetails idd = new(14, "Sponsor ID", null, study_sponsor, id_value);
         string id_val = id_value.Trim().ToLower();
-
+        
         if (id_val.Length < 3)
         {
             idd.id_type = "Not usable"; // too small 
+        }
+        else if (id_val is "pending" or "nd" or "na" or "n/a" or "n.a."
+            or "none" or "n/a." or "no" or "none" or "pending")
+        {
+            idd.id_type = "Not usable";
+        }
+        else if (id_val.StartsWith("not ") || id_val.StartsWith("to be ")
+                                      || id_val.StartsWith("not-") || id_val.StartsWith("not_")
+                                      || id_val.StartsWith("notapplic") || id_val.StartsWith("notavail")
+                                      || id_val.StartsWith("tobealloc") || id_val.StartsWith("tobeapp"))
+        {
+            idd.id_type = "Not usable";
         }
         else if (id_val.Length <= 4 && Regex.Match(id_value, @"^(\d{1}\.\d{1}|\d{1}\.\d{2})$").Success)
         {
@@ -41,6 +53,11 @@ internal class IsrctnHelpers
             {
                 idd.id_type = "Not usable"; // starts with zeroes, then a few numbers
             }
+        }
+
+        if (idd.id_type == "Not usable")
+        {
+            return idd;   // return straightaway
         }
 
 

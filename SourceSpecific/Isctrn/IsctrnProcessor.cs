@@ -353,23 +353,41 @@ public class IsrctnProcessor : IStudyProcessor
                 string? iType = ident.identifier_type?.Trim();
                 if (!string.IsNullOrEmpty(iType) && !string.IsNullOrEmpty(ident.identifier_value))
                 {
-                    if (iType != "To be determined" && iType != "To be determned")
-                    {
-                        identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id, iType,
-                                                            ident.source_id, ident.source, null, null));
-                    }
-                    else
-                    {
-                        if (sponsor_name is not null)
-                        {
-                            // 'serial protocol number':  already split if included a ';' or ','
+                    // occasionally 'nil values' inserted and need to be trapped 
 
-                            IsrctnIdentifierDetails idd = ih.GetISRCTNIdentifierProps(ident.identifier_value, sponsor_name);
-                            if (idd.id_type != "Not usable" && idd.id_value.IsNewToList(identifiers))
-                            {
-                                identifiers.Add(new StudyIdentifier(sid, idd.id_value, idd.id_type_id, idd.id_type,
-                                                                       idd.id_org_id, idd.id_org, null, null));
-                            }
+                    bool add_id = true;
+                    string ident_lc = ident.identifier_value.ToLower();
+                    if (ident_lc is "pending" or "nd" or "na" or "n/a" or "n.a."
+                        or "none" or "n/a." or "no" or "none" or "pending")
+                    {
+                        add_id = false;
+                    }
+
+                    if (ident_lc.StartsWith("not ") || ident_lc.StartsWith("to be ")
+                       || ident_lc.StartsWith("not-") || ident_lc.StartsWith("not_")
+                       || ident_lc.StartsWith("notapplic") || ident_lc.StartsWith("notavail")
+                       || ident_lc.StartsWith("tobealloc") || ident_lc.StartsWith("tobeapp"))
+                    {
+                        add_id = false;
+                    }
+
+                    if (add_id)
+                    {
+                        identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id,
+                            iType, ident.source_id, ident.source, null, null));
+                    }
+                }
+                else
+                {
+                    if (sponsor_name is not null && !string.IsNullOrEmpty(ident.identifier_value))
+                    {
+                        // 'serial protocol number':  already split if included a ';' or ','
+
+                        IsrctnIdentifierDetails idd = ih.GetISRCTNIdentifierProps(ident.identifier_value, sponsor_name);
+                        if (idd.id_type != "Not usable" && idd.id_value.IsNewToList(identifiers))
+                        {
+                            identifiers.Add(new StudyIdentifier(sid, idd.id_value, idd.id_type_id, idd.id_type,
+                                                                   idd.id_org_id, idd.id_org, null, null));
                         }
                     }
                 }

@@ -164,7 +164,24 @@ public class CTGProcessor : IStudyProcessor
             
             bool add_id = !(org is not null 
                             && String.Equals(org, org_study_id, StringComparison.CurrentCultureIgnoreCase));
-
+            
+            // occasionally 'nil values' inserted and need to be trapped 
+            
+            string org_study_id_lc = org_study_id.ToLower();
+            if (org_study_id_lc is "pending" or "nd" or "na" or "n/a" or "n.a." 
+                                or "none" or "n/a." or "no" or "none" or "pending")
+            {
+                add_id = false;
+            }
+            if (org_study_id_lc.StartsWith("not ") || org_study_id_lc.StartsWith("to be ")
+              || org_study_id_lc.StartsWith("not-") || org_study_id_lc.StartsWith("not_")
+              || org_study_id_lc.StartsWith("notapplic") || org_study_id_lc.StartsWith("notavail")
+              || org_study_id_lc.StartsWith("tobealloc") || org_study_id_lc.StartsWith("tobeapp"))
+            {
+                add_id = false;
+            }
+            
+            
             if (add_id)
             {
                 if (org_id_type == "U.S. NIH Grant/Contract")
@@ -206,7 +223,9 @@ public class CTGProcessor : IStudyProcessor
                 // Check not already used as the sponsor id (or there is no sponsor id, =org_study_id)
                 if (id_value is not null)
                 {
-                    if (string.IsNullOrEmpty(org_study_id) || (id_value.Trim().ToLower() != org_study_id.Trim().ToLower()))
+                    if (string.IsNullOrEmpty(org_study_id) || 
+                        (!String.Equals(id_value.Trim(), org_study_id.Trim(), 
+                            StringComparison.CurrentCultureIgnoreCase)))
                     {
                         string? identifier_type = sec_id.SecondaryIdType;
                         string? id_source = sec_id.SecondaryIdDomain?.TidyOrgName(sid);
