@@ -19,7 +19,7 @@ internal class IsrctnHelpers
             idd.id_type = "Not usable"; // too small 
         }
         else if (id_val is "pending" or "nd" or "na" or "n/a" or "n.a."
-            or "none" or "n/a." or "no" or "none" or "pending")
+            or "none" or "n/a." or "no" or "none" or "pending" or "" or "")
         {
             idd.id_type = "Not usable";
         }

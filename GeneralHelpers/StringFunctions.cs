@@ -86,26 +86,27 @@ public static class StringHelpers
             return output_string;
         }
 
-        RemoveTab(output_string, "p", "\n");
-        RemoveTab(output_string, "li", "\n\u2022 ");
-        RemoveTab(output_string, "ul", "");
-        RemoveTab(output_string, "ol", "");
+        output_string = RemoveTab(output_string, "p", "\n");
+        output_string = RemoveTab(output_string, "li", "\n\u2022 ");
+        output_string = RemoveTab(output_string, "ul", "");
+        output_string = RemoveTab(output_string, "ol", "");
 
         if (!(output_string.Contains('<') && output_string.Contains('>')))          // check need to continue
         {
             return output_string;
         }
         
-        RemoveTab(output_string, "div", "");
-        RemoveTab(output_string, "span", "");        
-        RemoveTab(output_string, "a", "");     
+        output_string = RemoveTab(output_string, "div", "");
+        output_string = RemoveTab(output_string, "span", "");        
+        output_string = RemoveTab(output_string, "a", "");     
         
-        // Assume these will be simple tags, without classes
+        // Assume these will be simple tags, without classes.
+        
         output_string = output_string.Replace("<b>", "").Replace("</b>", "").Replace("<i>", "").Replace("</i>", "");
         output_string = output_string.Replace("<em>", "").Replace("</em>", "").Replace("<u>", "").Replace("</u>", "");
         output_string = output_string.Replace("<strong>", "").Replace("</strong>", "");
 
-        // try and replace any sub and super scripts
+        // try and replace any sub and super scripts.
 
         while (output_string.Contains("<sub>"))
         {
@@ -401,7 +402,7 @@ public static class StringHelpers
         }
         
         // Trim any odd' characters
-        name = name!.Trim(',', '-', '*', ';', ' ');
+        name = name.Trim(',', '-', '*', ';', ' ');
 
         // try and deal with possible ambiguities (organisations with genuinely the same name)
 
@@ -723,10 +724,11 @@ public static class StringHelpers
         
         string? affil_organisation = "";
         string aff = affiliation.ToLower();
+        aff = aff.Replace("&#44;", ",");
 
         if (!aff.Contains(','))
         {
-            affil_organisation = affiliation;
+            affil_organisation = affiliation;  // cannot do a lot without a separating comma!
         }
         else if (aff.Contains("univers"))
         {
@@ -750,13 +752,27 @@ public static class StringHelpers
         }
         else if (aff.Contains(" inc."))
         {
-            affil_organisation = FindSubPhrase(affiliation, " inc.");
+            if (aff.Contains(", inc."))
+            {
+                affil_organisation = FindSubPhrase(affiliation, ", inc.");
+            }
+            else
+            {
+                affil_organisation = FindSubPhrase(affiliation, " inc.");
+            }
+
         }
         else if (aff.Contains(" ltd"))
         {
-            affil_organisation = FindSubPhrase(affiliation, " ltd");
+            if (aff.Contains(", ltd"))
+            {
+                affil_organisation = FindSubPhrase(affiliation, ", ltd");
+            }
+            else
+            {
+                affil_organisation = FindSubPhrase(affiliation, " ltd");
+            }
         }
-
         return TidyOrgName(affil_organisation, sid);
     }
 
@@ -768,43 +784,39 @@ public static class StringHelpers
             return null;
         }
 
-        string phrase1 = phrase.Replace("&#44;", ",");
-        string p = phrase1.ToLower();
+        string p = phrase.ToLower();
         string t = target.ToLower();
 
-        // ignore trailing commas after some states names.
+        // Ignore trailing commas after some 'university of' states names.
+        
         p = p.Replace("california,", "california*");
         p = p.Replace("wisconsin,", "wisconsin*");
 
-        // Find target in phrase if possible, and the position
-        // of the preceding comma, and the comma after the target (if any)
+        // Find target in phrase if possible, and the position of the preceding comma,
+        // and the comma after the target (if any). 
         // if no preceding comma make start the beginning of the string.
         // if no following comma make end the end of the string
                     
         int startPos = p.IndexOf(t, StringComparison.Ordinal);
         if (startPos == -1)
         {
-            return phrase1;
+            return phrase;
         }
 
+        // if commaPos1 is -1 (no preceding comma) adding 1 below
+        // makes it 0, the start of the string, as required.
+        
         int commaPos1 = p.LastIndexOf(",", startPos, StringComparison.Ordinal); 
-        if (commaPos1 == -1)
-        {
-            commaPos1 = 0;
-        }
         int commaPos2 = p.IndexOf(",", startPos + target.Length - 1, StringComparison.Ordinal);
         if (commaPos2 == -1)
         {
             commaPos2 = p.Length;
         }
 
-        string org_name = phrase1[(commaPos1 + 1)..commaPos2].Trim();
-
-        if (org_name.ToLower().StartsWith("the "))
-        {
-            org_name = org_name[4..];
-        }
-
+        string org_name = phrase[(commaPos1 + 1)..commaPos2].Trim();
+        
+        org_name = org_name.Replace("*", "'");  // in case this happened above
+        
         return org_name;
     }
 

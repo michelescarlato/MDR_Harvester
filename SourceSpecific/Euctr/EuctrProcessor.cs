@@ -16,6 +16,7 @@ public class EUCTRProcessor : IStudyProcessor
             AllowTrailingCommas = true
         };
 
+        
         Euctr_Record? r = JsonSerializer.Deserialize<Euctr_Record?>(json_string, json_options);
         if (r is null)
         {
@@ -143,7 +144,7 @@ public class EUCTRProcessor : IStudyProcessor
 
         if (r.identifiers?.Any() == true)
         {
-            foreach (EMAIdentifier ident in r.identifiers)
+            foreach (Identifier ident in r.identifiers)
             {
                 if (ident.identifier_value is not null)
                 {
@@ -173,7 +174,7 @@ public class EUCTRProcessor : IStudyProcessor
                     if (add_id)
                     {
                         identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id,
-                            ident.identifier_type, ident.source_id, ident.source));
+                            ident.identifier_type, ident.identifier_org_id, ident.identifier_org));
                     }
                 }
             }
@@ -242,7 +243,7 @@ public class EUCTRProcessor : IStudyProcessor
                 sci_title = sci_title.Trim().ReplaceApos();
                 titles.Add(new StudyTitle(sid, sci_title, 16, "Registry scientific title", "en",
                                             11, !default_title_identified, "From the EU CTR"));
-                if (!string.IsNullOrEmpty(public_title))
+                if (string.IsNullOrEmpty(s.display_title ))
                 {
                     s.display_title = sci_title;
                 }
@@ -263,7 +264,7 @@ public class EUCTRProcessor : IStudyProcessor
                 {
                     titles.Add(new StudyTitle(sid, acro, 14, "Acronym or Abbreviation", "en",
                                                 11, !default_title_identified, "From the EU CTR"));
-                    if (!string.IsNullOrEmpty(public_title) && !string.IsNullOrEmpty(sci_title))
+                    if (string.IsNullOrEmpty(s.display_title ))
                     {
                         s.display_title = acro;
                     }
@@ -285,8 +286,7 @@ public class EUCTRProcessor : IStudyProcessor
                 {
                     titles.Add(new StudyTitle(sid, sci_acro, 14, "Acronym or Abbreviation", "en",
                         11, !default_title_identified, "From the EU CTR"));
-                    if (!string.IsNullOrEmpty(public_title) && !string.IsNullOrEmpty(sci_title)
-                                                            && !string.IsNullOrEmpty(acro))
+                    if (string.IsNullOrEmpty(s.display_title ))
                     {
                         s.display_title = acro;
                     }
@@ -312,7 +312,7 @@ public class EUCTRProcessor : IStudyProcessor
         }
 
         
-        // sStudy Description
+        // Study Description
         
         string? objs = r.primary_objectives;
         if (objs is not null && objs.Length >= 16 

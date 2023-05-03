@@ -1,5 +1,4 @@
-﻿using System.Xml.Serialization;
-namespace MDR_Harvester.Euctr;
+﻿namespace MDR_Harvester.Euctr;
 
 public class Euctr_Record
 {
@@ -48,7 +47,7 @@ public class Euctr_Record
     public string? results_IPD_description { get; set; }
 
     public List<EMACountry>? countries { get; set; }
-    public List<EMAIdentifier>? identifiers { get; set; }
+    public List<Identifier>? identifiers { get; set; }
     public List<EMAFeature>? features { get; set; }
     public List<EMACondition>? conditions { get; set; }
     public List<EMAImp>? imp_topics { get; set; }
@@ -88,7 +87,7 @@ public class EMACountry
     { }
 }
 
-
+/*
 public class EMAIdentifier
 {
     public int? identifier_type_id { get; set; }
@@ -110,6 +109,30 @@ public class EMAIdentifier
     public EMAIdentifier()
     { }
 }
+*/
+
+public class Identifier
+{
+    public int? identifier_type_id { get; set; }
+    public string? identifier_type { get; set; }
+    public string? identifier_value { get; set; }
+    public int? identifier_org_id { get; set; }
+    public string? identifier_org { get; set; }
+
+    public Identifier(int? identifierTypeId, string? identifierType, 
+        string? identifierValue, int? identifierOrgId, string? identifierOrg)
+    {
+        identifier_type_id = identifierTypeId;
+        identifier_type = identifierType;
+        identifier_value = identifierValue;
+        identifier_org_id = identifierOrgId;
+        identifier_org = identifierOrg;
+    }
+    
+    public Identifier()
+    { }
+}
+
 
 public class EMAFeature
 {

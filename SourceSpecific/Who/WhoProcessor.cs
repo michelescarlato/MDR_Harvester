@@ -392,7 +392,86 @@ public class WHOProcessor : IStudyProcessor
                 }
             }
         }
+/*
+ * 	
+Reported as self-funded
+Reported as hospital funded, no further details
+Reported as part of a graduate research program
+Reported as commercially funded, no further details
+Reported as government funded, no further details
+Reported as project funded, no further details
 
+
+Nothing at all 
+
+= “fund”
+=”funding”
+= “not stated”
+=”nothing”
+=”other”
+= “sponsor”
+= “sponsor funding”
+=”provided by the sponsor”
+=”departmental finance”
+=”departmental funding”
+
+Self-funded
+
+StartsWith ”self “
+StartsWith ”self-“
+=”selffinance”
+Contains “independently” and contains “raise”
+Contains “own expense”
+Contains “oneself”
+=”fully self-raised”
+=”independently”
+=”independent project”
+
+
+Hospital
+
+=”hospital”
+=”hospital development center”
+Contains ”hospital fund”
+= “hospital research funding”
+=”hospital support”
+
+Graduate funding
+
+=”graduate program”
+=”graduate funding”
+= “graduate research funding”
+=”graduate project funding”
+=”research funding for postgraduate”
+=”funds for postgraduates”
+=”funds for postgraduate training”
+
+commercial
+
+=”company”
+=”company funding”
+=”corporate sponsorship”
+Government
+
+=”government”
+=”government funding”
+Contains “government scientific research funding”
+
+Project funding
+
+= “project funding”
+=”project funds”
+=”research fund”
+=”research funding”
+=”research funds”
+=”research group funding”
+=“scientific research fund”
+=“scientific research funds”
+=”grants for scientific research
+
+
+
+ */
 
         // Study leads and Contacts.
 
