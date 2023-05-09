@@ -32,7 +32,6 @@ IHost host = Host.CreateDefaultBuilder()
     services.AddSingleton<ICredentials, Credentials>();
     services.AddSingleton<ILoggingHelper, LoggingHelper>();
     services.AddSingleton<IMonDataLayer, MonDataLayer>();
-    services.AddSingleton<ITestDataLayer, TestDataLayer>();    
     services.AddSingleton<IStorageDataLayer, StorageDataLayer>();
     services.AddSingleton<IStudyCopyHelpers, StudyCopyHelpers>();
     services.AddSingleton<IObjectCopyHelpers, ObjectCopyHelpers>();
@@ -46,7 +45,6 @@ IHost host = Host.CreateDefaultBuilder()
 
 LoggingHelper loggingHelper = ActivatorUtilities.CreateInstance<LoggingHelper>(host.Services);
 MonDataLayer monDataLayer = ActivatorUtilities.CreateInstance<MonDataLayer>(host.Services);
-TestDataLayer testDataLayer = ActivatorUtilities.CreateInstance<TestDataLayer>(host.Services);
 StorageDataLayer storageDataLayer = ActivatorUtilities.CreateInstance<StorageDataLayer>(host.Services);
 
 // A parameter checker is instantiated and first checks if the program's arguments 
@@ -55,7 +53,7 @@ StorageDataLayer storageDataLayer = ActivatorUtilities.CreateInstance<StorageDat
 // original arguments and the 'source' object with details of the
 // single data source being downloaded. 
 
-ParameterChecker paramChecker = new(loggingHelper, monDataLayer, testDataLayer);
+ParameterChecker paramChecker = new(loggingHelper, monDataLayer);
 ParamsCheckResult paramsCheck = paramChecker.CheckParams(args);
 if (paramsCheck.ParseError || paramsCheck.ValidityError)
 {
@@ -71,7 +69,7 @@ if (paramsCheck.ParseError || paramsCheck.ValidityError)
 try
 {
     var opts = paramsCheck.Pars!;
-    Harvester harvester = new(loggingHelper, monDataLayer, testDataLayer, storageDataLayer);
+    Harvester harvester = new(loggingHelper, monDataLayer, storageDataLayer);
     harvester.Run(opts);
     return 0;
 }

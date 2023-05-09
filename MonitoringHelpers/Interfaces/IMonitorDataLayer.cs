@@ -2,7 +2,7 @@
 
 public interface IMonDataLayer
 {
-    string GetConnectionString(string database_name, int harvest_type_id);
+    string GetConnectionString(string database_name);
     Source FetchSourceParameters(int source_id);
     
     int FetchFileRecordsCount(int harvest_type_id = 1, int days_ago = 0);

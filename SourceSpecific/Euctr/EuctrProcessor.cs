@@ -114,25 +114,39 @@ public class EUCTRProcessor : IStudyProcessor
 
         // May get funders or other supporting organisations.
 
-        var sponsors = r.organisations;
-        if (sponsors?.Any() is true)
+        var funders = r.organisations;
+        if (funders?.Any() is true)
         {
-            foreach (EMAOrganisation org in sponsors)
+            foreach (EMAOrganisation org in funders)
             {
                 string? org_n = org.org_name;
-                if (org_n is not null
-                    && !string.Equals(org_n, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
+                if (!string.IsNullOrEmpty(org_n))
                 {
-                    if (org_n.IsNotPlaceHolder() && org_n.AppearsGenuineOrgName())
+                    if (string.Equals(org_n, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
                     {
-                        string lc_orgn = org_n.ToLower();
-                        if (lc_orgn.Length > 1 && lc_orgn != "dr" && lc_orgn != "no profit")
+                        if (organisations.Any()) // funder = sponsor, amend earlier sponsor record
                         {
-                            // May be a sponsor name different from any already there 
-                            // but much more likely to be a funder.
-                            
-                            string? org_name = org_n.TidyOrgName(sid);
-                            organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null, org_name));
+                            foreach (StudyOrganisation g in organisations)
+                            {
+                                if (g.contrib_type_id == 54)
+                                {
+                                    g.contrib_type_id = 112;
+                                    g.contrib_type = "Study sponsor and funder";
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (org_n.IsNotPlaceHolder() && org_n.AppearsGenuineOrgName())
+                        {
+                            string lc_orgn = org_n.ToLower();
+                            if (lc_orgn.Length > 1 && lc_orgn != "dr" && lc_orgn != "no profit")
+                            {
+                                    organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null,
+                                    org_n.TidyOrgName(sid)));  // insert as whatever listed as - usually a funder
+                            }
                         }
                     }
                 }
@@ -290,7 +304,6 @@ public class EUCTRProcessor : IStudyProcessor
                     {
                         s.display_title = acro;
                     }
-                    default_title_identified = true;
                 }
             }
         }

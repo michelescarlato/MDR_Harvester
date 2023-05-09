@@ -155,7 +155,7 @@ public class CTGProcessor : IStudyProcessor
         string? org_id_domain = IdentificationModule.OrgStudyIdInfo?.OrgStudyIdDomain?.TidyOrgName(sid);
         string? org_id_link = IdentificationModule.OrgStudyIdInfo?.OrgStudyIdLink;
 
-        // add the sponsor's identifier.
+        // add the sponsor's identifier for the study.
 
         if (org_study_id is not null)
         {
@@ -429,7 +429,8 @@ public class CTGProcessor : IStudyProcessor
                         if (collab_candidate.IsNotPlaceHolder() && collab_candidate.AppearsGenuineOrgName())
                         {
                             string? collab_name = collab_candidate?.TidyOrgName(sid);
-                            organisations.Add(new StudyOrganisation(sid, 69, "Collaborating organisation", null, collab_name));
+                            organisations.Add(new StudyOrganisation(sid, 69, 
+                                               "Collaborating organisation", null, collab_name));
                         }
                     }
                 }

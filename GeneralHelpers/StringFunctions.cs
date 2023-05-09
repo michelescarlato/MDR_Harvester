@@ -568,44 +568,52 @@ public static class StringHelpers
             return false;
         }
  
-        bool result = true;  // default assumption
         string low_string = in_string.ToLower().Trim();
         
         if (low_string.Length < 3)
         {
-            result = false;
+            return false;
         }
-        else if (low_string is "n.a." or "n.a" or "n/a" or "nil" or "nill" or "non")
+        if (low_string is "n.a." or "na" or "n.a" or "n/a" or "n/a." 
+                             or "no" or "nil" or "nill" or "non")
         {
-            result = false;
+            return false;
         }
-        else if (low_string is "none" or "not done" or "same as above" or "in preparation" or "non fornito")
+        if (low_string is "none" or "nd" or "not done" or "same as above" or "in preparation" or "non fornito")
         {
-             result = false;
-        }        
-        else if (low_string.StartsWith("no ") || low_string == "not applicable" || low_string.StartsWith("not prov"))
+            return false;
+        }  
+        if (low_string is "not stated" or "nothing" or "other" or "not yet" or "pending")
         {
-            result = false;
+            return false;
+        }   
+        if (low_string.StartsWith("no ") || low_string == "not applicable" || low_string.StartsWith("not prov"))
+        {
+            return false;
         }
-        else if (low_string.StartsWith("non fund") || low_string.StartsWith("non spon")
-                                                   || low_string.StartsWith("nonfun") || low_string.StartsWith("noneno")
-                                                   || low_string.StartsWith("organisation name "))
+        if (low_string.StartsWith("non fund") || low_string.StartsWith("non spon")
+                || low_string.StartsWith("nonfun") || low_string.StartsWith("noneno")
+                || low_string.StartsWith("organisation name "))
         {
-            result = false;
+            return false;
         }
-        else if (low_string.StartsWith("not applic") || low_string.StartsWith("not aplic")
-                || low_string.StartsWith("non applic") || low_string.StartsWith("non aplic")
-                || low_string.StartsWith("no applic") || low_string.StartsWith("no aplic"))
+        if (low_string.StartsWith("not ") || low_string.StartsWith("to be ")
+               || low_string.StartsWith("not-") || low_string.StartsWith("not_")
+               || low_string.StartsWith("notapplic") || low_string.StartsWith("non applic") 
+               || low_string.StartsWith("non aplic") || low_string.StartsWith("no applic")
+               || low_string.StartsWith("no aplic"))
         {
-            result = false;
+            return false;
         }
-        else if (low_string.StartsWith("see ") || low_string.StartsWith("not avail")
-                || low_string.StartsWith("non dispo") || low_string.Contains(" none."))
+        if (low_string.StartsWith("notavail") || low_string.StartsWith("tobealloc") 
+                || low_string.StartsWith("tobeapp") || low_string.StartsWith("see ") 
+                || low_string.StartsWith("not avail") || low_string.StartsWith("non dispo") 
+                || low_string.Contains(" none."))
         {
-            result = false;
-        }
-        
-        return result;
+            return false;
+        }    
+
+        return true;
     }
     
     
@@ -752,26 +760,11 @@ public static class StringHelpers
         }
         else if (aff.Contains(" inc."))
         {
-            if (aff.Contains(", inc."))
-            {
-                affil_organisation = FindSubPhrase(affiliation, ", inc.");
-            }
-            else
-            {
-                affil_organisation = FindSubPhrase(affiliation, " inc.");
-            }
-
+            affil_organisation = FindSubPhrase(affiliation, aff.Contains(", inc.") ? ", inc." : " inc.");
         }
         else if (aff.Contains(" ltd"))
         {
-            if (aff.Contains(", ltd"))
-            {
-                affil_organisation = FindSubPhrase(affiliation, ", ltd");
-            }
-            else
-            {
-                affil_organisation = FindSubPhrase(affiliation, " ltd");
-            }
+            affil_organisation = FindSubPhrase(affiliation, aff.Contains(", ltd") ? ", ltd" : " ltd");
         }
         return TidyOrgName(affil_organisation, sid);
     }
@@ -802,11 +795,16 @@ public static class StringHelpers
         {
             return phrase;
         }
+        
+        // ifd the target starts with a comma, do the last index search
+        // for the next comma at the position just before that comma.
 
+        int searchStartPos = t.StartsWith(",") ? startPos - 1 : startPos;
+        
         // if commaPos1 is -1 (no preceding comma) adding 1 below
         // makes it 0, the start of the string, as required.
         
-        int commaPos1 = p.LastIndexOf(",", startPos, StringComparison.Ordinal); 
+        int commaPos1 = p.LastIndexOf(",", searchStartPos, StringComparison.Ordinal); 
         int commaPos2 = p.IndexOf(",", startPos + target.Length - 1, StringComparison.Ordinal);
         if (commaPos2 == -1)
         {

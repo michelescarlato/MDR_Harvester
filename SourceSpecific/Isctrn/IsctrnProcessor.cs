@@ -230,18 +230,22 @@ public class IsrctnProcessor : IStudyProcessor
 
                     bool add_funder = true;
                     funder_name = funder_name.TidyOrgName(sid);
-                    if (organisations.Count > 0)
+                    if (organisations.Any())
                     {
                         foreach (var c in organisations)
                         {
                             if (funder_name == c.organisation_name)
                             {
+                                if (c.contrib_type_id == 54)
+                                {
+                                    c.contrib_type_id = 112;
+                                    c.contrib_type = "Study sponsor and funder";
+                                }
                                 add_funder = false;
                                 break;
                             }
                         }
                     }
-
                     if (add_funder)
                     {
                         organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
@@ -285,7 +289,6 @@ public class IsrctnProcessor : IStudyProcessor
         // Try to ensure contributors are properly categorised.
         // Check if a group has been inserted as an individual,
         // or an individual has been inserted as a group.
-
         
         // Edit contributors - try to ensure properly categorised
         // check if a group inserted as an individual, and then
@@ -339,11 +342,56 @@ public class IsrctnProcessor : IStudyProcessor
             }
         }
 
+        
+        // Locations. Do these before identifiers as 'location in UK only' used
+        // to help identify some identifier types.
+        // N.B. Countries have already been renamed and checked for duplication
+        // as part of the download process
+
+        var country_list = r.recruitmentCountries;
+        if (country_list?.Any() is true)
+        {
+            foreach (string c in country_list)
+            {
+                countries.Add(new StudyCountry(sid, c));
+            }
+        }
+        
+        int in_uk_only = 0;
+        if (country_list is ["United Kingdom"])
+        {
+            in_uk_only = 2;
+        }
+        else if (country_list?.Count > 1)
+        {
+            foreach (string c in country_list)
+            {
+                if (c == "United Kingdom")
+                {
+                    in_uk_only = 1;
+                    break;
+                } 
+            }
+        }
+        
+
+        var locations = r.centres;
+        if (locations?.Any() is true)
+        {
+            foreach (var loc in locations)
+            {
+                sites.Add(new StudyLocation(sid, loc.name));
+            }
+        }
+
+        
+        
 
         // Study identifiers - do the isrctn id first...
         // then any others that might be listed.
 
-        identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", 100126, "ISRCTN", reg_date?.date_string, null));
+        identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", 100126, 
+                                            "ISRCTN", reg_date?.date_string, null));
 
         var idents = r.identifiers;
         if (idents?.Any() is true)
@@ -351,43 +399,34 @@ public class IsrctnProcessor : IStudyProcessor
             foreach (var ident in idents)
             {
                 string? iType = ident.identifier_type?.Trim();
-                if (!string.IsNullOrEmpty(iType) && !string.IsNullOrEmpty(ident.identifier_value))
+                string? value = ident.identifier_value;
+                if (!string.IsNullOrEmpty(value) && value.IsNotPlaceHolder())
                 {
-                    // occasionally 'nil values' inserted and need to be trapped 
-
-                    bool add_id = true;
-                    string ident_lc = ident.identifier_value.ToLower();
-                    if (ident_lc is "pending" or "nd" or "na" or "n/a" or "n.a."
-                        or "none" or "n/a." or "no" or "none" or "pending")
-                    {
-                        add_id = false;
-                    }
-
-                    if (ident_lc.StartsWith("not ") || ident_lc.StartsWith("to be ")
-                       || ident_lc.StartsWith("not-") || ident_lc.StartsWith("not_")
-                       || ident_lc.StartsWith("notapplic") || ident_lc.StartsWith("notavail")
-                       || ident_lc.StartsWith("tobealloc") || ident_lc.StartsWith("tobeapp"))
-                    {
-                        add_id = false;
-                    }
-
-                    if (add_id)
+                    if (iType != "To be determined")
                     {
                         identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id,
-                            iType, ident.source_id, ident.source, null, null));
+                                iType, ident.identifier_org_id, ident.identifier_org, null, null));
                     }
-                }
-                else
-                {
-                    if (sponsor_name is not null && !string.IsNullOrEmpty(ident.identifier_value))
+                    else
                     {
-                        // 'serial protocol number':  already split if included a ';' or ','
-
-                        IsrctnIdentifierDetails idd = ih.GetISRCTNIdentifierProps(ident.identifier_value, sponsor_name);
-                        if (idd.id_type != "Not usable" && idd.id_value.IsNewToList(identifiers))
+                        // Classed as a 'serial protocol number':  already split if included a ';' or ','
+                        // need to try and determine what it is.
+                        
+                        if (!string.IsNullOrEmpty(ident.identifier_value))
                         {
-                            identifiers.Add(new StudyIdentifier(sid, idd.id_value, idd.id_type_id, idd.id_type,
-                                                                   idd.id_org_id, idd.id_org, null, null));
+                            List<IsrctnIdentifierDetails> idds =
+                                ih.GetISRCTNIdentifierProps(ident.identifier_value, sponsor_name, in_uk_only);
+                            if (idds.Any())
+                            {
+                                foreach (IsrctnIdentifierDetails idd in idds)
+                                {
+                                    if (idd.id_value.IsNewToList(identifiers))
+                                    {
+                                        identifiers.Add(new StudyIdentifier(sid, idd.id_value, idd.id_type_id,
+                                            idd.id_type, idd.id_org_id, idd.id_org, null, null));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -783,30 +822,7 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
         s.iec_level = study_iec_type;
-
-
-        // Locations.
-        // Countries have already been renamed and checked for duplication
-        // as part of the download process
-
-        var country_list = r.recruitmentCountries;
-        if (country_list?.Any() is true)
-        {
-            foreach (string c in country_list)
-            {
-                countries.Add(new StudyCountry(sid, c));
-            }
-        }
-
-        var locations = r.centres;
-        if (locations?.Any() is true)
-        {
-            foreach (var loc in locations)
-            {
-                sites.Add(new StudyLocation(sid, loc.name));
-            }
-        }
-
+       
 
         // Data Sharing.
         // Given by the data sharing statement and any data policies.

@@ -28,7 +28,7 @@ public class Credentials : ICredentials
         }
     }
 
-    public string GetConnectionString(string database_name, int harvest_type_id)
+    public string GetConnectionString(string database_name)
     {
         NpgsqlConnectionStringBuilder builder = new()
         {
@@ -36,7 +36,7 @@ public class Credentials : ICredentials
             Username = _username,
             Password = _password,
             Port = _port,
-            Database = (harvest_type_id == 3) ? "test" : database_name
+            Database = database_name
         };
         return builder.ConnectionString;
     }

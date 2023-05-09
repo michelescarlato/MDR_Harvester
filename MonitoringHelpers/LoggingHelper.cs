@@ -61,16 +61,6 @@ public class LoggingHelper : ILoggingHelper
     
     public void LogCommandLineParameters(Options opts)
     {
-        if (opts.harvest_all_test_data)
-        {
-            LogHeader("HARVESTING ALL TEST DATA");
-        }
-
-        if (opts.setup_expected_data_only)
-        {
-            LogHeader("HARVESTING EXPECTED (MANUAL INPUT) DATA");
-        }
-
         int[] source_ids = opts.source_ids!.ToArray();
         if (source_ids.Length == 1)
         {
@@ -103,16 +93,7 @@ public class LoggingHelper : ILoggingHelper
     
     public void LogStudyHeader(Options opts, string studyName)
     {
-        int harvest_type = opts.harvest_type_id;
-        string dividerLine;
-        if (opts.harvest_all_test_data || opts.setup_expected_data_only)
-        {
-            dividerLine = new string('-', 70);
-        }
-        else
-        {
-            dividerLine = harvest_type is 1 or 2 ? new string('=', 70) : new string('-', 70);
-        }
+        string dividerLine = new string('=', 70);
         LogLine("");
         LogLine(dividerLine);
         LogLine(studyName);

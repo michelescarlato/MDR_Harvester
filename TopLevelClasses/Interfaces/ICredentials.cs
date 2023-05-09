@@ -2,5 +2,5 @@
 
 public interface ICredentials
 {
-    string GetConnectionString(string database_name, int harvest_type_id);
+    string GetConnectionString(string database_name);
 }

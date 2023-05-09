@@ -15,12 +15,12 @@ public class MonDataLayer : IMonDataLayer
     {
         _logging_helper = logging_helper; 
         _credentials = credentials;
-        monConnString = _credentials.GetConnectionString("mon", 1);
+        monConnString = _credentials.GetConnectionString("mon");
     }
 
-    public string GetConnectionString(string database_name, int harvest_type_id)
+    public string GetConnectionString(string database_name)
     {
-        thisDBConnString = _credentials.GetConnectionString(database_name, harvest_type_id);
+        thisDBConnString = _credentials.GetConnectionString(database_name);
         return thisDBConnString;
     }
 

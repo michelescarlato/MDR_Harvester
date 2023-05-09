@@ -373,105 +373,58 @@ public class WHOProcessor : IStudyProcessor
                 foreach (string funder in funder_names)
                 {
                     string? funder_name = funder.TidyOrgName(sid);
-                    if (funder_name.IsNotPlaceHolder())
+                    if (!string.IsNullOrEmpty(funder_name) && funder_name.IsNotPlaceHolder())
                     {
-                        if (!string.IsNullOrEmpty(sponsor_name)
-                            && !String.Equals(funder_name, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
+                        if (String.Equals(funder_name, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
                         {
-                            if (!funder_name.AppearsGenuineOrgName())
+                            sponsor_name = "sponsor"; // organisation is sponsor and funder, dealt with below
+                        }
+                        if (source_id is 100118 or 109108) // Chinese registry or ITMCTR 
+                        {
+                            // Check if one of the 'general' Chinese funding terms
+                            // May produce an empty string or the word "sponsor"
+
+                            funder_name = wh.CheckChineseFunderType(funder_name);
+                        }
+                        if (!funder_name.AppearsGenuineOrgName())
+                        {
+                            // Add funder as an individual
+                            
+                            people.Add(new StudyPerson(sid, 58, "Study Funder", null, null,
+                                funder_name.TidyPersonName(), null, null));
+                        }
+                        else
+                        {
+                            if (funder_name != "")    // Add funder as an organisation. 
                             {
-                                people.Add(new StudyPerson(sid, 58, "Study Funder", null, null,
-                                    funder_name.TidyPersonName(), null, null));
-                            }
-                            else
-                            {
-                                organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
+                                if (funder_name == "sponsor")
+                                {
+                                    // Find sponsor in list of contributors and change type...
+                                    // If no previous sponsor listed little point adding the funder statement
+                                    if (organisations.Any())
+                                    {
+                                        foreach (StudyOrganisation g in organisations)
+                                        {
+                                            if (g.contrib_type_id == 54)
+                                            {
+                                                g.contrib_type_id = 112;
+                                                g.contrib_type = "Study sponsor and funder";
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null,
+                                        funder_name));
+                                }
                             }
                         }
                     }
                 }
             }
         }
-/*
- * 	
-Reported as self-funded
-Reported as hospital funded, no further details
-Reported as part of a graduate research program
-Reported as commercially funded, no further details
-Reported as government funded, no further details
-Reported as project funded, no further details
-
-
-Nothing at all 
-
-= “fund”
-=”funding”
-= “not stated”
-=”nothing”
-=”other”
-= “sponsor”
-= “sponsor funding”
-=”provided by the sponsor”
-=”departmental finance”
-=”departmental funding”
-
-Self-funded
-
-StartsWith ”self “
-StartsWith ”self-“
-=”selffinance”
-Contains “independently” and contains “raise”
-Contains “own expense”
-Contains “oneself”
-=”fully self-raised”
-=”independently”
-=”independent project”
-
-
-Hospital
-
-=”hospital”
-=”hospital development center”
-Contains ”hospital fund”
-= “hospital research funding”
-=”hospital support”
-
-Graduate funding
-
-=”graduate program”
-=”graduate funding”
-= “graduate research funding”
-=”graduate project funding”
-=”research funding for postgraduate”
-=”funds for postgraduates”
-=”funds for postgraduate training”
-
-commercial
-
-=”company”
-=”company funding”
-=”corporate sponsorship”
-Government
-
-=”government”
-=”government funding”
-Contains “government scientific research funding”
-
-Project funding
-
-= “project funding”
-=”project funds”
-=”research fund”
-=”research funding”
-=”research funds”
-=”research group funding”
-=“scientific research fund”
-=“scientific research funds”
-=”grants for scientific research
-
-
-
- */
 
         // Study leads and Contacts.
 
@@ -560,11 +513,11 @@ Project funding
                     if (processed_id.Length > 2)
                     {
                         string sponsor_name_lower = sponsor_name.ToLower();
-                        if (source_id == 100116)
+                        if (source_id is 100116)        
                         {
                             identifiers.Add(wh.TryToGetANZIdentifier(sid, processed_id, sponsor_is_org, sponsor_name));
                         }
-                        else if (source_id == 100118)
+                        else if (source_id is 100118)
                         {
                             StudyIdentifier? si =
                                 wh.TryToGetChineseIdentifier(sid, processed_id, sponsor_is_org, sponsor_name);
@@ -680,7 +633,20 @@ Project funding
         var condList = r.condition_list;
         if (condList?.Any() is true)
         {
-            foreach (var cn in condList)
+            // Populate the conditions table rather than the topics table
+            // If Indian CTR (source = 100121) multiple conditions and codes may be
+            // in one string and therefore need splitting
+            List<WhoCondition> cList;
+            if (source_id == 100121)
+            {
+                cList = wh.CTRIConditions(condList);
+            }
+            else
+            {
+                cList = condList;
+            }
+                                    
+            foreach (WhoCondition cn in cList)
             {
                 string? con = cn.condition;
                 if (!string.IsNullOrEmpty(con))
@@ -693,9 +659,7 @@ Project funding
                         {
                             string? code = cn.code;
                             string? code_system = cn.code_system;
-
-                            // Populate the conditions table rather than the topics table
-
+      
                             if (code is null)
                             {
                                 conditions.Add(new StudyCondition(sid, con_trim));

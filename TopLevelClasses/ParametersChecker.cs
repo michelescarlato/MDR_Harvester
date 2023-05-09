@@ -6,12 +6,10 @@ public class ParameterChecker
 {
     private readonly ILoggingHelper _loggingHelper;
     private readonly IMonDataLayer _monDataLayer;
-    private readonly ITestDataLayer _testDataLayer;
 
-    public ParameterChecker(ILoggingHelper logging_helper, IMonDataLayer monDataLayer, ITestDataLayer testDataLayer)
+    public ParameterChecker(ILoggingHelper logging_helper, IMonDataLayer monDataLayer)
     {
         _monDataLayer = monDataLayer;
-        _testDataLayer = testDataLayer;
         _loggingHelper = logging_helper;
     }
 
@@ -41,31 +39,12 @@ public class ParameterChecker
 
         try
         {
-            if (opts.setup_expected_data_only)
-            {
-                // Set the 'manual input of test data' source id.
-
-                List<int> ids = new() { 999999 };
-                opts.source_ids = ids;
-                opts.harvest_type_id = 3;
-                return new ParamsCheckResult(false, false, opts); // can always run if -E parameter present
-            }
-            
-            if (opts.harvest_all_test_data)
-            {
-                // Set up array of source ids to reflect those in the test data set.
-
-                opts.source_ids = _testDataLayer.ObtainTestSourceIDs();
-                opts.harvest_type_id = 3;
-                return new ParamsCheckResult(false, false, opts); // can always run if -F parameter present
-            }
-
             // Check valid harvest type id.
 
             int harvest_type_id = opts.harvest_type_id;
-            if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3 && harvest_type_id != 4)
+            if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 4)
             {
-                throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2, 3 or 4");
+                throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2, or 4");
             }
             
             // Check the I parameter has been provided if required.
@@ -150,14 +129,8 @@ public class Options
     [Option('s', "source_ids", Required = false, Separator = ',', HelpText = "Comma separated list of Integer ids of data sources.")]
     public IEnumerable<int>? source_ids { get; set; }
 
-    [Option('t', "harvest_type_id", Required = true, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 3 = test data only, 4 = Harvest repair.")]
+    [Option('t', "harvest_type_id", Required = true, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 4 = Harvest repair.")]
     public int harvest_type_id { get; set; }
-
-    [Option('E', "establish_expected_test_data", Required = false, HelpText = "If present only creates and fills tables for the 'expected' data. for comparison with processed test data")]
-    public bool setup_expected_data_only { get; set; }
-
-    [Option('F', "harvest_all_test_data", Required = false, HelpText = "If present only creates and fills tables for the designated test data, for comparison with expected test data")]
-    public bool harvest_all_test_data { get; set; }
     
     [Option('I', "skip_recent", Required = false, HelpText = "Integer id representing the number of days ago, to skip recent harvests - used for harvest type = 4 only (0 = today).")]
     public int? SkipRecentDays { get; set; }

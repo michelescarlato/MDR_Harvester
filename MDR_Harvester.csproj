@@ -18,6 +18,7 @@
     <Compile Remove="TestHelpers\DataHelpers\ExpectedStudyTableBuilder.cs" />
     <Compile Remove="TestHelpers\DataHelpers\SDCompObjectTableBuilder.cs" />
     <Compile Remove="TestHelpers\DataHelpers\ExpectedObjectTableBuilder.cs" />
+    <Compile Remove="TestHelpers\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,6 +37,11 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Remove="TestHelpers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="TestHelpers\**" />
   </ItemGroup>
 
 </Project>

@@ -512,5 +512,219 @@ internal class WhoHelpers
             ? new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", null, sponsor_name) 
             : new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, "No organisation name provided in source data");
     }
+    
+    internal string CheckChineseFunderType(string funder_name)
+    {
+        string fname = funder_name.ToLower();
+        
+        if (fname.StartsWith("self ") || fname.StartsWith("self-")
+                                      || fname == "selffinance"
+                                      || fname.Contains("raise") && fname.Contains("independently")
+                                      || fname.Contains("own expense") || fname.Contains("oneself")
+                                      || fname is "fully self-raised" or "independently"
+                                          or "independent project")
+        {
+            return "Reported as self-funded";
+        }
+        
+        if (fname is "authors" or "authors' own work" 
+                or "autonomous" or "autonomous financing"
+                or "by myself" or "by ourself" or "by ourselves"
+                or "by raised" or "by self" or "byself" or "by the PI"
+                or "afford self" or "at your own expense"
+                or "from our own money" or "individual")
+        {
+            return "Reported as self-funded";
+        }
+        
+        if (fname is "sponsor" or "sponsor funding" 
+            or "provided by the sponsor" or "by study sponsor"
+            or "by the sponsor" or "sponsor initiated"
+            or "the sponsor")
+        {
+            return "sponsor";
+        }
+        
+        if (fname is "hospital" or "hospital development center" or 
+             "hospital research funding" or "hospital support" or "hospital fund" 
+             or "hospital funding" or "hospital funds" or "hospital project fund"
+             or "from our hospital" or "from the hospital"
+             or "provided by the hospital")
+        {
+            return "Reported as hospital funded, no further details";
+        }
+
+        if (fname is "graduate program" or "graduate funding" or 
+                "graduate research funding" or "graduate project funding" or 
+                "research funding for postgraduate" or "funds for postgraduates"
+                or "funds for postgraduate training" or "postgraduate funds"
+                or "postgraduate graduation project" or "postgraduate project")
+        {
+            return "Reported funded as part of a graduate research program";
+        }
+        
+        if (fname is "company" or "company funding" 
+            or "corporate sponsorship" or "by company"
+            or "corporate funding")
+        {
+            return "Reported as commercially funded, no further details";
+        }
+        
+        if (fname is "government" or "government funding" 
+            or "central government funding" or "central government"
+            or "central government funds" or "central government special funds"
+            or "government grants" or "government support"
+            or "special funds of the central government"
+            or "the government"
+            || fname.Contains("government scientific research funding"))
+        {
+            return "Reported as government funded, no further details";
+        }
+        
+        if (fname is "project funding" or "project funds" 
+            or "a special fund" or "project fund"
+            or "project support" or "special fund" or "special funds")
+        {
+            return "Reported as project funding, no further details";
+        }
+        
+        if (fname is "fund" or "funding" 
+            or "a topic of one's choice" or "spontaneous" 
+            || fname.Contains("appropriations")
+            || fname.StartsWith("???"))
+        {
+            return "";
+        }
+        
+        if (fname.StartsWith("apply ") || fname.StartsWith("applying ")
+            || fname == "applying")
+        {
+            return "Reported as being applied for";
+        }
+        
+        if (fname is "research fund" or "research funding" or 
+            "research funds" or "research group funding"
+            or "scientific research fund" or "scientific research funds" 
+            or "grants for scientific research" or "applied research fund"
+            or "from project funding")
+        {
+            return "Reported as research funding, no further details";
+        }
+        
+        if (fname is "departmental finance" or "departmental funding" 
+            or "affiliation" or "department budget" or "dean's fund" 
+            or "department funds" or "funds raised by institution"
+            or "own unit" or "the unit self")
+        {
+            return "Reported as institution funding, no further details";
+        }
+        
+        if (fname is "central finance" or "central financial fund" 
+                or "central financial funds" or "central fiscal investment"
+                or "central fiscal fund")
+        {
+            return "Reported as centrally funded, no further details";
+        }
+
+        return funder_name;
+    }
+
+
+    internal List<WhoCondition> CTRIConditions(List<WhoCondition> condList)
+    {
+        List<WhoCondition> cList = new();
+        foreach (WhoCondition cn in condList)
+        {
+            string? con = cn.condition;
+            if (!string.IsNullOrEmpty(con))
+            {
+                if (!con.ToLower().Contains("health condition"))
+                {
+                    cList.Add(cn);   // just add as is - but only a small minority
+                }
+                else
+                {
+                    int n = 1;
+                    bool end_of_string = false;
+                    while (!end_of_string)
+                    {
+                        string startcon = "health condition " + n;
+                        string endcon = "health condition " + (n + 1);
+                        if (con.ToLower().Contains(endcon))
+                        {
+                            int endcon_pos = con.IndexOf(endcon, StringComparison.OrdinalIgnoreCase);
+                            string con_string = con[..endcon_pos];
+                            con_string = con_string.Replace(startcon, "", StringComparison.OrdinalIgnoreCase);
+                            con_string = con_string.Trim(' ', ':');
+                            if (!string.IsNullOrEmpty(con_string))
+                            {
+                                cList.Add(split_condition_details(con_string));
+                            }
+                            con = con[endcon_pos..];
+                        }
+                        else
+                        {
+                            string con_string = con.Replace(startcon, "", StringComparison.OrdinalIgnoreCase);
+                            con_string = con_string.Trim(' ', ':');
+                            if (!string.IsNullOrEmpty(con_string))
+                            {
+                                cList.Add(split_condition_details(con_string));
+                            }
+                            end_of_string = true;
+                        }
+                        n++;
+                    }
+                }
+            }
+        }
+        return cList;
+    }
+
+    internal WhoCondition split_condition_details(string con_string)
+    {
+        string? cond_name, cond_code = null, code_system = null;
+        if (con_string.Contains('-'))    // already trimmed in calling proc
+        {
+            int dash_pos = con_string.IndexOf('-');
+            if (dash_pos == con_string.Length - 1)
+            {
+                // dash is last character 
+                return new WhoCondition(con_string[..dash_pos], cond_code, code_system);  
+            }
+            cond_code = con_string[..dash_pos].Trim();
+            cond_name = con_string[(dash_pos + 1)..].Trim();
+            if (!string.IsNullOrEmpty(cond_name) && cond_code.ToLower() != "null")
+            {
+                if (Regex.Match(cond_code, @"^[A-Z]\d{2}$").Success)
+                {
+                    code_system = "ICD 10";
+                }
+                if (Regex.Match(cond_code, @"^[A-Z]\d{3}$").Success)
+                {
+                    cond_code = cond_code[..3];  // use letter and first 2 digits only
+                    code_system = "ICD 10";
+                }
+                
+                if (cond_name.Length >= 5 && Regex.Match(cond_name[..4], @"^[A-Z]\d{2}\-$").Success)
+                {
+                    // Probably the second part of a X99-X99- coding.
+                    // Though not clear what version of ICD is being used!
+                    
+                    cond_code += "-" + cond_name[..3];
+                    cond_name = cond_name[4..].Trim();
+                }
+            }
+            else
+            {
+                cond_code = null;
+            }
+        } 
+        else
+        {
+            cond_name = con_string;
+        }
+        return new WhoCondition(cond_name, cond_code, code_system);
+    }
+    
 }
 
