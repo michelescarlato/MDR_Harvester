@@ -47,15 +47,7 @@ class Harvester
 
                 HarvestData(source, opts);
 
-                // If harvesting test data it needs to be transferred  
-                // to the sdcomp schema for safekeeping and further processing
-                // If a normal harvest from a full source statistics should be produced.
-                // If the harvest was of the manual 'expected' data do neither.
-
-                if (source.source_type != "test")
-                {
-                    _loggingHelper.LogTableStatistics(source, "sd");
-                }
+                _loggingHelper.LogTableStatistics(source, "sd");
                 _loggingHelper.CloseLog();
             }
         }
@@ -72,15 +64,24 @@ class Harvester
     private void HarvestData(Source source, Options opts)
     {
         // Construct the sd tables. (Some sources may be data objects only.)
+        // Type 3 does not disturb the tables, other than replacing the existing data for
+        // the 'for testing' studies / objects and their attributes.
         // Type 4 is for restarting / continuing an exiting harvest after an error and so
         //  existing tables are not recreated. Type 4 not used in normal processing.
 
-        if (opts.harvest_type_id != 4)
+        if (opts.harvest_type_id is 1 or 2)
         {
             _loggingHelper.LogHeader("Recreate database tables");
             SchemaBuilder sdb = new(source, _loggingHelper);
             sdb.RecreateTables();
         }
+        if (opts.harvest_type_id is 3)
+        {
+            _loggingHelper.LogHeader("Deleting existing 'for testing' data");
+            SchemaBuilder sdb = new(source, _loggingHelper);
+            //sdb.DeleteTestData();
+        }
+        
 
         // Construct the harvest_event record.
 

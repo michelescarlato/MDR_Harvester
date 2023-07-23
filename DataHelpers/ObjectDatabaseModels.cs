@@ -439,6 +439,7 @@ public class ObjectDate
         date_type = _date_type;
         date_as_string = _date_as_string;
         start_year = _start_year;
+        date_is_range = false;
     }
 
     public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
@@ -451,6 +452,7 @@ public class ObjectDate
         start_month = _start_month;
         start_day = _start_day;
         date_as_string = _date_as_string;
+        date_is_range = false;
     }
 
     public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
@@ -484,6 +486,7 @@ public class ObjectDate
         start_month = sd.month;
         start_day = sd.day;
         date_as_string = sd.date_string;
+        date_is_range = false;
     }
 
 

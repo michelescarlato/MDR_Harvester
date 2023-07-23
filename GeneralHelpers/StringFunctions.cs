@@ -60,7 +60,7 @@ public static class StringHelpers
 
         // needs to have opening and closing tags for further processing
         // except in a few cases commas may be in a string as "&#44;"
-        // and hyphens as "&#44;" (largely thai registry)
+        // and hyphens as "&#45;" (largely thai registry)
 
         string output_string = input_string.Replace("&#44;", ",");
         output_string = output_string.Replace("&#45;", "-");
@@ -180,9 +180,9 @@ public static class StringHelpers
         int search_start = 0, start_of_tag = 0;
         while (input_string.Contains(start_tag) && start_of_tag != -1)
         {
-            // Although the while statement guarantees the presence of the tag
+            // Although the while statement guarantees the presence of the start tag
             // a search for it may fail if the test below is failed, i.e. if it is not 
-            // a 'true' tag - ongoing search could therefore 'run off the end'
+            // a 'true' html tag - ongoing search could therefore 'run off the end'
             
             start_of_tag = input_string.IndexOf(start_tag, search_start, StringComparison.Ordinal);
             if (start_of_tag != -1)        
@@ -190,7 +190,6 @@ public static class StringHelpers
                 // check no immediately following non-space character
                 // and if that is the case look for the ending of the start tag
                 // remove the text, between and including the tags, replacing it if necessary.
-                // Then remove all corresponding end tags.
 
                 if (input_string[start_of_tag + start_tag.Length] == '>'
                                         || input_string[start_of_tag + start_tag.Length] == ' ')
@@ -204,6 +203,9 @@ public static class StringHelpers
                 search_start = start_of_tag + start_tag.Length;
             }
         }
+        
+        // Then remove all corresponding end tags.
+        
         input_string = input_string.Replace(end_tag, "");
         return input_string;
     }

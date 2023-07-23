@@ -91,7 +91,8 @@ public class YodaProcessor : IStudyProcessor
             _ => "not yet known"
         };
 
-        s.study_enrolment = r.enrolment;
+        s.study_enrolment = r.enrolment == "" ? null : r.enrolment;  // nulls are empty strings after scraping process
+
         string? percent_female = r.percent_female;
         double tolerance = .0001;
         if (!string.IsNullOrEmpty(percent_female) && percent_female != "N/A")
@@ -261,7 +262,7 @@ public class YodaProcessor : IStudyProcessor
                     Tuple<int, string>? objectType = doc_name switch
                     {
                         "Collected Datasets" => new Tuple<int, string>(80, "Individual participant data"),
-                        "Analysis Datasets" => new Tuple<int, string>(51, "IPD final analysis datasets (full study population)"),
+                        "Analysis Datasets" => new Tuple<int, string>(51, "IPD final analysis datasets"),
                         "Data Definition Specification" => new Tuple<int, string>(31, "Data dictionary"),
                         "CSR Summary" => new Tuple<int, string>(79, "CSR summary"),
                         "Annotated Case Report Form" => new Tuple<int, string>(30, "Annotated data collection forms"),
@@ -278,11 +279,11 @@ public class YodaProcessor : IStudyProcessor
 
                         object_title = doc_name;
                         object_display_title = name_base + " :: " + object_type;
-                        sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                        sd_oid = sid + " :: " + object_type_id + " :: " + object_type;
 
                         if (comment == "Available now")
                         {
-                            data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
+                            data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
                                             101901, "Yoda", 11, downloadDatetime));
                             object_titles.Add(new ObjectTitle(sd_oid ,object_display_title, 22, "Study short name :: object type", true));
 
@@ -311,7 +312,7 @@ public class YodaProcessor : IStudyProcessor
                             access_details += "1) the scientific purpose is clearly described; 2) the data requested will be used to enhance scientific and/or medical knowledge; and ";
                             access_details += "3) the proposed research can be reasonably addressed using the requested data.";
 
-                            data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
+                            data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
                                             101901, "Yoda", 17, "Case by case download", access_details,
                                             "https://yoda.yale.edu/how-request-data", null, downloadDatetime));
                             object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));

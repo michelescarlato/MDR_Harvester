@@ -129,6 +129,7 @@ public class BioLinccProcessor : IStudyProcessor
         }
 
         // Add study attribute records.
+        
         string? nhbli_identifier = r.accession_number;
         if (nhbli_identifier is not null)
         {
@@ -174,7 +175,73 @@ public class BioLinccProcessor : IStudyProcessor
                                     "Has link listed in registry but nature of link unclear", related_study));
             }
         }
+        
+        // Study references
+        
+        var primary_docs = r.primary_docs;
+        if (primary_docs?.Any() is true)
+        {
+            foreach (var doc in primary_docs)
+            {
+                string? pubmed_id = doc.pubmed_id?.Trim('/');    // a few seem to have slash suffixes
+                string? url = doc.url;
+                if (url is not null)
+                {
+                    references.Add(new StudyReference(sid, pubmed_id, null, url, 202,
+                        "Journal article - results", "primary"));
+                }
+            }
+        }
+        
+        var assoc_docs = r.assoc_docs;
+        if (assoc_docs?.Any() is true)
+        {
+            foreach (var doc in assoc_docs)
+            {
+                string? pubmed_id = doc.pubmed_id?.Trim('/');    // a few seem to have slash suffixes
+                string? display_title = doc.display_title?.StringClean();
+                string? link_id = doc.link_id;
+                if (display_title is not null)
+                {
+                    references.Add(new StudyReference(s.sd_sid, pubmed_id, display_title, link_id, 12, 
+                        "Journal article - unspecified", "associated"));
+                }
+            }
+        }
 
+        
+        // check that the primary doc is not duplicated in the associated docs (it sometimes is)
+        
+        if (references.Count > 0)
+        {
+            foreach (StudyReference p in references)
+            {
+                if (p.type_id == 202)
+                {
+                    foreach (StudyReference a in references)
+                    {
+                        if (a.type_id == 12 && p.pmid == a.pmid)
+                        {
+                            // update the primary link
+                            p.citation = a.citation;
+                            p.doi = a.doi;
+                            // drop the redundant associated link
+                            a.comments = "to go";
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        List<StudyReference> references2 = new();
+        foreach (StudyReference a in references)
+        {
+            if (a.comments != "to go")
+            {
+                references2.Add(a);
+            }
+        }
 
         // Create data object records.
 
@@ -214,7 +281,7 @@ public class BioLinccProcessor : IStudyProcessor
         {
             DateTime dt = (DateTime)page_prepared_date;
             object_dates.Add(new ObjectDate(sd_oid, 12, "Available", dt.Year,
-                        dt.Month, dt.Day, dt.ToString("yyyy MMM dd")));
+                        dt.Month, dt.Day, dt.ToString("d MMM yyyy")));
         }
 
 
@@ -252,6 +319,8 @@ public class BioLinccProcessor : IStudyProcessor
         string? resources_available = r.resources_available;
         if (resources_available is not null && resources_available.ToLower().Contains("datasets"))
         {
+            // create dataset object
+            
             DateTime date_access_url_checked = new(2021, 7, 23);
 
             object_title = "Individual participant data";
@@ -271,7 +340,7 @@ public class BioLinccProcessor : IStudyProcessor
             {
                 DateTime dt = (DateTime)last_revised_date;
                 object_dates.Add(new ObjectDate(sd_oid, 18, "Updated", dt.Year,
-                            dt.Month, dt.Day, dt.ToString("yyyy MMM dd")));
+                            dt.Month, dt.Day, dt.ToString("d MMM yyyy")));
             }
             // Datasets and consent restrictions
             string? dataset_consent_restrictions = r.dataset_consent_restrictions;
@@ -298,34 +367,15 @@ public class BioLinccProcessor : IStudyProcessor
                 restrictions = dataset_consent_restrictions;
             }
 
-            // do dataset object separately
+            // Add dataset specific data
+            
             object_datasets.Add(new ObjectDataset(sd_oid,
                                         0, "Not known", null,
                                         2, "De-identification applied", de_identification,
                                         consent_type_id, consent_type, restrictions));
-
-            if (last_revised_date is not null)
-            {
-                DateTime dt = (DateTime)last_revised_date;
-                object_dates.Add(new ObjectDate(sd_oid, 18, "Updated", dt.Year,
-                            dt.Month, dt.Day, dt.ToString("yyyy MMM dd")));
-            }
+            
         }
-
-        var primary_docs = r.primary_docs;
-        if (primary_docs?.Any() is true)
-        {
-            foreach (var doc in primary_docs)
-            {
-                string? pubmed_id = doc.pubmed_id?.Trim('/');    // a few seem to have slash suffixes
-                string? url = doc.url;
-                if (url is not null)
-                {
-                    references.Add(new StudyReference(sid, pubmed_id, null, url, 202, "Journal article - results", ""));
-                }
-            }
-        }
-
+       
         var resources = r.resources;
         if (resources is not null)
         {
@@ -358,56 +408,7 @@ public class BioLinccProcessor : IStudyProcessor
             }
         }
 
-
-        var assoc_docs = r.assoc_docs;
-        if (assoc_docs?.Any() is true)
-        {
-            foreach (var doc in assoc_docs)
-            {
-                string? pubmed_id = doc.pubmed_id?.Trim('/');    // a few seem to have slash suffixes
-                string? display_title = doc.display_title?.ReplaceApos();
-                string? link_id = doc.link_id;
-                if (display_title is not null)
-                {
-                    references.Add(new StudyReference(s.sd_sid, pubmed_id, display_title, link_id, 12, "Journal article - unspecified", ""));
-                }
-            }
-        }
-
-
-        // check that the primary doc is not duplicated in the associated docs (it sometimes is)
-        if (references.Count > 0)
-        {
-            foreach (StudyReference p in references)
-            {
-                if (p.type_id == 202)
-                {
-                    foreach (StudyReference a in references)
-                    {
-                        if (a.type_id == 12 && p.pmid == a.pmid)
-                        {
-                            // update the primary link
-                            p.citation = a.citation;
-                            p.doi = a.doi;
-                            // drop the redundant associated link
-                            a.comments = "to go";
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        List<StudyReference> references2 = new();
-        foreach (StudyReference a in references)
-        {
-            if (a.comments != "to go")
-            {
-                references2.Add(a);
-            }
-        }
-
-
+        
         // add in the study properties
         s.titles = titles;
         s.identifiers = identifiers;

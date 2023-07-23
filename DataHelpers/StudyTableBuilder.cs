@@ -45,7 +45,7 @@ public class StudyTableBuilder
           , max_age                INT             NULL
           , max_age_units_id       INT             NULL
           , max_age_units          VARCHAR         NULL
-          , iec_level              INT             NULL    
+          , iec_level              INT             NULL default 0   
           , datetime_of_data_fetch TIMESTAMPTZ     NULL
         );
         CREATE INDEX studies_sid ON {schema}.studies(sd_sid);";

@@ -13,6 +13,7 @@ internal class WhoHelpers
 
         return source_id switch
         {
+            100115 => "International Clinical Trial Registry Platform",
             100116 => "Australian New Zealand Clinical Trials Registry",
             100117 => "Registro Brasileiro de Ensaios Clínicos",
             100118 => "Chinese Clinical Trial Register",
@@ -31,6 +32,7 @@ internal class WhoHelpers
             100131 => "Thai Clinical Trials Register",
             100132 => "Netherlands National Trial Register",
             101989 => "Lebanon Clinical Trials Registry",
+            104545 => "Chinese Medicine Clinical Trials Registry",
             109108 => "International Traditional Medicine Clinical Trials Registry",
             102000 => "Anvisa (Brazil)",
             102001 => "Comitê de Ética em Pesquisa (local) (Brazil)",

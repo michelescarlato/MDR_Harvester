@@ -505,7 +505,8 @@ public class WHOProcessor : IStudyProcessor
                 if (sec_id_source is not null && id.sec_id_type is not null)   // Already identified in DL process
                 {
                     source_name = wh.GetSourceName(sec_id_source);
-                    identifiers.Add(new StudyIdentifier(sid, processed_id, id.sec_id_type_id, id.sec_id_type, sec_id_source, source_name));
+                    identifiers.Add(new StudyIdentifier(sid, processed_id, id.sec_id_type_id, id.sec_id_type, 
+                                                        sec_id_source, source_name));
                 }
                 else if (sec_id_source is null && sponsor_name is not null && processed_id is not null)
                 {

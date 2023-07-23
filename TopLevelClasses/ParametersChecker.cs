@@ -42,9 +42,9 @@ public class ParameterChecker
             // Check valid harvest type id.
 
             int harvest_type_id = opts.harvest_type_id;
-            if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 4)
+            if (harvest_type_id != 1 && harvest_type_id != 2 && harvest_type_id != 3 && harvest_type_id != 4)
             {
-                throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2, or 4");
+                throw new ArgumentException("The t (harvest type) parameter is not one of the allowed values - 1,2, 3 or 4");
             }
             
             // Check the I parameter has been provided if required.
@@ -129,7 +129,9 @@ public class Options
     [Option('s', "source_ids", Required = false, Separator = ',', HelpText = "Comma separated list of Integer ids of data sources.")]
     public IEnumerable<int>? source_ids { get; set; }
 
-    [Option('t', "harvest_type_id", Required = true, HelpText = "Integer representing type of harvest (1 = full, i.e. all available files, 2 = only files downloaded since last import, 4 = Harvest repair.")]
+    [Option('t', "harvest_type_id", Required = true, HelpText = @"Integer representing type of harvest (1 = full, i.e. all available files, 
+                                                                  2 = only files downloaded since last import, 
+                                                                  3 = 'for test' records only, 4 = Harvest repair.")]
     public int harvest_type_id { get; set; }
     
     [Option('I', "skip_recent", Required = false, HelpText = "Integer id representing the number of days ago, to skip recent harvests - used for harvest type = 4 only (0 = today).")]

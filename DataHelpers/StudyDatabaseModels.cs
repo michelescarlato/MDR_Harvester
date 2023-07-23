@@ -106,7 +106,7 @@ public class StudyInDB
         max_age = s.max_age;
         max_age_units_id = s.max_age_units_id;
         max_age_units = s.max_age_units;
-        iec_level = s.iec_level;
+        iec_level = s.iec_level ?? 0;
         datetime_of_data_fetch = s.datetime_of_data_fetch;
     }
 }

@@ -900,24 +900,23 @@ public class IsrctnProcessor : IStudyProcessor
         if (PIS_details is not null && !PIS_details.StartsWith("Not available") 
              && !PIS_details.StartsWith("Not applicable") && PIS_details != "See additional files")
         {
-            if (PIS_details.Contains("<a href"))
+            if (PIS_details.Contains("http"))
             {
-                // PIS note includes an href to a web address
-                int ref_start = PIS_details.IndexOf("href=", StringComparison.Ordinal) + 6;
-                int ref_end = PIS_details.IndexOf("\"", ref_start + 1, StringComparison.Ordinal);
-                string href = PIS_details[ref_start..ref_end];
+                // PIS note includes a url to a web address or web based file
+                int ref_start = PIS_details.IndexOf("http", StringComparison.Ordinal);
+                string href = PIS_details[ref_start..];
 
-                // first check link does not provide a 404 - to be re-implemented
+                // check if link does not provide a 404 - to be re-implemented
                 if (true) //await HtmlHelpers.CheckURLAsync(href))
                 {
                     int res_type_id = 35;
-                    string res_type = "Web text";
-                    if (href.ToLower().EndsWith("pdf"))
+                    string res_type = "Web text";     // defaults
+                    if (href.ToLower().Contains(".pdf"))
                     {
                         res_type_id = 11;
                         res_type = "PDF";
                     }
-                    else if (href.ToLower().EndsWith("docx") || href.ToLower().EndsWith("doc"))
+                    else if (href.ToLower().Contains(".docx") || href.ToLower().Contains(".doc"))
                     {
                         res_type_id = 16;
                         res_type = "Word doc";
@@ -1017,7 +1016,7 @@ public class IsrctnProcessor : IStudyProcessor
 
                             int pmid = 0;
                             bool pmid_found = false;
-                            char[] end_charsToTrim = new char[] { ';', '.', '/', '?' };
+                            char[] end_charsToTrim = { ';', '.', '/', '?' };
                             external_url = external_url.TrimEnd(end_charsToTrim);
 
                             if (external_url.Contains("list_uids="))
@@ -1076,8 +1075,8 @@ public class IsrctnProcessor : IStudyProcessor
                             // unpublished web document. Create a data object record of this type,
                             // but ignore results records likely to be found in other sources.
 
-                            if (!external_url.Contains("www.clinicaltrialsregister.eu") &&
-                                !external_url.Contains("www.clinicaltrialsregister.eu"))
+                            if (!external_url.Contains("clinicaltrialsregister.eu") &&
+                                !external_url.Contains("clinicaltrials.gov"))
                             {
                                 // Use object type as name and add any version
                                 // to name if one present. Then construct 
@@ -1098,8 +1097,8 @@ public class IsrctnProcessor : IStudyProcessor
                                 int next_num = checkOID(sd_oid, data_objects);
                                 if (next_num > 0)
                                 {
-                                    sd_oid += "_" + next_num.ToString();
-                                    object_display_title += "_" + next_num.ToString();
+                                    sd_oid += "_" + next_num;
+                                    object_display_title += "_" + next_num;
                                 }
                                 
                                 // Get the date if possible, and get the doi if present.
@@ -1184,15 +1183,15 @@ public class IsrctnProcessor : IStudyProcessor
                             }
 
                             object_display_title = s.display_title + " :: " + local_file_name;
-                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + local_file_name;
+                            sd_oid = sid + " :: " + object_type_id + " :: " + local_file_name;
                             int title_type_id = 21;
                             string title_type = "Study short name :: object name";
 
                             int next_num = checkOID(sd_oid, data_objects);
                             if (next_num > 0)
                             {
-                                sd_oid += "_" + next_num.ToString();
-                                object_display_title += "_" + next_num.ToString();
+                                sd_oid += "_" + next_num;
+                                object_display_title += "_" + next_num;
                             }
 
                             SplitDate? dt_created = null;

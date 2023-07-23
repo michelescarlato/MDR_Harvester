@@ -95,7 +95,7 @@ public class ObjectTableBuilder
         string sql_string = $@"DROP TABLE IF EXISTS {schema}.object_dates;
         CREATE TABLE {schema}.object_dates(
             id                     INT             GENERATED ALWAYS AS IDENTITY PRIMARY KEY
-          , sd_oid                 VARCHAR        NOT NULL
+          , sd_oid                 VARCHAR         NOT NULL
           , date_type_id           INT             NULL
           , date_type              VARCHAR         NULL
           , date_is_range          BOOLEAN         NULL default false
