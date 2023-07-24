@@ -20,7 +20,6 @@ class Harvester
     {
         _loggingHelper = logging_helper;
         _monDataLayer = monDataLayer;
-   
         _storageDataLayer = storageDataLayer;
     }
 
@@ -64,10 +63,10 @@ class Harvester
     private void HarvestData(Source source, Options opts)
     {
         // Construct the sd tables. (Some sources may be data objects only.)
-        // Type 3 does not disturb the tables, other than replacing the existing data for
+        // Type 3 does not disturb the tables, other than replacing any existing data for
         // the 'for testing' studies / objects and their attributes.
         // Type 4 is for restarting / continuing an exiting harvest after an error and so
-        //  existing tables are not recreated. Type 4 not used in normal processing.
+        // existing tables are not recreated. Type 4 is not used in normal processing.
 
         if (opts.harvest_type_id is 1 or 2)
         {
@@ -77,9 +76,23 @@ class Harvester
         }
         if (opts.harvest_type_id is 3)
         {
-            _loggingHelper.LogHeader("Deleting existing 'for testing' data");
-            SchemaBuilder sdb = new(source, _loggingHelper);
-            //sdb.DeleteTestData();
+            TestHelper th = new TestHelper(source, _loggingHelper);
+            if (source.source_type == "study")
+            {
+                if (th.EstablishTempStudyTestList() > 0)
+                {
+                    th.DeleteCurrentTestStudyData();
+                    th.DeleteCurrentTestObjectData();
+                }
+            }
+            else
+            {
+                if (th.EstablishTempObjectTestList() > 0)
+                {
+                    th.DeleteCurrentTestObjectData();
+                }
+            }
+            th.TeardownTempTestDataTables();
         }
         
 
@@ -88,7 +101,7 @@ class Harvester
         int source_id = source.id;
         int harvest_id = _monDataLayer.GetNextHarvestEventId();
         HarvestEvent harvest = new(harvest_id, source_id, opts.harvest_type_id);
-        _loggingHelper.LogLine("Harvest event " + harvest_id + " began");
+        _loggingHelper.LogLine($"Harvest event {harvest_id} began");
 
         // Harvest the data from the local JSON files.
 
@@ -152,7 +165,7 @@ class Harvester
 
         _loggingHelper.LogLine("Number of source JSON files: " + harvest.num_records_available.ToString());
         _loggingHelper.LogLine("Number of files harvested: " + harvest.num_records_harvested.ToString());
-        _loggingHelper.LogLine("Harvest event " + harvest_id.ToString() + " ended");
+        _loggingHelper.LogLine("Harvest event " + harvest_id + " ended");
     }
 }
 

@@ -68,8 +68,7 @@ public class HarvestEvent
 public class StudyFileRecord
 {
     public int? id { get; set; }
-    public int? source_id { get; set; }
-    public string? sd_id { get; set; }
+    public string? sd_sid { get; set; }
     public string? remote_url { get; set; }
     public DateTime? last_revised { get; set; }
     public bool? assume_complete { get; set; }
@@ -83,11 +82,10 @@ public class StudyFileRecord
     public DateTime? last_imported { get; set; }
 
     // constructor when a revision data can be expected (not always there)
-    public StudyFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_dl_id,
+    public StudyFileRecord(string? _sd_sid, string? _remote_url, int? _last_dl_id,
                                           DateTime? _last_revised, string? _local_path)
     {
-        source_id = _source_id;
-        sd_id = _sd_id;
+        sd_sid = _sd_sid;
         remote_url = _remote_url;
         last_dl_id = _last_dl_id;
         last_revised = _last_revised;
@@ -97,11 +95,10 @@ public class StudyFileRecord
     }
 
     // constructor when an 'assumed complete' judgement can be expected (not always there)
-    public StudyFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_dl_id,
+    public StudyFileRecord(string? _sd_sid, string? _remote_url, int? _last_dl_id,
                                           bool? _assume_complete, string? _local_path)
     {
-        source_id = _source_id;
-        sd_id = _sd_id;
+        sd_sid = _sd_sid;
         remote_url = _remote_url;
         last_dl_id = _last_dl_id;
         assume_complete = _assume_complete;
@@ -119,8 +116,7 @@ public class StudyFileRecord
 public class ObjectFileRecord
 {
     public int? id { get; set; }
-    public int? source_id { get; set; }
-    public string? sd_id { get; set; }
+    public string? sd_oid { get; set; }
     public string? remote_url { get; set; }
     public DateTime? last_revised { get; set; }
     public bool? assume_complete { get; set; }
@@ -134,11 +130,10 @@ public class ObjectFileRecord
     public DateTime? last_imported { get; set; }
 
     // constructor when a revision data can be expected (not always there)
-    public ObjectFileRecord(int? _source_id, string? _sd_id, string? _remote_url, int? _last_dl_id,
+    public ObjectFileRecord(string? _sd_oid, string? _remote_url, int? _last_dl_id,
                                           DateTime? _last_revised, string? _local_path)
     {
-        source_id = _source_id;
-        sd_id = _sd_id;
+        sd_oid = _sd_oid;
         remote_url = _remote_url;
         last_dl_id = _last_dl_id;
         last_revised = _last_revised;
@@ -148,11 +143,10 @@ public class ObjectFileRecord
     }
 
     // constructor when an 'assumed complete' judgement can be expected (not always there)
-    public ObjectFileRecord(int _source_id, string _sd_id, string _remote_url, int _last_dl_id,
+    public ObjectFileRecord(string _sd_oid, string _remote_url, int _last_dl_id,
                                           bool? _assume_complete, string _local_path)
     {
-        source_id = _source_id;
-        sd_id = _sd_id;
+        sd_oid = _sd_oid;
         remote_url = _remote_url;
         last_dl_id = _last_dl_id;
         assume_complete = _assume_complete;
