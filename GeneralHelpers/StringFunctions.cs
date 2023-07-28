@@ -217,11 +217,9 @@ public static class StringHelpers
         {
             return null;
         }
-
-        string output_string = input_string.Replace("\r\n", "|@@|");
-        output_string = output_string.Replace("\r", "\n");
-        return output_string.Replace("|@@|", "\r\n");
- }
+        string output_string = input_string.Replace("\r\n", "\n");
+        return output_string.Replace("\r", "\n");
+    }
 
 
     public static string? CompressSpaces(this string? input_string)
@@ -232,6 +230,7 @@ public static class StringHelpers
         }
 
         string output_string = input_string.Replace("\n ", "\n");            
+        output_string = output_string.Replace("\r\n ", "\n");
         
         while (output_string.Contains("  "))
         {
@@ -469,7 +468,7 @@ public static class StringHelpers
         string? name1 = in_name.ReplaceApos();
         string? pName = name1?.Replace(".", "");
         
-        if (string.IsNullOrEmpty(pName))
+        if (string.IsNullOrEmpty(pName) || pName == "-")
         {
             return null;
         }
@@ -829,10 +828,16 @@ public static class StringHelpers
         }
 
         // try and avoid spurious split string results
+        
         string[] split_strings = input_string!.Split(separator);
+        List<string> strings = new();
         for (int j = 0; j < split_strings.Length; j++)
         {
-            if (split_strings[j].Length < min_width)
+            if (split_strings[j].Length >= min_width)
+            {
+                strings.Add(split_strings[j]);
+            }
+            else
             {
                 if (j == 0)
                 {
@@ -840,20 +845,10 @@ public static class StringHelpers
                 }
                 else
                 {
-                    split_strings[j - 1] = split_strings[j - 1] + "," + split_strings[j];
+                    strings[j - 1] = strings[j - 1] + "," + split_strings[j];
                 }
             }
         }
-
-        List<string> strings = new();
-        foreach (string ss in split_strings)
-        {
-            if (ss.Length >= min_width)
-            {
-                strings.Add(ss);
-            }
-        }
-
         return strings;
     }
 

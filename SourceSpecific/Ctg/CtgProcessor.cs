@@ -515,7 +515,7 @@ public class CTGProcessor : IStudyProcessor
                         k_word = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(k_word.ToLower());
                     }
 
-                    // only add the keyword if not already present in the topics or  conmditions
+                    // only add the keyword if not already present in the topics or conditions
                         
                     if (topic_is_new(k_word) && condition_is_new(k_word))
                     {
@@ -744,7 +744,7 @@ public class CTGProcessor : IStudyProcessor
                         string ic = elig_statement[..exc_pos];
                         if (!string.IsNullOrEmpty(ic))
                         {
-                            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
+                            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ic, "inclusion");
                             if (crits is not null)
                             {
                                 int seq_num = 0;
@@ -759,10 +759,10 @@ public class CTGProcessor : IStudyProcessor
                             }
                         }
 
-                        string? ec = elig_statement[exc_pos..];
+                        string ec = elig_statement[exc_pos..];
                         if (!string.IsNullOrEmpty(ec))
                         {
-                            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
+                            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ec, "exclusion");
                             if (crits is not null)
                             {
                                 int seq_num = num_inc_criteria;
@@ -781,7 +781,7 @@ public class CTGProcessor : IStudyProcessor
                 {
                     // Criteria listed for inclusion but no explicit exclusion criteria.
                     
-                    List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, elig_statement, "inclusion");
+                    List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, elig_statement, "inclusion");
                     if (crits is not null)
                     {
                         int seq_num = 0;
@@ -798,7 +798,7 @@ public class CTGProcessor : IStudyProcessor
                 {
                     // May be a single list couched as 'eligibility' rather than 'inclusion'
                     
-                    List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, elig_statement, "eligibility");
+                    List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, elig_statement, "eligibility");
                     if (crits is not null)
                     {
                         int seq_num = 0;

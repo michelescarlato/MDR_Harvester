@@ -489,7 +489,6 @@ public class ObjectDate
         date_is_range = false;
     }
 
-
     public ObjectDate(string? _sd_oid, int? _date_type_id, string? _date_type,
                                 SplitDateRange sdr)
     {
@@ -505,9 +504,7 @@ public class ObjectDate
         end_month = sdr.emonth;
         end_day = sdr.eday;
     }
-
 }
-
 
 
 public class SplitDate

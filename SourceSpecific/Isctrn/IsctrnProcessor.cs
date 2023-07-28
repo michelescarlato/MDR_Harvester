@@ -81,15 +81,14 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
         // Brief description.
-        // From Plain English Summary if one available
-        // Otherwise try to use the study hypothesis and primary outcome, if available
 
-        s.brief_description = r.plainEnglishSummary;
+        s.brief_description = r.plainEnglishSummary;  // the default. If not present use below...
+        
         if (string.IsNullOrEmpty(s.brief_description) 
             || s.brief_description.ToLower().StartsWith("not provided"))
         {
-            string hypothesis = r.studyHypothesis.StringClean() ?? "";
-            string pri_outcome = r.primaryOutcome.StringClean() ?? "";
+            string hypothesis = r.studyHypothesis.StringClean().CompressSpaces() ?? "";
+            string pri_outcome = r.primaryOutcome.StringClean().CompressSpaces() ?? "";
             if (hypothesis != "" && !hypothesis.ToLower().StartsWith("not provided"))
             {
                 if (!hypothesis.ToLower().StartsWith("hypothes") && !hypothesis.ToLower().StartsWith("study hyp"))
@@ -102,10 +101,21 @@ public class IsrctnProcessor : IStudyProcessor
             {
                 if (!pri_outcome.ToLower().StartsWith("primary") && !pri_outcome.ToLower().StartsWith("outcome"))
                 {
-                    pri_outcome = "Primary outcome: " + pri_outcome;
+                    pri_outcome = "Primary outcome(s): " + pri_outcome;
                 }
                 s.brief_description += s.brief_description == "" ? pri_outcome : "\n" + pri_outcome;
             }
+        }
+
+        if (s.brief_description?.StartsWith("http") == true)  // can happen rarely
+        {
+            s.brief_description = "See " + s.brief_description;
+        }
+
+        if (string.IsNullOrEmpty(s.brief_description))
+        {
+            s.brief_description =
+                "No description or hypothesis / outcomes information provided at time of study registration";
         }
 
         // Study start date.
@@ -227,28 +237,31 @@ public class IsrctnProcessor : IStudyProcessor
                 if (funder_name.IsNotPlaceHolder() && funder_name.AppearsGenuineOrgName())
                 {
                     // check a funder is not simply the sponsor...(or repeated).
-
-                    bool add_funder = true;
-                    funder_name = funder_name.TidyOrgName(sid);
-                    if (organisations.Any())
+                    if (funder_name is not null)
                     {
-                        foreach (var c in organisations)
+                        bool add_funder = true;
+                        funder_name = funder_name.TidyOrgName(sid);
+                        if (organisations.Any())
                         {
-                            if (funder_name == c.organisation_name)
+                            foreach (var c in organisations)
                             {
-                                if (c.contrib_type_id == 54)
+                                if (funder_name == c.organisation_name)
                                 {
-                                    c.contrib_type_id = 112;
-                                    c.contrib_type = "Study sponsor and funder";
+                                    if (c.contrib_type_id == 54)
+                                    {
+                                        c.contrib_type_id = 112;
+                                        c.contrib_type = "Study sponsor and funder";
+                                    }
+                                    add_funder = false;
+                                    break;
                                 }
-                                add_funder = false;
-                                break;
                             }
                         }
-                    }
-                    if (add_funder)
-                    {
-                        organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
+
+                        if (add_funder)
+                        {
+                            organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
+                        }
                     }
                 }
             }
@@ -264,7 +277,9 @@ public class IsrctnProcessor : IStudyProcessor
                 string? cType = contact.contactType;
                 string givenName = contact.forename.TidyPersonName() ?? "";
                 string familyName = contact.surname.TidyPersonName() ?? "";
-                string? affil = contact.address;
+
+                string? affil = contact.address?.Replace("\n", ", ");
+                affil = affil?.Replace("- ,", ",").Replace(" ,", ",");
                 string? orcid = contact.orcid.TidyORCIDId();
                 string full_name = (givenName + " " + familyName).Trim();
 
@@ -281,8 +296,22 @@ public class IsrctnProcessor : IStudyProcessor
                     contrib_type = "Public contact";
                 }
 
-                people.Add(new StudyPerson(sid, contrib_type_id, contrib_type, givenName,
-                                                        familyName, full_name, orcid, affil));
+                if (contrib_type_id is 51 or 56) 
+                {
+                    if (full_name != "")
+                    {
+                        people.Add(new StudyPerson(sid, contrib_type_id, contrib_type, givenName,
+                            familyName, full_name, orcid, affil));
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(affil))
+                        {
+                            organisations.Add(new StudyOrganisation(sid, contrib_type_id, contrib_type,
+                                null, affil));
+                        }
+                    }
+                }
             }
         }
 
@@ -345,7 +374,7 @@ public class IsrctnProcessor : IStudyProcessor
         
         // Locations. Do these before identifiers as 'location in UK only' used
         // to help identify some identifier types.
-        // N.B. Countries have already been renamed and checked for duplication
+        // N.B. Some countries have already been renamed and checked for duplication
         // as part of the download process
 
         var country_list = r.recruitmentCountries;
@@ -373,17 +402,15 @@ public class IsrctnProcessor : IStudyProcessor
                 } 
             }
         }
-        
 
         var locations = r.centres;
         if (locations?.Any() is true)
         {
             foreach (var loc in locations)
             {
-                sites.Add(new StudyLocation(sid, loc.name));
+                sites.Add(new StudyLocation(sid, loc.name, loc.city, loc.country, null, null));
             }
         }
-
         
         
 
@@ -610,9 +637,9 @@ public class IsrctnProcessor : IStudyProcessor
                 List<string> numbered_strings = drugNames.GetNumberedStrings(".", 8);
                 topic_names.AddRange(numbered_strings);
             }
-            else if (r.interventionType == "Drug" || r.interventionType == "Supplement")
+            else if (r.interventionType is "Drug" or "Supplement")
             {
-                // if there are commas split on the commas (does not work for devices).
+                // if there are commas split on the commas (does not work well for devices).
 
                 if (drugNames.Contains(','))
                 {
@@ -654,7 +681,7 @@ public class IsrctnProcessor : IStudyProcessor
             // Often a delimited list.
             List<string> conds = new();
             
-            if (listed_condition.Contains(","))
+            if (listed_condition.Contains(','))
             {
                 string[] cons = listed_condition.Split(',');
                 foreach (var c in cons)
@@ -662,7 +689,7 @@ public class IsrctnProcessor : IStudyProcessor
                     conds.Add(c);
                 }
             }
-            else if (listed_condition.Contains(";"))
+            else if (listed_condition.Contains(';'))
             {
                 // add condition
                 string[] cons = listed_condition.Split(';');
@@ -724,12 +751,14 @@ public class IsrctnProcessor : IStudyProcessor
         string? final_enrolment = r.totalFinalEnrolment;
         string? target_enrolment = r.targetEnrolment?.ToString();
 
-        if (!string.IsNullOrEmpty(target_enrolment) && target_enrolment != "Not provided at time of registration")
+        if (!string.IsNullOrEmpty(target_enrolment) && target_enrolment != "Not provided at time of registration"
+             && target_enrolment != "0")
         {
             s.study_enrolment = target_enrolment + " (target)";
         }
 
-        if (!string.IsNullOrEmpty(final_enrolment) && final_enrolment != "Not provided at time of registration")
+        if (!string.IsNullOrEmpty(final_enrolment) && final_enrolment != "Not provided at time of registration"
+                                                   && final_enrolment != "0")
         {
             if (string.IsNullOrEmpty(s.study_enrolment))
             {
@@ -769,7 +798,7 @@ public class IsrctnProcessor : IStudyProcessor
                 _ => new Tuple<int?, string?, int?, string?>(null, null, null, null)
             };
 
-            if (age_params.Item1 is not null || age_params.Item1 is not null)
+            if (age_params.Item1 is not (null and null))
             {
                 s.min_age = age_params.Item1;
                 s.min_age_units = age_params.Item2;
@@ -790,7 +819,7 @@ public class IsrctnProcessor : IStudyProcessor
         
         if (!string.IsNullOrEmpty(ic))
         {
-            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
+            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ic, "inclusion");
             if (crits is not null)
             {
                 int seq_num = 0;
@@ -807,7 +836,7 @@ public class IsrctnProcessor : IStudyProcessor
 
         if (!string.IsNullOrEmpty(ec))
         {
-            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
+            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ec, "exclusion");
             if (crits is not null)
             {
                 int seq_num = num_inc_criteria;
@@ -830,20 +859,46 @@ public class IsrctnProcessor : IStudyProcessor
         // the management of IPD.
 
         string? ipd_ss = r.ipdSharingStatement;
-        if (ipd_ss is not null && ipd_ss != "Not provided at time of registration")
+        if (!string.IsNullOrEmpty(ipd_ss) && ipd_ss != "Not provided at time of registration")
         {
-            s.data_sharing_statement = ipd_ss;
+            s.data_sharing_statement = ipd_ss.StringClean().CompressSpaces();
         }
+        else
+        {
+            s.data_sharing_statement = "";
+        }
+        
         var data_policies = r.dataPolicies;
         if (data_policies?.Any() is true)
         {
-            foreach (string policy in data_policies)
+            if (data_policies.Count == 1 && data_policies[0] != "Not provided at time of registration")
             {
-                if (policy != "Not provided at time of registration")
+                s.data_sharing_statement += "\nIPD policy summary: " + data_policies[0];
+            }
+            else
+            {
+                int n = 0;                
+                foreach (string policy in data_policies)
                 {
-                    s.data_sharing_statement += "\nIPD policy summary: " + policy;
+                    if (policy != "Not provided at time of registration")
+                    {
+                        n++;
+                        if (n == 1)
+                        {
+                            s.data_sharing_statement += "\nIPD policy summary: \n1) " + policy;
+                        }
+                        else
+                        {
+                            s.data_sharing_statement += $"\n{n}) " + policy;
+                        }
+                    }
                 }
             }
+        }
+
+        if (s.data_sharing_statement == "")
+        {
+            s.data_sharing_statement = null;
         }
                
         
@@ -890,7 +945,7 @@ public class IsrctnProcessor : IStudyProcessor
         // Instance url can be derived from the ISRCTN number.
 
         object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN",
-                    "https://www.isrctn.com/" + sid, true, 35, "Web text"));
+                    "https://www.isrctn.com/" + sid, true, 39, "Web text with XML or JSON via API"));
 
 
         // PIS details seem to have been largely transferred
@@ -964,7 +1019,7 @@ public class IsrctnProcessor : IStudyProcessor
         var outputs = r.outputs;
         if(outputs?.Any() is true)
         {
-            foreach (var op in outputs)
+            foreach (StudyOutput op in outputs)
             {
                 string? output_type = op.outputType;
                 if (!string.IsNullOrEmpty(output_type))
@@ -1087,6 +1142,10 @@ public class IsrctnProcessor : IStudyProcessor
                                 {
                                     object_name += " " + op.version;
                                 }
+                                if (op.version == "")
+                                {
+                                    op.version = null;  // to clarify!
+                                }
 
                                 object_display_title = s.display_title + " :: " + object_name;
                                 sd_oid = sid + " :: " + object_type_id + " :: " + object_type;
@@ -1180,6 +1239,17 @@ public class IsrctnProcessor : IStudyProcessor
                             {
                                 res_type_id = 20;
                                 res_type = "PowerPoint";
+                            }
+
+                            if (lower_name.EndsWith(".pdf") || lower_name.EndsWith(".doc") ||
+                                lower_name.EndsWith(".ppt"))
+                            {
+                                local_file_name = local_file_name[..^4];
+                            }
+                            
+                            if (lower_name.EndsWith(".docx") || lower_name.EndsWith(".pptx"))
+                            {
+                                local_file_name = local_file_name[..^5];
                             }
 
                             object_display_title = s.display_title + " :: " + local_file_name;

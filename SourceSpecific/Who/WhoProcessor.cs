@@ -701,7 +701,7 @@ public class WHOProcessor : IStudyProcessor
 
         if (!string.IsNullOrEmpty(ic))
         {
-            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
+            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ic, "inclusion");
             if (crits is not null)
             {
                 int seq_num = 0;
@@ -719,7 +719,7 @@ public class WHOProcessor : IStudyProcessor
 
         if (!string.IsNullOrEmpty(ec))
         {
-            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
+            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ec, "exclusion");
             if (crits is not null)
             {
                 int seq_num = num_inc_criteria;

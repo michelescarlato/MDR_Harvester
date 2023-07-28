@@ -23,7 +23,7 @@ public static class DateStringExtensions
         {
             day_num = d;
         }
-        if (month_num is not null && month_num > 0)
+        if (month_num > 0)
         {
             month_as3 = ((Months3)month_num).ToString();
         }
@@ -31,15 +31,15 @@ public static class DateStringExtensions
         string? date_as_string;     // Get date as standard string.
         if (year_num is not null && month_as3 is not null && day_num is not null)
         {
-            date_as_string = year_num + " " + month_as3 + " " + day_num;
+            date_as_string = $"{day_num} {month_as3} {year_num}";
         }
         else if (year_num is not null && month_as3 is not null && day_num is null)
         {
-            date_as_string = year_num.ToString() + ' ' + month_as3;
+            date_as_string = $"{month_as3} {year_num}";
         }
         else if (year_num is not null && month_as3 is null && day_num is null)
         {
-            date_as_string = year_num.ToString();
+            date_as_string = $"{year_num}";
         }
         else
         {

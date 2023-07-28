@@ -81,6 +81,7 @@ public class EUCTRProcessor : IStudyProcessor
             {
                 // Largely empty at the moment - possible values collected, 
                 // to distinguish (later) between pre, during and post recruitment
+                
                 _logging_helper.LogLine($"For info: Study recruitment status given as {r.recruitment_status} for {s.sd_sid}");
             }
 
@@ -122,13 +123,14 @@ public class EUCTRProcessor : IStudyProcessor
                 string? org_n = org.org_name;
                 if (!string.IsNullOrEmpty(org_n))
                 {
-                    if (string.Equals(org_n, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
+                    string? org_name = org_n.TidyOrgName(sid);
+                    if (string.Equals(org_name, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
                     {
-                        if (organisations.Any()) // funder = sponsor, amend earlier sponsor record
+                        if (organisations.Any()) 
                         {
                             foreach (StudyOrganisation g in organisations)
                             {
-                                if (g.contrib_type_id == 54)
+                                if (org.org_role_id == 58)    // funder = sponsor, amend earlier sponsor record
                                 {
                                     g.contrib_type_id = 112;
                                     g.contrib_type = "Study sponsor and funder";
@@ -138,14 +140,15 @@ public class EUCTRProcessor : IStudyProcessor
                         }
                     }
                     else
-                    {
-                        if (org_n.IsNotPlaceHolder() && org_n.AppearsGenuineOrgName())
+                    { 
+                        // insert as whatever listed as - usually a funder
+                        
+                        if (org_name.IsNotPlaceHolder() && org_name.AppearsGenuineOrgName())
                         {
-                            string lc_orgn = org_n.ToLower();
+                            string lc_orgn = org_name!.ToLower();
                             if (lc_orgn.Length > 1 && lc_orgn != "dr" && lc_orgn != "no profit")
                             {
-                                    organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null,
-                                    org_n.TidyOrgName(sid)));  // insert as whatever listed as - usually a funder
+                                organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null, org_name));  
                             }
                         }
                     }
@@ -187,8 +190,9 @@ public class EUCTRProcessor : IStudyProcessor
    
                     if (add_id)
                     {
+                        string? ident_org = ident.identifier_org?.TidyOrgName(sid);
                         identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id,
-                            ident.identifier_type, ident.identifier_org_id, ident.identifier_org));
+                            ident.identifier_type, ident.identifier_org_id,ident_org));
                     }
                 }
             }
@@ -237,6 +241,17 @@ public class EUCTRProcessor : IStudyProcessor
             {
                 acro = acro[4..];
             }
+        }
+
+        if (!string.IsNullOrEmpty(acro) && acro.Length > 20 && !string.IsNullOrEmpty(public_title))
+        {
+            // can a 'real' acronym be extracted from the long acronym?
+            if (acro.Contains(':'))
+            {
+                int colon_pos = acro.IndexOf(':');
+                acro = acro[..colon_pos];
+            }
+            
         }
         
         bool default_title_identified = false;
@@ -331,24 +346,34 @@ public class EUCTRProcessor : IStudyProcessor
         if (objs is not null && objs.Length >= 16 
             && !objs.ToLower().StartsWith("see ") && !objs.ToLower().StartsWith("not "))
         {
-            string study_objectives = !objs.ToLower().StartsWith("primary")
-                ? "Primary objectives: " + objs
-                : objs;
-            s.brief_description = study_objectives;
+            string? clean_objs = objs.StringClean().CompressSpaces();
+            if (clean_objs is not null)
+            {
+                string study_objectives = !clean_objs.ToLower().StartsWith("primary") 
+                                          && !clean_objs.ToLower().StartsWith("main ")
+                    ? "Primary objectives: " + clean_objs
+                    : clean_objs;
+                s.brief_description = study_objectives;
+            }
         }
         
         string? end_points = r.primary_endpoints;
         if (end_points is not null && end_points.Length >= 16 &&
             !end_points.ToLower().StartsWith("see ") &&
-            !end_points.ToLower().StartsWith("not "))
+            !end_points.ToLower().StartsWith("not ") &&
+            !string.Equals(end_points, objs, StringComparison.CurrentCultureIgnoreCase))
         {
-            string study_endpoints = !end_points.ToLower().StartsWith("primary")
-                    ? "Primary endpoints: " + end_points
-                    : end_points;
-            
-            s.brief_description += string.IsNullOrEmpty(s.brief_description)
-                ? study_endpoints
-                : "\n" + study_endpoints;
+            string? clean_eps = end_points.StringClean().CompressSpaces();
+            if (clean_eps is not null)
+            {
+                string study_endpoints = !clean_eps.ToLower().StartsWith("primary")
+                    ? "Primary endpoints: " + clean_eps
+                    : clean_eps;
+
+                s.brief_description += string.IsNullOrEmpty(s.brief_description)
+                    ? study_endpoints
+                    : "\n" + study_endpoints;
+            }
         }
         
         // Study design info
@@ -386,6 +411,37 @@ public class EUCTRProcessor : IStudyProcessor
                 }
             }
         }
+
+        // Condition objects in file
+        
+        if (r.conditions?.Any() == true)
+        {
+            foreach (var c in r.conditions)
+            {
+                if (c.condition_name is not null && !InConditionsList(c.condition_name))
+                {
+                    conditions.Add(new StudyCondition(sid, c.condition_name, c.condition_ct_id,
+                        c.condition_ct, c.condition_ct_code));
+                }
+            }
+        }
+
+        bool InConditionsList(string condition_name)
+        {
+            bool in_list = false;
+            if (conditions.Any())
+            {
+                foreach (var c in conditions)
+                {
+                    if (condition_name == c.original_value)
+                    {
+                        in_list = true;
+                        break;
+                    }
+                }
+            }
+            return in_list;
+        }
         
         
         // Inclusion / exclusion criteria
@@ -395,8 +451,7 @@ public class EUCTRProcessor : IStudyProcessor
         string? ic = r.inclusion_criteria;
         if (!string.IsNullOrEmpty(ic))
         {
-            ic.RegulariseStringEndings();
-            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ic, "inclusion");
+            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ic, "inclusion");
             if (crits is not null)
             {
                 int seq_num = 0;
@@ -414,8 +469,7 @@ public class EUCTRProcessor : IStudyProcessor
         string? ec = r.exclusion_criteria;
         if (!string.IsNullOrEmpty(ec))
         {
-            ec.RegulariseStringEndings();
-            List<Criterion>? crits = IECHelpers.GetNumberedCriteria(sid, ec, "exclusion");
+            List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ec, "exclusion");
             if (crits is not null)
             {
                 int seq_num = num_inc_criteria;
@@ -526,10 +580,31 @@ public class EUCTRProcessor : IStudyProcessor
                     imp_name = i.inn;
                 }
 
-                topics.Add(!string.IsNullOrEmpty(i.cas_number)
-                    ? new StudyTopic(sid, 12, "chemical / agent", imp_name, "CAS", 23, i.cas_number)
-                    : new StudyTopic(sid, 12, "chemical / agent", imp_name));
+                if (imp_name is not null && !InTopicsList(imp_name))
+                {
+                    topics.Add(!string.IsNullOrEmpty(i.cas_number)
+                        ? new StudyTopic(sid, 12, "chemical / agent", imp_name, "CAS", 23, i.cas_number)
+                        : new StudyTopic(sid, 12, "chemical / agent", imp_name));
+                }
             }
+        }
+        
+        
+        bool InTopicsList(string topic_name)
+        {
+            bool in_list = false;
+            if (conditions.Any())
+            {
+                foreach (var t in topics)
+                {
+                    if (topic_name == t.original_value)
+                    {
+                        in_list = true;
+                        break;
+                    }
+                }
+            }
+            return in_list;
         }
         
         
