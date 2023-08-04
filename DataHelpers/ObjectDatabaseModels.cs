@@ -656,7 +656,7 @@ public class ObjectTopic
         sd_oid = _sd_oid;
         topic_type_id = _topic_type_id;
         topic_type = _topic_type;
-        original_ct_type_id = 0;
+        original_ct_type_id = null;
         original_value = _topic_value;
     }
 

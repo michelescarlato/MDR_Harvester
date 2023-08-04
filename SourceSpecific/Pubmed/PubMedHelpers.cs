@@ -70,27 +70,24 @@ internal static class PubMedHelpers
         {
             return null;
         }
-        
         string? monthas3 = null;
         if (month.HasValue)
         {
             monthas3 = ((Months3)month).ToString();
         }
-
         string? date_as_string = null;        
         if (month.HasValue && day.HasValue)
         {
-            date_as_string = $"{year} {monthas3} {day}";
-        }
+            date_as_string = $"{day} {monthas3} {year}";
+        } 
         else if (month.HasValue && day is null)
         {
-            date_as_string = $"{year} {monthas3}";
+            date_as_string = $"{monthas3} {year}";
         }
         else if (monthas3 is null && day is null)
         {
             date_as_string = $"{year}";
         }
-
         return new SplitDate(year, month, day, date_as_string);
     }
 
@@ -111,11 +108,11 @@ internal static class PubMedHelpers
         string? date_as_string = null;
         if (!string.IsNullOrEmpty(monthas3) && day.HasValue)
         {
-            date_as_string = $"{year} {monthas3} {day}";
+            date_as_string = $"{day} {monthas3} {year}";
         }
         else if (!string.IsNullOrEmpty(monthas3) && day is null)
         {
-            date_as_string = $"{year} {monthas3}";
+            date_as_string = $"{monthas3} {year}";
         }
         else if (string.IsNullOrEmpty(monthas3) && day is null)
         {
@@ -135,6 +132,7 @@ internal static class PubMedHelpers
 
         int? pub_year = null;
         ml_date_string = ml_date_string.Trim();
+        
         if (ml_date_string.Length < 4)
         {
             return null;
@@ -147,8 +145,11 @@ internal static class PubMedHelpers
                 pub_year = pub_year_try;
             }
         }
+        
         else if (ml_date_string.Length > 4)
         {
+            // A 4 digit year is sought at either the beginning or end of the string.
+            
             bool year_at_start = false, year_at_end = false;
             if (int.TryParse(ml_date_string[..4], out int pub_year_s_try))
             {
@@ -163,27 +164,24 @@ internal static class PubMedHelpers
 
             if (year_at_start && year_at_end && ml_date_string.Length >= 4)
             {
-                // very occasionally happens year is at both start and end - remove last
+                // Very occasionally happens year is at both start and end - remove first
 
-                ml_date_string = ml_date_string[^4..].Trim();
+                ml_date_string = ml_date_string[4..].Trim();
             }
-            else if (!year_at_start && year_at_end)
+            else if (year_at_start && !year_at_end)
             {
-                // occasionally happens, as with EUCTR dates - switch year to beginning.
+                // May happen - move year to end.
 
-                ml_date_string = pub_year.ToString() + " " + ml_date_string[^4..].Trim();
+                ml_date_string = ml_date_string[^4..].Trim() + " " + pub_year;
             }
         }
-
-        // A 4 digit year is sought at either the beginning or end of the string.
-        // An end year is moved to the beginning.
-
+       
         if (!pub_year.HasValue)
         {
             return null;
         }
 
-        string non_year_date = ml_date_string[4..].Trim();
+        string non_year_date = ml_date_string[^4..].Trim();
         if (non_year_date.Length < 4)
         {
             return new SplitDateRange(pub_year, null, null, pub_year, null, null, false, ml_date_string);

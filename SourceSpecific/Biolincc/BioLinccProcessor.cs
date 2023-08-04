@@ -59,7 +59,7 @@ public class BioLinccProcessor : IStudyProcessor
         // study display title (= default title) always the biolincc one.
 
         string? title = r.title;
-        title = title?.ReplaceTags()?.ReplaceApos();
+        title = title?.FullClean();
         s.display_title = title;
         titles.Add(new StudyTitle(sid, title, 18, "Other scientific title", true, "From BioLINCC web page"));
 
@@ -69,7 +69,7 @@ public class BioLinccProcessor : IStudyProcessor
         // collectively corresponding to a single NCT entry and public title, 
         // and only for those where an nct entry exists (Some BioLincc studies are not registered)
 
-        string? nct_name = r.nct_base_name?.ReplaceApos();
+        string? nct_name = r.nct_base_name?.LineClean();
         bool in_multiple_biolincc_group = r.in_multiple_biolincc_group is not null && (bool)r.in_multiple_biolincc_group;
         string? name_base = (!in_multiple_biolincc_group && !string.IsNullOrEmpty(nct_name)) ? nct_name : title;
 
@@ -79,7 +79,7 @@ public class BioLinccProcessor : IStudyProcessor
             titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, "From BioLINCC web page"));
         }
 
-        s.brief_description = r.brief_description?.StringClean();
+        s.brief_description = r.brief_description?.FullClean();
         s.study_type_id = r.study_type_id;
         s.study_type = r.study_type;
         s.study_status_id = 21;
@@ -199,7 +199,7 @@ public class BioLinccProcessor : IStudyProcessor
             foreach (var doc in assoc_docs)
             {
                 string? pubmed_id = doc.pubmed_id?.Trim('/');    // a few seem to have slash suffixes
-                string? display_title = doc.display_title?.StringClean();
+                string? display_title = doc.display_title?.FullClean();
                 string? link_id = doc.link_id;
                 if (display_title is not null)
                 {

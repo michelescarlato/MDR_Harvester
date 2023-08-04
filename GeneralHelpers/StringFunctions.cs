@@ -3,7 +3,38 @@ namespace MDR_Harvester.Extensions;
 
 public static class StringHelpers
 {
-    public static string? TrimPlus(this string? input_string)
+    public static string? FullClean(this string? input_string)
+    {
+        // Used for all types of text, but especially larger descriptive fields
+        
+        if (string.IsNullOrEmpty(input_string))
+        {
+            return null;
+        }
+
+        string? output_string = input_string.TrimEnds();
+        output_string = output_string.ReplaceCodes();        
+        output_string = output_string.ReplaceTags();
+        output_string = output_string.ReplaceApos();
+        output_string = output_string.RegulariseStringEndings();
+        return output_string.CompressSpaces();
+    }
+    
+    public static string? LineClean(this string? input_string)
+    {
+        // Used for single lines or values, e.g. organisation names
+        
+        if (string.IsNullOrEmpty(input_string))
+        {
+            return null;
+        }
+        
+        string? output_string = input_string.TrimEnds();
+        output_string = output_string.ReplaceCodes();        
+        return output_string.ReplaceApos();
+    }
+    
+    public static string? TrimEnds(this string? input_string)
     {
         // removes beginning or trailing carriage returns, tabs and spaces.
         
@@ -13,15 +44,61 @@ public static class StringHelpers
     }
 
 
-    public static string? ReplaceApos(this string? apos_name)
+    public static string? ReplaceCodes(this string? input_string)
     {
-        if (string.IsNullOrEmpty(apos_name))
+        // Necessary for a few sources in particular but a 
+        // useful first step before further processing, e.g. of apostrophes
+        
+        if (string.IsNullOrEmpty(input_string))
         {
             return null;
         }
+        string output_string = input_string;
+        
+        // decimal coded unicode characters
+         
+        if (output_string.Contains('&'))
+        {
+            output_string = input_string.Replace("&#44;", ",");
+            output_string = output_string.Replace("&#45;", "-");
+            output_string = output_string.Replace("&#38;", "&");
+            output_string = output_string.Replace("&#39;", "'");
 
-        string aName = apos_name.Replace("&#44;", ","); // unusual but it occurs
+            // replace escaped html / xml characters
 
+            output_string = output_string.Replace("&lt;", "<");
+            output_string = output_string.Replace("&gt;", ">");
+            output_string = output_string.Replace("&amp;", "&");
+            output_string = output_string.Replace("&nbsp;", " ");
+        }
+
+        // unicode equivalents of non-breaking spaces
+
+        if (output_string.Contains('\\'))
+        {
+            output_string = output_string.Replace('\u00A0', ' ');
+            output_string = output_string.Replace('\u2000', ' ').Replace('\u2001', ' ');
+            output_string = output_string.Replace('\u2002', ' ').Replace('\u2003', ' ');
+            output_string = output_string.Replace('\u2007', ' ').Replace('\u2008', ' ');
+            output_string = output_string.Replace('\u2009', ' ').Replace('\u200A', ' ');
+        }
+
+        // replace combination sometimes used to denote an 'unprintable character'
+        
+        output_string = output_string.Replace("â??", "");
+        
+        return output_string;
+    }
+
+
+    public static string? ReplaceApos(this string? apos_name)
+    {
+        string? aName = apos_name.ReplaceCodes();
+        if (string.IsNullOrEmpty(aName))
+        {
+            return null;
+        }
+        
         while (aName.Contains('\''))
         {
             int apos_pos = aName.IndexOf("'", StringComparison.Ordinal);
@@ -57,22 +134,15 @@ public static class StringHelpers
         {
             return null;
         }
-
-        // needs to have opening and closing tags for further processing
-        // except in a few cases commas may be in a string as "&#44;"
-        // and hyphens as "&#45;" (largely thai registry)
-
-        string output_string = input_string.Replace("&#44;", ",");
-        output_string = output_string.Replace("&#45;", "-");
         
-        if (!(output_string.Contains('<') && output_string.Contains('>')))
+        if (!(input_string.Contains('<') && input_string.Contains('>')))
         {
-            return output_string;
+            return input_string;
         }
 
         // The commonest case.
 
-        output_string = output_string
+        string output_string = input_string
             .Replace("<br>", "\n")
             .Replace("<br/>", "\n")
             .Replace("<br />", "\n")
@@ -86,19 +156,19 @@ public static class StringHelpers
             return output_string;
         }
 
-        output_string = RemoveTab(output_string, "p", "\n");
-        output_string = RemoveTab(output_string, "li", "\n\u2022 ");
-        output_string = RemoveTab(output_string, "ul", "");
-        output_string = RemoveTab(output_string, "ol", "");
+        output_string = RemoveTag(output_string, "p", "\n");
+        output_string = RemoveTag(output_string, "li", "\n\u2022 ");
+        output_string = RemoveTag(output_string, "ul", "");
+        output_string = RemoveTag(output_string, "ol", "");
 
         if (!(output_string.Contains('<') && output_string.Contains('>')))          // check need to continue
         {
             return output_string;
         }
         
-        output_string = RemoveTab(output_string, "div", "");
-        output_string = RemoveTab(output_string, "span", "");        
-        output_string = RemoveTab(output_string, "a", "");     
+        output_string = RemoveTag(output_string, "div", "");
+        output_string = RemoveTag(output_string, "span", "");        
+        output_string = RemoveTag(output_string, "a", "");     
         
         // Assume these will be simple tags, without classes.
         
@@ -173,7 +243,7 @@ public static class StringHelpers
         return output_string;
     }
 
-    private static string RemoveTab(string input_string, string tag, string substitute)
+    private static string RemoveTag(string input_string, string tag, string substitute)
     {
         string start_tag = "<" + tag;
         string end_tag = "</" + tag + ">";
@@ -240,47 +310,10 @@ public static class StringHelpers
         {
             output_string = output_string.Replace("\n\n", "\n");
         }
-
         return output_string.Trim();
-
     }
 
-
-    public static string? ReplaceNonBreakingSpaces(this string? input_string)
-    {
-        // Simple extension that returns null for null values and
-        // text based 'NULL equivalents', and otherwise trims the string
-        
-        if (string.IsNullOrEmpty(input_string))
-        {
-            return null;
-        }
-
-        string output_string = input_string.Replace('\u00A0', ' ');
-        output_string = output_string.Replace('\u2000', ' ').Replace('\u2001', ' ');
-        output_string = output_string.Replace('\u2002', ' ').Replace('\u2003', ' ');
-        output_string = output_string.Replace('\u2007', ' ').Replace('\u2008', ' ');
-        output_string = output_string.Replace('\u2009', ' ').Replace('\u200A', ' ');
-
-        return output_string;
-    }
-
-
-    public static string? StringClean(this string? input_string)
-    {
-        if (string.IsNullOrEmpty(input_string))
-        {
-            return null;
-        }
-
-        string? output_string = input_string.TrimPlus();
-        output_string = output_string.ReplaceTags();
-        output_string = output_string.ReplaceApos();
-        output_string = output_string.ReplaceNonBreakingSpaces();
-        return output_string.RegulariseStringEndings();
-    }
-
-
+    
     private static char ChangeToSupUnicode(this char a)
     {
         return a switch
@@ -372,12 +405,11 @@ public static class StringHelpers
     
     public static string? TidyOrgName(this string? in_name, string sid)
     {
-        if (string.IsNullOrEmpty(in_name))
+        string? name = in_name.LineClean();
+        if (string.IsNullOrEmpty(name))
         {
             return null;
         }
-
-        string? name = in_name;
 
         if (name.Contains('.'))
         {
@@ -392,10 +424,6 @@ public static class StringHelpers
             name = name.Replace("|gov", ".gov");
             name = name.Replace("|org", ".org");
         }
-
-        // Replace any apostrophes
-
-        name = name.ReplaceApos();
 
         if (string.IsNullOrEmpty(name))
         {
@@ -465,7 +493,7 @@ public static class StringHelpers
     {
         // Replace apostrophes and remove periods.
         
-        string? name1 = in_name.ReplaceApos();
+        string? name1 = in_name.LineClean();
         string? pName = name1?.Replace(".", "");
         
         if (string.IsNullOrEmpty(pName) || pName == "-")
@@ -649,7 +677,8 @@ public static class StringHelpers
         if (low_name.Contains("labor") || low_name.Contains("labat") ||
             low_name.Contains("institu") || low_name.Contains("istitu") ||
             low_name.Contains("school") || low_name.Contains("founda") ||
-            low_name.Contains("associat") || low_name.Contains("univers") )
+            low_name.Contains("associat") || low_name.Contains("univers") || 
+            low_name.Contains("thesis"))
         {
             result = false;
         }
@@ -726,20 +755,15 @@ public static class StringHelpers
     
     public static string? ExtractOrganisation(this string affiliation, string sid)
     {
-        if (string.IsNullOrEmpty(affiliation))
+        string? affil = affiliation.LineClean();        
+        if (string.IsNullOrEmpty(affil))
         {
             return null;
         }
-        
         string? affil_organisation = "";
-        string aff = affiliation.ToLower();
-        aff = aff.Replace("&#44;", ",");
-
-        if (!aff.Contains(','))
-        {
-            affil_organisation = affiliation;  // cannot do a lot without a separating comma!
-        }
-        else if (aff.Contains("univers"))
+        string aff = affil.ToLower();
+        
+        if (aff.Contains("univers"))
         {
             affil_organisation = FindSubPhrase(affiliation, "univers");
         }
@@ -755,6 +779,42 @@ public static class StringHelpers
         {
             affil_organisation = FindSubPhrase(affiliation, "instit");
         }
+        else if (aff.Contains("hôpital"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "hôpital");
+        }
+        else if (aff.Contains("clinic"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "clinic");
+        }
+        else if (aff.Contains("infirmary"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "infirmary");
+        }
+        else if (aff.Contains("medical center"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "medical center");
+        }
+        else if (aff.Contains("medical centre"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "medical centre");
+        }
+        else if (aff.Contains("college"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "college");
+        }
+        else if (aff.Contains("school"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "school");
+        }
+        else if (aff.Contains("école"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "école");
+        }
+        else if (aff.Contains("academy"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "academy");
+        }
         else if (aff.Contains("nation"))
         {
             affil_organisation = FindSubPhrase(affiliation, "nation");
@@ -763,11 +823,51 @@ public static class StringHelpers
         {
             affil_organisation = FindSubPhrase(affiliation, aff.Contains(", inc.") ? ", inc." : " inc.");
         }
+        else if (aff.Contains(" inc,"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, aff.Contains(", inc,") ? ", inc," : " inc,");
+        }
         else if (aff.Contains(" ltd"))
         {
             affil_organisation = FindSubPhrase(affiliation, aff.Contains(", ltd") ? ", ltd" : " ltd");
         }
-        return TidyOrgName(affil_organisation, sid);
+        else if (aff.Contains("centre"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "centre");
+        }
+        else if (aff.Contains("center"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "center");
+        }
+        else if (aff.Contains("foundation"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "foundation");
+        }
+        else if (aff.Contains(" nhs"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, " nhs");
+        }
+        else if (aff.Contains(" mc "))
+        {
+            affil_organisation = FindSubPhrase(affiliation, " mc ");
+        }
+        else if (aff.Contains(" chu "))
+        {
+            affil_organisation = FindSubPhrase(affiliation, " chu ");
+        }
+        else if (aff.Contains(" mc,"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, " mc,");
+        }
+        else if (aff.Contains(" chu,"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, " chu,");
+        }
+        else if (aff.Contains("unit"))
+        {
+            affil_organisation = FindSubPhrase(affiliation, "unit");
+        }
+        return TidyOrgName(affil_organisation, sid);   // will return null if an empty string
     }
 
 
@@ -781,73 +881,115 @@ public static class StringHelpers
         string p = phrase.ToLower();
         string t = target.ToLower();
 
-        // Ignore trailing commas after some 'university of' states names.
+        // Ignore trailing commas after some base names. They require further elaboration....
+        // Comma will be re-introduced in returned value
         
         p = p.Replace("california,", "california*");
         p = p.Replace("wisconsin,", "wisconsin*");
+        p = p.Replace("mayo clinic,", "mayo clinic*");
+        p = p.Replace("institute of psychiatry,", "institute of psychiatry*");
+        p = p.Replace("centre hospitalier universitaire,", "centre hospitalier universitaire*");
+        p = p.Replace("hospital clínico universitario,", "hospital clínico universitario*");
+        p = p.Replace("medical university,", "medical university*");
+        p = p.Replace("university children’s hospital,", "university children’s hospital*");
+        p = p.Replace("hospital for tropical diseases,", "hospital for tropical diseases*");
+        p = p.Replace("prince of wales hospital,", "prince of wales hospital*");
+        p = p.Replace("princess alexandra hospital,", "princess alexandra hospital*");
+        p = p.Replace("queen elizabeth hospital,", "queen elizabeth hospital*");
 
         // Find target in phrase if possible, and the position of the preceding comma,
         // and the comma after the target (if any). 
         // if no preceding comma make start the beginning of the string.
         // if no following comma make end the end of the string
-                    
-        int startPos = p.IndexOf(t, StringComparison.Ordinal);
-        if (startPos == -1)
+        
+        try
         {
-            return phrase;
+            int startPos = p.IndexOf(t, StringComparison.Ordinal);
+            if (startPos == -1)
+            {
+                return phrase;  // target was not found (should not happen but...)
+            }
+        
+            // if the target starts with a comma (e.g. ', inc', ', ltd') do the last index search
+            // for the preceding comma at the position just before that comma.
+
+            int searchStartPos = t.StartsWith(",") ? startPos - 1 : startPos;
+            
+            // if commaPos1 is -1 (no preceding comma) adding 1 below
+            // makes it 0, the start of the string, as required.
+            
+            int commaPos1 = p.LastIndexOf(',', searchStartPos); 
+            int commaPos2 = p.IndexOf(',', startPos + target.Length - 1);
+            if (commaPos2 == -1)
+            {
+                commaPos2 = p.Length;
+            }
+
+            string org_name = phrase[(commaPos1 + 1)..commaPos2].Trim();
+            
+            org_name = org_name.Replace("*", ",");  // in case this happened above
+            return org_name;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return null;
         }
         
-        // ifd the target starts with a comma, do the last index search
-        // for the next comma at the position just before that comma.
-
-        int searchStartPos = t.StartsWith(",") ? startPos - 1 : startPos;
-        
-        // if commaPos1 is -1 (no preceding comma) adding 1 below
-        // makes it 0, the start of the string, as required.
-        
-        int commaPos1 = p.LastIndexOf(",", searchStartPos, StringComparison.Ordinal); 
-        int commaPos2 = p.IndexOf(",", startPos + target.Length - 1, StringComparison.Ordinal);
-        if (commaPos2 == -1)
-        {
-            commaPos2 = p.Length;
-        }
-
-        string org_name = phrase[(commaPos1 + 1)..commaPos2].Trim();
-        
-        org_name = org_name.Replace("*", "'");  // in case this happened above
-        
-        return org_name;
     }
 
 
     public static List<string>? SplitStringWithMinWordSize(this string? input_string, char separator, int min_width)
     {
-        if (!string.IsNullOrEmpty(input_string))
+        if (string.IsNullOrEmpty(input_string))
         {
             return null;
         }
-
-        // try and avoid spurious split string results
+        string[] split_strings = input_string.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+        if (split_strings.Length == 0)
+        {
+            return null;
+        }
         
-        string[] split_strings = input_string!.Split(separator);
-        List<string> strings = new();
+        // try and avoid spurious split string results, with small qualifiers / additions
+        
+        int last_valid = 0;
         for (int j = 0; j < split_strings.Length; j++)
         {
-            if (split_strings[j].Length >= min_width)
+            if (split_strings[j].Length < min_width)
             {
-                strings.Add(split_strings[j]);
-            }
-            else
-            {
-                if (j == 0)
+                if (j == 0 && split_strings.Length > 1)
                 {
                     split_strings[1] = split_strings[0] + "," + split_strings[1];
+                    split_strings[0] = "";
+                    last_valid = 1;
                 }
                 else
                 {
-                    strings[j - 1] = strings[j - 1] + "," + split_strings[j];
+                    if (j > 0)
+                    {
+                        split_strings[last_valid] = split_strings[last_valid] + "," + split_strings[j];
+                        split_strings[j] = "";
+                    }
                 }
             }
+            else
+            {
+                last_valid = j;
+            }
+        }
+
+        List<string> strings = new();
+        if (split_strings.Length > 0)
+        {
+            for (int j = 0; j < split_strings.Length; j++)
+            {
+                if (split_strings[j] != "")
+                {
+                    strings.Add(split_strings[j]);
+                }
+            }
+
         }
         return strings;
     }

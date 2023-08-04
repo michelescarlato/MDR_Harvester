@@ -33,7 +33,7 @@ public class StudyController
 
         // total_amount = 1; // for testing
         
-        for (int m = 0; m < amount_to_fetch; m += chunk)    // 
+        for (int m = 0; m < amount_to_fetch; m += chunk)    //  CHANGE *********
         {
             //if (k >= 40000) break; // for testing...
 

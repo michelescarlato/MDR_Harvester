@@ -63,21 +63,35 @@ public class IsrctnProcessor : IStudyProcessor
         string? study_name = r.title;
         if (!string.IsNullOrEmpty(study_name))
         {
-            s.display_title = study_name.ReplaceApos(); // = public title, default
+            s.display_title = study_name.LineClean(); // = public title, default
             titles.Add(new StudyTitle(sid, s.display_title, 15, "Registry public title", true, "From ISRCTN"));
         }
 
         if (!string.IsNullOrEmpty(r.scientificTitle))
         {
-            string sci_title = r.scientificTitle.ReplaceApos()!;
+            string sci_title = r.scientificTitle.LineClean()!;
             s.display_title ??= sci_title;
-            titles.Add(new StudyTitle(sid, sci_title, 16, "Registry scientific title", s.display_title == sci_title, "From ISRCTN"));
+            if (sci_title != study_name)
+            {
+                titles.Add(new StudyTitle(sid, sci_title, 16, "Registry scientific title", s.display_title == sci_title,
+                    "From ISRCTN"));
+            }
         }
 
         if (!string.IsNullOrEmpty(r.acronym))
         {
-            s.display_title ??= r.acronym;
-            titles.Add(new StudyTitle(sid, r.acronym, 14, "Acronym or Abbreviation", s.display_title == r.acronym, "From ISRCTN"));
+            string acro = r.acronym;
+            s.display_title ??= acro;
+            if (!string.IsNullOrEmpty(r.acronym) && r.acronym.Length > 20)
+            {
+                // can a 'real' acronym be extracted from the long acronym?
+                if (acro.Contains(':'))
+                {
+                    int colon_pos = acro.IndexOf(':');
+                    acro = acro[..colon_pos];
+                }
+            }
+            titles.Add(new StudyTitle(sid, acro, 14, "Acronym or Abbreviation", s.display_title == r.acronym, "From ISRCTN"));
         }
 
         // Brief description.
@@ -87,9 +101,19 @@ public class IsrctnProcessor : IStudyProcessor
         if (string.IsNullOrEmpty(s.brief_description) 
             || s.brief_description.ToLower().StartsWith("not provided"))
         {
-            string hypothesis = r.studyHypothesis.StringClean().CompressSpaces() ?? "";
-            string pri_outcome = r.primaryOutcome.StringClean().CompressSpaces() ?? "";
-            if (hypothesis != "" && !hypothesis.ToLower().StartsWith("not provided"))
+            s.brief_description = "";
+            string hypothesis = r.studyHypothesis.FullClean() ?? "";
+            string pri_outcome = r.primaryOutcome.FullClean() ?? "";
+            if (hypothesis.ToLower().StartsWith("not provided"))
+            {
+                hypothesis = "";
+            }
+            if (pri_outcome.ToLower().StartsWith("not provided"))
+            {
+                pri_outcome = "";
+            }
+            
+            if (hypothesis != "")
             {
                 if (!hypothesis.ToLower().StartsWith("hypothes") && !hypothesis.ToLower().StartsWith("study hyp"))
                 {
@@ -97,7 +121,7 @@ public class IsrctnProcessor : IStudyProcessor
                 }
                 s.brief_description = hypothesis;
             }
-            if (pri_outcome != "" && !pri_outcome.ToLower().StartsWith("not provided"))
+            if (pri_outcome != "")
             {
                 if (!pri_outcome.ToLower().StartsWith("primary") && !pri_outcome.ToLower().StartsWith("outcome"))
                 {
@@ -106,13 +130,11 @@ public class IsrctnProcessor : IStudyProcessor
                 s.brief_description += s.brief_description == "" ? pri_outcome : "\n" + pri_outcome;
             }
         }
-
         if (s.brief_description?.StartsWith("http") == true)  // can happen rarely
         {
             s.brief_description = "See " + s.brief_description;
         }
-
-        if (string.IsNullOrEmpty(s.brief_description))
+        if (string.IsNullOrEmpty(s.brief_description))  // a a fall back
         {
             s.brief_description =
                 "No description or hypothesis / outcomes information provided at time of study registration";
@@ -189,7 +211,6 @@ public class IsrctnProcessor : IStudyProcessor
         }
         s.study_status_id = s.study_status.GetStatusId();
 
-
         // study registry entry dates.
 
         SplitDate? reg_date = null;
@@ -205,7 +226,6 @@ public class IsrctnProcessor : IStudyProcessor
         {
             last_edit = d_edited[..10].GetDatePartsFromISOString();
         }
-
 
         // Study sponsor(s) and funders.
 
@@ -239,29 +259,11 @@ public class IsrctnProcessor : IStudyProcessor
                     // check a funder is not simply the sponsor...(or repeated).
                     if (funder_name is not null)
                     {
-                        bool add_funder = true;
-                        funder_name = funder_name.TidyOrgName(sid);
-                        if (organisations.Any())
-                        {
-                            foreach (var c in organisations)
-                            {
-                                if (funder_name == c.organisation_name)
-                                {
-                                    if (c.contrib_type_id == 54)
-                                    {
-                                        c.contrib_type_id = 112;
-                                        c.contrib_type = "Study sponsor and funder";
-                                    }
-                                    add_funder = false;
-                                    break;
-                                }
-                            }
-                        }
+                        // Situation where the same organisation is the sponsor and (a) funder
+                        // now resolved in the Coding module
 
-                        if (add_funder)
-                        {
-                            organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
-                        }
+                        funder_name = funder_name.TidyOrgName(sid);
+                        organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
                     }
                 }
             }
@@ -279,7 +281,10 @@ public class IsrctnProcessor : IStudyProcessor
                 string familyName = contact.surname.TidyPersonName() ?? "";
 
                 string? affil = contact.address?.Replace("\n", ", ");
-                affil = affil?.Replace("- ,", ",").Replace(" ,", ",");
+                affil = affil?.Replace(" - ", ", ").Replace(" ,", ",");
+                affil = affil.LineClean();
+                string? affil_organisation = affil?.ExtractOrganisation(sid);
+                
                 string? orcid = contact.orcid.TidyORCIDId();
                 string full_name = (givenName + " " + familyName).Trim();
 
@@ -301,14 +306,14 @@ public class IsrctnProcessor : IStudyProcessor
                     if (full_name != "")
                     {
                         people.Add(new StudyPerson(sid, contrib_type_id, contrib_type, givenName,
-                            familyName, full_name, orcid, affil));
+                            familyName, full_name, orcid, affil, null, affil_organisation));
                     }
                     else
                     {
                         if (!string.IsNullOrEmpty(affil))
                         {
                             organisations.Add(new StudyOrganisation(sid, contrib_type_id, contrib_type,
-                                null, affil));
+                                null, affil_organisation));
                         }
                     }
                 }
@@ -459,7 +464,6 @@ public class IsrctnProcessor : IStudyProcessor
                 }
             }
         }
-
 
         // Design info and study features.
         // First provide phase for interventional trials.
@@ -637,17 +641,14 @@ public class IsrctnProcessor : IStudyProcessor
                 List<string> numbered_strings = drugNames.GetNumberedStrings(".", 8);
                 topic_names.AddRange(numbered_strings);
             }
-            else if (r.interventionType is "Drug" or "Supplement")
+            else if ((r.interventionType is "Drug" or "Supplement") && drugNames.Contains(','))
             {
                 // if there are commas split on the commas (does not work well for devices).
 
-                if (drugNames.Contains(','))
+                List<string>? split_drug_names = drugNames.SplitStringWithMinWordSize(',', 4);
+                if (split_drug_names is not null)
                 {
-                    List<string>? split_drug_names = drugNames.SplitStringWithMinWordSize(',', 4);
-                    if (split_drug_names is not null)
-                    {
-                        topic_names.AddRange(split_drug_names);
-                    }
+                    topic_names.AddRange(split_drug_names);
                 }
             }
             else
@@ -662,7 +663,7 @@ public class IsrctnProcessor : IStudyProcessor
             int topic_type_id = r.interventionType == "Device" ? 21 : 12;
             foreach (string tn in topic_names)
             {
-                topics.Add(new StudyTopic(sid, topic_type_id, topic_type, tn));
+                topics.Add(new StudyTopic(sid, topic_type_id, topic_type, tn.Trim()));
             }
         }
 
@@ -861,7 +862,7 @@ public class IsrctnProcessor : IStudyProcessor
         string? ipd_ss = r.ipdSharingStatement;
         if (!string.IsNullOrEmpty(ipd_ss) && ipd_ss != "Not provided at time of registration")
         {
-            s.data_sharing_statement = ipd_ss.StringClean().CompressSpaces();
+            s.data_sharing_statement = ipd_ss.FullClean();
         }
         else
         {
@@ -1031,9 +1032,9 @@ public class IsrctnProcessor : IStudyProcessor
                         "interimresults" => new Tuple<int, string, int, string>(23, "Text", 203, "Journal article - interim results"),
                         "protocolarticle" => new Tuple<int, string, int, string>(23, "Text", 201, "Journal article - protocol"),
                         "funderreport" => new Tuple<int, string, int, string>(23, "Text", 204, "Journal article - review"),
-                        "preprint" => new Tuple<int, string, int, string>(23, "Text", 210, "Preprint article"),
+                        "preprint" or "protocolpreprint" or 
+                        "preprintother" => new Tuple<int, string, int, string>(23, "Text", 210, "Preprint article"),
                         "otherpublications" => new Tuple<int, string, int, string>(23, "Text", 12, "Journal article - unspecified"),
-                        "patient information sheet" => new Tuple<int, string, int, string>(23, "Text", 19, "Patient information sheets"),
                         "pis" or
                         "participant information sheet" or
                         "patient information sheet" => new Tuple<int, string, int, string>(23, "Text", 19, "Patient information sheets"),
@@ -1042,15 +1043,36 @@ public class IsrctnProcessor : IStudyProcessor
                         "bookresults" or "abstract" => new Tuple<int, string, int, string>(23, "Text", 79, "Results or CSR summary"),
                         "protocolfile" or
                         "protocolother" => new Tuple<int, string, int, string>(23, "Text", 11, "Study Protocol"),
+                        "hrasummary" => new Tuple<int, string, int, string>(23, "Text", 38, "Study overview"),
                         "dataset" => new Tuple<int, string, int, string>(14, "Dataset", 80, "Individual participant data"),
                         "plainenglishresults" => new Tuple<int, string, int, string>(23, "Text", 88, "Summary of results for public"),
                         "sap" => new Tuple<int, string, int, string>(23, "Text", 22, "Statistical analysis plan"),
                         _ when output_lower.Contains("analysis") => new Tuple<int, string, int, string>(23, "Text", 22, "Statistical analysis plan"),
                         _ when output_lower.Contains("consent") => new Tuple<int, string, int, string>(23, "Text", 18, "Informed consent forms"),
                         "otherfiles" => new Tuple<int, string, int, string>(23, "Text", 37, "Other text based object"),
+                        "book" => new Tuple<int, string, int, string>(23, "Text", 101, "Book"),
                         "trialwebsite" => new Tuple<int, string, int, string>(23, "Text", 134, "Website"),
                         _ => new Tuple<int, string, int, string>(0, "Text", 0, output_lower),
                     };
+
+                    if (object_details.Item1 == 0)
+                    {
+                        // may be a full title in the type field rather than a type name
+
+                        if (output_lower.Contains("results") || output_lower.Contains("report") 
+                                                             || output_lower.Contains("data analysis"))
+                        {
+                            object_details = new Tuple<int, string, int, string>(23, "Text", 79, "Results or CSR summary");
+                        }
+                        else if (output_lower.Contains("preprint"))
+                        {
+                            object_details = new Tuple<int, string, int, string>(23, "Text", 210, "Preprint article");
+                        }
+                        else if (output_lower.Contains("diagram"))
+                        {
+                            object_details = new Tuple<int, string, int, string>(23, "Text",  37, "Other text based object");
+                        }
+                    }
 
                     int object_class_id = object_details.Item1;
                     string object_class = object_details.Item2;
@@ -1060,7 +1082,11 @@ public class IsrctnProcessor : IStudyProcessor
                     string? artefact_type = op.artefactType;
                     string? external_url = op.externalLinkURL;
                     string? local_url = op.localFileURL;
-
+                    if (op.version == "")
+                    {
+                        op.version = null;  // to clarify!
+                    }
+                    
                     if (artefact_type == "ExternalLink" && !string.IsNullOrEmpty(external_url))
                     {
                         string citation = external_url; // for storage 'as is' for later inspection
@@ -1142,10 +1168,6 @@ public class IsrctnProcessor : IStudyProcessor
                                 {
                                     object_name += " " + op.version;
                                 }
-                                if (op.version == "")
-                                {
-                                    op.version = null;  // to clarify!
-                                }
 
                                 object_display_title = s.display_title + " :: " + object_name;
                                 sd_oid = sid + " :: " + object_type_id + " :: " + object_type;
@@ -1199,10 +1221,40 @@ public class IsrctnProcessor : IStudyProcessor
                                 object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
                                     22, "Study short name :: object type", true));
 
+                                Tuple<int, string> system_details = external_url switch
+                                { 
+                                    _ when external_url.Contains("articles/PMC") => new Tuple<int, string>(100133, "National Library of Medicine"),
+                                    _ when external_url.Contains("hra.nhs.uk") => new Tuple<int, string>(109372, "UK HRA - Research Summaries"),
+                                    _ when external_url.Contains("cancerresearchuk.org") => new Tuple<int, string>(109371, "Cancer Research UK trial summaries"),
+                                    _ when external_url.Contains("/osf.") => new Tuple<int, string>(101913, "OSF"),
+                                    _ when external_url.Contains("servier.com") => new Tuple<int, string>(109373, "Servier repository"),
+                                    _ when external_url.Contains("/10.1007") => new Tuple<int, string>(109374, "Springer Link"),
+                                    _ when external_url.Contains("/10.1016") => new Tuple<int, string>(109375, "Elsevier Science Direct"),
+                                    _ when external_url.Contains("/10.1093") => new Tuple<int, string>(109376, "Oxford Academic online journals"),
+                                    _ when external_url.Contains("/10.1101") => new Tuple<int, string>(109377, "medRxiv pre-prints"),
+                                    _ when external_url.Contains("/10.1111") => new Tuple<int, string>(109378, "Wiley Online"),
+                                    _ when external_url.Contains("/10.1177") => new Tuple<int, string>(109379, "Sage online journals"),
+                                    _ when external_url.Contains("/10.1186") => new Tuple<int, string>(109380, "BMC online journals"),
+                                    _ when external_url.Contains("/10.1371") => new Tuple<int, string>(109381, "Plos One online journals"),
+                                    _ when external_url.Contains("/10.3310") => new Tuple<int, string>(109385, "NIHR - Journals Library"),
+                                    _ when external_url.Contains("/10.3389") => new Tuple<int, string>(109383, "Frontiers online journals'"),
+                                    _ when external_url.Contains("/10.3390") => new Tuple<int, string>(109386, "MDPI online journals"),
+                                    _ when external_url.Contains("/10.21203") => new Tuple<int, string>(109384, "Research Square online journals"),
+                                    _  => new Tuple<int, string>(0, "")
+                                };
+
+                                int? system_id = null;
+                                string? system = null;
+                                if (system_details.Item1 != 0)
+                                {
+                                    system_id = system_details.Item1;
+                                    system = system_details.Item2;
+                                }
+                                
                                 // May be able to get repository org in some cases from the Urls
                                 // or may wish to try to resolve the DOIs at some later point
                                 
-                                object_instances.Add(new ObjectInstance(sd_oid, null, null,
+                                object_instances.Add(new ObjectInstance(sd_oid, system_id, system,
                                     external_url, true, 35, "Web text"));
 
                                 if (dt_created is not null)

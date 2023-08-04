@@ -124,7 +124,11 @@ public class EUCTRProcessor : IStudyProcessor
                 if (!string.IsNullOrEmpty(org_n))
                 {
                     string? org_name = org_n.TidyOrgName(sid);
-                    if (string.Equals(org_name, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
+                    
+                    // Situation where the same organisation is the sponsor and (a) funder
+                    // now resolved in the Coding module
+                    
+                    /*if (string.Equals(org_name, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
                     {
                         if (organisations.Any()) 
                         {
@@ -140,7 +144,7 @@ public class EUCTRProcessor : IStudyProcessor
                         }
                     }
                     else
-                    { 
+                    { */
                         // insert as whatever listed as - usually a funder
                         
                         if (org_name.IsNotPlaceHolder() && org_name.AppearsGenuineOrgName())
@@ -151,7 +155,7 @@ public class EUCTRProcessor : IStudyProcessor
                                 organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null, org_name));  
                             }
                         }
-                    }
+                    //}
                 }
             }
         }
@@ -251,13 +255,12 @@ public class EUCTRProcessor : IStudyProcessor
                 int colon_pos = acro.IndexOf(':');
                 acro = acro[..colon_pos];
             }
-            
         }
         
         bool default_title_identified = false;
         if (!string.IsNullOrEmpty(public_title) && public_title.IsNotPlaceHolder())
         {
-            public_title = public_title.Trim().ReplaceApos()!;
+            public_title = public_title.LineClean()!;
             titles.Add(new StudyTitle(sid, public_title, 15, "Registry public title", "en",
                                            11, true, "From the EU CTR"));
             s.display_title = public_title;
@@ -269,7 +272,7 @@ public class EUCTRProcessor : IStudyProcessor
         {
             if (!sci_title.NameAlreadyPresent(titles))
             {
-                sci_title = sci_title.Trim().ReplaceApos();
+                sci_title = sci_title.LineClean();
                 titles.Add(new StudyTitle(sid, sci_title, 16, "Registry scientific title", "en",
                                             11, !default_title_identified, "From the EU CTR"));
                 if (string.IsNullOrEmpty(s.display_title ))
@@ -284,7 +287,7 @@ public class EUCTRProcessor : IStudyProcessor
         {
             if (!acro.NameAlreadyPresent(titles))
             {
-                acro = acro.Trim().ReplaceApos();
+                acro = acro.LineClean();
                 string? acro_lc = acro?.ToLower();
                 if (acro_lc is not null && 
                     !acro_lc.StartsWith("not ") && !acro_lc.StartsWith("non ") && acro_lc != "none"
@@ -306,7 +309,7 @@ public class EUCTRProcessor : IStudyProcessor
         {
             if (!sci_acro.NameAlreadyPresent(titles))
             {
-                sci_acro = sci_acro.Trim().ReplaceApos();
+                sci_acro = sci_acro.LineClean();
                 string? acro_lc = sci_acro?.ToLower();
                 if (acro_lc is not null && 
                     !acro_lc.StartsWith("not ") && !acro_lc.StartsWith("non ") && acro_lc != "none"
@@ -346,7 +349,7 @@ public class EUCTRProcessor : IStudyProcessor
         if (objs is not null && objs.Length >= 16 
             && !objs.ToLower().StartsWith("see ") && !objs.ToLower().StartsWith("not "))
         {
-            string? clean_objs = objs.StringClean().CompressSpaces();
+            string? clean_objs = objs.FullClean();
             if (clean_objs is not null)
             {
                 string study_objectives = !clean_objs.ToLower().StartsWith("primary") 
@@ -363,7 +366,7 @@ public class EUCTRProcessor : IStudyProcessor
             !end_points.ToLower().StartsWith("not ") &&
             !string.Equals(end_points, objs, StringComparison.CurrentCultureIgnoreCase))
         {
-            string? clean_eps = end_points.StringClean().CompressSpaces();
+            string? clean_eps = end_points.FullClean();
             if (clean_eps is not null)
             {
                 string study_endpoints = !clean_eps.ToLower().StartsWith("primary")
@@ -614,7 +617,7 @@ public class EUCTRProcessor : IStudyProcessor
         {
             foreach ( EMACountry cline in r.countries)
             {
-                string? country_name = cline.country_name?.Trim().ReplaceApos();
+                string? country_name = cline.country_name?.LineClean();
                 string? country_status = cline.status?.Trim();
                 if (country_name is not null)
                 {

@@ -87,8 +87,8 @@ public class CTGProcessor : IStudyProcessor
         Conditionbrowsemodule? ConditionBrowseModule  = v?.ConditionBrowseModule;
         Interventionbrowsemodule? InterventionBrowseModule = v?.InterventionBrowseModule;
 
-        string? brief_title = IdentificationModule.BriefTitle?.ReplaceApos()?.Trim();
-        string? official_title = IdentificationModule.OfficialTitle?.ReplaceApos()?.Trim();
+        string? brief_title = IdentificationModule.BriefTitle?.LineClean();
+        string? official_title = IdentificationModule.OfficialTitle?.LineClean();
         string? acronym = IdentificationModule.Acronym?.Trim();
                 
         // This date is a simple field in the status module
@@ -442,7 +442,7 @@ public class CTGProcessor : IStudyProcessor
         {
             // CTG descriptions do not seem to include tags, but to be safe....
 
-            s.brief_description = DescriptionModule.BriefSummary.StringClean();
+            s.brief_description = DescriptionModule.BriefSummary.FullClean();
         }
 
 
@@ -729,7 +729,7 @@ public class CTGProcessor : IStudyProcessor
             string? elig_statement = EligibilityModule.EligibilityCriteria;
             if (elig_statement is not null)
             {
-                elig_statement.RegulariseStringEndings();
+                elig_statement.FullClean();
                 string elig_low = elig_statement.ToLower();
                 if (elig_low.Contains("inclusion") && elig_low.Contains("exclusion"))
                 {
@@ -877,7 +877,7 @@ public class CTGProcessor : IStudyProcessor
                     foreach (var location in locations)
                     {
                         string? facility = null;
-                        string? fac = location.LocationFacility?.TrimPlus()?.ReplaceApos();
+                        string? fac = location.LocationFacility?.LineClean();
                         if (fac is not null)
                         {
                             // Common abbreviations used within CGT site descriptors
@@ -915,7 +915,7 @@ public class CTGProcessor : IStudyProcessor
                 {
                     if (st.country_name != null)
                     {
-                        st.country_name = st.country_name.Trim().ReplaceApos();
+                        st.country_name = st.country_name.LineClean();
                         if (countries.Count == 0)
                         {
                             countries.Add(new StudyCountry(sid, st.country_name!));
@@ -950,31 +950,31 @@ public class CTGProcessor : IStudyProcessor
 
             if (IPDSharing is not null)
             {
-                sharing_statement = "IPD Sharing: " + IPDSharing.StringClean() + " (as of " + status_verified_date + ")";
+                sharing_statement = "IPD Sharing: " + IPDSharing.FullClean() + " (as of " + status_verified_date + ")";
             }
 
             string? IPDSharingDescription = IPDSharingModule.IPDSharingDescription;
 
             if (IPDSharingDescription is not null)
             {
-                sharing_statement += "\nDescription: " + IPDSharingDescription.StringClean();
+                sharing_statement += "\nDescription: " + IPDSharingDescription.FullClean();
 
                 string? IPDSharingTimeFrame = IPDSharingModule.IPDSharingTimeFrame;
                 if (!string.IsNullOrEmpty(IPDSharingTimeFrame))
                 {
-                    sharing_statement += "\nTime frame: " + IPDSharingTimeFrame.StringClean();
+                    sharing_statement += "\nTime frame: " + IPDSharingTimeFrame.FullClean();
                 }
 
                 string? IPDSharingAccessCriteria = IPDSharingModule.IPDSharingAccessCriteria;
                 if (!string.IsNullOrEmpty(IPDSharingAccessCriteria))
                 {
-                    sharing_statement += "\nAccess Criteria: " + IPDSharingAccessCriteria.StringClean();
+                    sharing_statement += "\nAccess Criteria: " + IPDSharingAccessCriteria.FullClean();
                 }
 
                 string? IPDSharingURL = IPDSharingModule.IPDSharingURL;
                 if (!string.IsNullOrEmpty(IPDSharingURL))
                 {
-                    sharing_statement += "\nURL: " + IPDSharingURL.StringClean();
+                    sharing_statement += "\nURL: " + IPDSharingURL.FullClean();
                 }
 
                 var IPDSharingInfoTypeList = IPDSharingModule.IPDSharingInfoTypeList;
@@ -984,7 +984,7 @@ public class CTGProcessor : IStudyProcessor
                     if (other_info_types?.Any() is true)
                     {   
                         string itemList = other_info_types.Aggregate("", (current, info_type) => current + ", " + info_type);
-                        sharing_statement += "\nAdditional information available: " + itemList[1..].StringClean();
+                        sharing_statement += "\nAdditional information available: " + itemList[1..].FullClean();
                     }
                 }
 
@@ -1221,7 +1221,7 @@ public class CTGProcessor : IStudyProcessor
                         if (ref_type is "result" or "derived")
                         {
                             string? pmid = refce.ReferencePMID;
-                            string? citation = refce.ReferenceCitation.ReplaceApos();
+                            string? citation = refce.ReferenceCitation.LineClean();
                             references.Add(new StudyReference(sid, pmid, citation, null, null));
                         }
 
@@ -1261,7 +1261,7 @@ public class CTGProcessor : IStudyProcessor
                         string? ipd_id = avail_ipd.AvailIPDId;
                         string? ipd_type = avail_ipd.AvailIPDType;
                         string? ipd_url = avail_ipd.AvailIPDURL;
-                        string? ipd_comment = avail_ipd.AvailIPDComment?.ReplaceApos();
+                        string? ipd_comment = avail_ipd.AvailIPDComment?.LineClean();
                         if (ipd_url is null) continue;
                         
                         // Often a GSK store
@@ -1639,7 +1639,7 @@ public class CTGProcessor : IStudyProcessor
                             {
                                 link_label = link_label.Trim('(', ')');
                             }
-                            link_label = link_label.ReplaceApos();
+                            link_label = link_label.LineClean();
                         }
 
                         string? link_url = see_also_ref.SeeAlsoLinkURL;

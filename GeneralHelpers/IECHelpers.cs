@@ -10,21 +10,18 @@ public static class IECH
 
         Regexes = new Dictionary<string, string>()
         {
-            { "resssh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}\.\d{1,2}" }, // numeric Sub-sub-sub-heading. N.n.n.n
-            { "ressh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}" }, // numeric Sub-sub-heading. N.n.n            
-            { "resh", @"^\d{1,2}\.\d{1,2}\." }, // numeric Sub-heading. N.n.     
-            { "resh1", @"^\d{1,2}\.\d{1,2}\s" }, // numeric Sub-heading space (without final period) N.n
-            { "recrit", @"^\d{1,2}\.\s" }, // number period and space  1. , 2. 
             { "retab5", @"^[a-z]\.\t" }, // alpha-period followed by tab   a.\t, b.\t
             { "reha", @"^[a-z]{1}\." }, // alpha period. a., b.
             { "rehacap", @"^[A-Z]{1}\." }, // alpha caps period. A., B.
             { "rehadb", @"^\([a-z]{1}\)" }, // alpha in brackets. (a), (b)
             { "rehab", @"^[a-z]{1}\)" }, // alpha with right bracket. a), b)
             { "renha", @"^\d{1,2}[a-z]{1}\s" }, // number plus letter  Na, Nb
+            
             { "retab1", @"^-\t" }, // hyphen followed by tab, -\t, -\t 
             { "retab2", @"^\d{1,2}\t" }, // number followed by tab, 1\t, 2\t
             { "retab3", @"^\uF0A7\t" }, // unknown character followed by tab
             { "retab4", @"^\*\t" }, // asterisk followed by tab    *\t, *\t
+            
             { "rebrnum", @"^\(\d{1,2}\)" }, // bracketed numbers (1), (2)
             { "rebrnumdot", @"^\d{1,2}\)\." }, // number followed by right bracket and dot 1)., 2).
             { "resbrnum", @"^\d{1,2}\)" }, // number followed by right bracket 1), 2)
@@ -35,23 +32,33 @@ public static class IECH
             { "resnumdashb", @"^\d{1,2}\-\)" }, //  numbers and following dash, right bracket  1-), 2-)
             { "resnumdash", @"^\d{1,2}\-" }, //  numbers and following dash  1-, 2-
             { "resnumslash", @"^\d{1,2}\/" }, //  numbers and following slash  1/, 2/
+            
             { "rebull", @"^[\u2022,\u2023,\u25E6,\u2043,\u2219]" }, // various bullets 1
             { "rebull1", @"^[\u2212,\u2666,\u00B7,\uF0B7]" }, // various bullets 2
             { "reso", @"^o " }, // open 'o' bullet followed by space, o , o
             { "resotab", @"^o\t" }, // open 'o' bullet followed by tab  o\t, o\t
+            
             { "reslatbr", @"^\(x{0,3}(|ix|iv|v?i{0,3})\)" }, // roman numerals double bracket   (i), (ii)
             { "reslat", @"^x{0,3}(|ix|iv|v?i{0,3})\)" }, // roman numerals right brackets    i), ii)
             { "reslatdot", @"^x{0,3}(|ix|iv|v?i{0,3})\." }, // roman numerals dots   i., ii.
-            { "recrit1", @"^\d{1,2}\." }, // number period only - can give false positives
-            { "recrit2", @"^\d{1,2}\s" }, // number space only - can give false positives       
-            { "recrit3", @"^\d{1,2}[A-Z]" }, // number-cap letter  - might give false positives   
+            
+            { "resssh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}\.\d{1,2}" }, // numeric Sub-sub-sub-heading. N.n.n.n
+            { "ressh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}" }, // numeric Sub-sub-heading. N.n.n            
+            { "resh", @"^\d{1,2}\.\d{1,2}\." }, // numeric Sub-heading. N.n.     
+            { "resh1", @"^\d{1,2}\.\d{1,2}\s" }, // numeric Sub-heading space (without final period) N.n
             { "recrit4", @"^\d{1,2}\.\d{1,2}[A-Z]" }, // number-dot-number cap letter  - might give false positives
+            { "recrit", @"^\d{1,2}\.\s" }, // number period and space  1. , 2.         
+            { "recrit1", @"^\d{1,2}\." }, // number period only - can give false positives
+            { "recrit2", @"^\d{1,2}\s" }, // number space only - can give false positives         
+            { "recrit3", @"^\d{1,2}[A-Z]" }, // number-cap letter  - might give false positives     
+            
             { "redash", @"^-" }, // dash only   -, -
             { "redoubstar", @"^\*\*" }, // two asterisks   **, **
             { "restar", @"^\*" }, // asterisk only   *, *
             { "resemi", @"^;" }, // semi-colon only   ;, ; 
             { "request", @"^\?" }, // question mark only   ?, ?
             { "reinvquest", @"^¿" }, // inverted question mark only   ¿, ¿
+            
             { "reespacenum", @"^(E|e)\s?\d{1,2}" }, // exclusion as E or e numbers, optional space E 01, E 02
             { "reispacenum", @"^(I|i)\s?\d{1,2}" }, // inclusion as I or i numbers, optional space i1, i2
             { "rethreeenum", @"^(1|2)\d{1,2}\.?\s?" }, // 1 or 2 followed by 2 numbers, optional dot or space
@@ -134,7 +141,7 @@ public static class IECH
         return valid_start_chars >= lines.Count - allowance;
     }
     
-    public static bool CheckIfAllLinesStartConsistently(List<iec_line> lines, int allowance)
+    public static bool CheckIfAllLinesStartWithLowerCase(List<iec_line> lines, int allowance)
     {
         int valid_start_chars = 0;
         foreach (var t in lines)

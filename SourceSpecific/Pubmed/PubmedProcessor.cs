@@ -115,7 +115,7 @@ public class PubmedProcessor : IObjectProcessor
         string? atitle = r.articleTitle;
         if (!string.IsNullOrEmpty(atitle))
         {
-            atitle = atitle.ReplaceTags().ReplaceApos();
+            atitle = atitle.FullClean();
         }
         else
         {
@@ -125,7 +125,7 @@ public class PubmedProcessor : IObjectProcessor
         string? vtitle = r.vernacularTitle;
         if (!string.IsNullOrEmpty(vtitle))
         {
-            vtitle = vtitle.ReplaceTags().ReplaceApos();
+            vtitle = vtitle.FullClean();
         }
 
         // Check the vernacular title is not the same as the article title - can happen 
@@ -634,7 +634,20 @@ public class PubmedProcessor : IObjectProcessor
         {
             foreach (var kw in keywords_lists)
             {
-                topics.Add(new ObjectTopic(sdoid, 11, "keyword", kw.Value));
+                bool new_topic = true;
+                foreach (ObjectTopic t in topics)
+                {
+                    if (t.original_value?.ToLower() == kw.Value?.ToLower())
+                    {
+                        new_topic = false;
+                        break;
+                    }
+                }
+
+                if (new_topic)
+                {
+                    topics.Add(new ObjectTopic(sdoid, 11, "keyword", kw.Value));
+                }
             }   
         }
 
@@ -909,7 +922,7 @@ public class PubmedProcessor : IObjectProcessor
             foreach (var a in author_list)
             {
                 // Construct the basic contributor data from the various elements.
-                string? family_name = a.FamilyName.ReplaceApos();
+                string? family_name = a.FamilyName.LineClean();
                 string? given_name = a.GiveneName;
                 string? suffix = a.Suffix;
                 string? initials = a.Initials;
@@ -937,7 +950,7 @@ public class PubmedProcessor : IObjectProcessor
                     full_name = (given_name + " " + family_name + suffix).Trim();
                 }
 
-                full_name = full_name.ReplaceApos();
+                full_name = full_name.LineClean();
 
                 // should only ever be a single ORCID identifier.
 
@@ -1038,7 +1051,7 @@ public class PubmedProcessor : IObjectProcessor
                                 + ", " + PubMedHelpers.GetCitationName(people, 2) + " et al";
             }
 
-            author_string = author_string.Trim() + ".";
+            author_string = author_string.Trim();
 
 
             // some contributors may be teams or groups.
@@ -1187,10 +1200,12 @@ public class PubmedProcessor : IObjectProcessor
             {
                 string? ref_type = comm.RefType;
                 string? ref_source = comm.RefSource;
-                string? pmid = comm.PMID_Value is null ? "" : comm.PMID_Value.ToString();
-                string? pmid_version = comm.PMID_Version is null ? "" : comm.PMID_Version.ToString();
+                string? pmid = comm.PMID_Value is null ? null : comm.PMID_Value.ToString();
+                string? pmid_version = comm.PMID_Version is null ? null : comm.PMID_Version.ToString();
                 string? notes = comm.Note; // *********************************************************
-                comments.Add(new ObjectComment(sdoid, ref_type, ref_source, pmid, pmid_version, notes));
+                comments.Add(new ObjectComment(sdoid, ref_type, ref_source, pmid_version, pmid,  notes));
+                ////////// Deliberate inversion of pmid and pmid version here as DL inverts them in error;
+                // *********************************************************
             }
         }
 

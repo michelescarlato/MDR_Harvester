@@ -75,14 +75,14 @@ public class WHOProcessor : IStudyProcessor
         bool public_title_present = public_title.IsNotPlaceHolder();
         if (public_title_present)
         {
-            public_title = public_title.ReplaceApos();
+            public_title = public_title.LineClean();
         }
 
         string? scientific_title = r.scientific_title;
         bool scientific_title_present = scientific_title.IsNotPlaceHolder();
         if (scientific_title_present)
         {
-            scientific_title = scientific_title.ReplaceApos();
+            scientific_title = scientific_title.LineClean();
         }
         string source_string = "From the " + source_name;
 
@@ -135,7 +135,7 @@ public class WHOProcessor : IStudyProcessor
             if (!interventions.ToLower().Contains("not applicable") && !interventions.ToLower().Contains("not selected")
                 && interventions.ToLower() != "n/a" && interventions.ToLower() != "na")
             {
-                interventions = interventions.StringClean();
+                interventions = interventions.FullClean();
                 if (!interventions!.ToLower().StartsWith("intervention"))
                 {
                     interventions = "Interventions: " + interventions;
@@ -151,7 +151,7 @@ public class WHOProcessor : IStudyProcessor
             if (!primary_outcome.ToLower().Contains("not applicable") && !primary_outcome.ToLower().Contains("not selected")
                 && primary_outcome.ToLower() != "n/a" && primary_outcome.ToLower() != "na")
             {
-                primary_outcome = primary_outcome.StringClean();
+                primary_outcome = primary_outcome.FullClean();
                 if (!primary_outcome!.ToLower().StartsWith("primary"))
                 {
                     primary_outcome = "Primary outcome(s): " + primary_outcome;
@@ -167,7 +167,7 @@ public class WHOProcessor : IStudyProcessor
             if (!design_string.ToLower().Contains("not applicable") && !design_string.ToLower().Contains("not selected")
                 && design_string.ToLower() != "n/a" && design_string.ToLower() != "na")
             {
-                design_string = design_string.StringClean();
+                design_string = design_string.FullClean();
                 if (!design_string!.ToLower().StartsWith("primary"))
                 {
                     design_string = "Study Design: " + design_string;
@@ -187,7 +187,7 @@ public class WHOProcessor : IStudyProcessor
             && ipd_plan.ToLower() != "not applicable"
             && !ipd_plan.Contains("justification or reason for"))
         {
-            ipd_plan = ipd_plan.StringClean();
+            ipd_plan = ipd_plan.FullClean();
             s.data_sharing_statement = ipd_plan; 
         }
         
@@ -199,7 +199,7 @@ public class WHOProcessor : IStudyProcessor
             && ipd_description.ToLower() != "not applicable"
             && !ipd_description.Contains("justification or reason for"))
         {
-            ipd_description = ipd_description.StringClean();
+            ipd_description = ipd_description.FullClean();
             s.data_sharing_statement += string.IsNullOrEmpty(s.data_sharing_statement) ? ipd_description : "\n" + ipd_description;
         }
 
@@ -373,12 +373,8 @@ public class WHOProcessor : IStudyProcessor
                 foreach (string funder in funder_names)
                 {
                     string? funder_name = funder.TidyOrgName(sid);
-                    if (!string.IsNullOrEmpty(funder_name) && funder_name.IsNotPlaceHolder())
+                    if (!string.IsNullOrEmpty(funder_name))
                     {
-                        if (String.Equals(funder_name, sponsor_name, StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            sponsor_name = "sponsor"; // organisation is sponsor and funder, dealt with below
-                        }
                         if (source_id is 100118 or 109108) // Chinese registry or ITMCTR 
                         {
                             // Check if one of the 'general' Chinese funding terms
@@ -386,38 +382,32 @@ public class WHOProcessor : IStudyProcessor
 
                             funder_name = wh.CheckChineseFunderType(funder_name);
                         }
-                        if (!funder_name.AppearsGenuineOrgName())
+                        if (funder_name.IsNotPlaceHolder())
                         {
-                            // Add funder as an individual
-                            
-                            people.Add(new StudyPerson(sid, 58, "Study Funder", null, null,
-                                funder_name.TidyPersonName(), null, null));
-                        }
-                        else
-                        {
-                            if (funder_name != "")    // Add funder as an organisation. 
+                            if (funder_name == "sponsor"
+                                || funder_name.ToLower().Contains("bitte wenden sie sich an den sponsor")
+                                || funder_name.ToLower().Contains("please refer to primary sponsor"))
                             {
-                                if (funder_name == "sponsor")
+                                // often from DRKS - implies sponsor also the funder
+                                // the records will be combined later in the coding process
+
+                                organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null,
+                                    sponsor_name));
+                            }
+                            else
+                            {
+                                if (!funder_name.AppearsGenuineOrgName()) // Add funder as an individual
                                 {
-                                    // Find sponsor in list of contributors and change type...
-                                    // If no previous sponsor listed little point adding the funder statement
-                                    if (organisations.Any())
-                                    {
-                                        foreach (StudyOrganisation g in organisations)
-                                        {
-                                            if (g.contrib_type_id == 54)
-                                            {
-                                                g.contrib_type_id = 112;
-                                                g.contrib_type = "Study sponsor and funder";
-                                                break;
-                                            }
-                                        }
-                                    }
+                                    people.Add(new StudyPerson(sid, 58, "Study Funder", null, null,
+                                        funder_name.TidyPersonName(), null, null));
                                 }
                                 else
                                 {
-                                    organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null,
-                                        funder_name));
+                                    if (funder_name != "") // Add funder as an organisation. 
+                                    {
+                                        organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null,
+                                            funder_name));
+                                    }
                                 }
                             }
                         }
@@ -440,7 +430,7 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(s_givenname) || !string.IsNullOrEmpty(s_familyname))
         {
             string full_name = (s_givenname + " " + s_familyname).Trim();
-            full_name = full_name.ReplaceApos()!;
+            full_name = full_name.LineClean()!;
             study_lead = full_name;  // for later comparison
 
             if (full_name.AppearsGenuinePersonName())
@@ -460,7 +450,7 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(p_givenname) || !string.IsNullOrEmpty(p_familyname))
         {
             string? full_name = (p_givenname + " " + p_familyname).Trim();
-            full_name = full_name.ReplaceApos();
+            full_name = full_name.LineClean();
             if (full_name != study_lead)  // often duplicated
             {
                 {
@@ -637,15 +627,8 @@ public class WHOProcessor : IStudyProcessor
             // Populate the conditions table rather than the topics table
             // If Indian CTR (source = 100121) multiple conditions and codes may be
             // in one string and therefore need splitting
-            List<WhoCondition> cList;
-            if (source_id == 100121)
-            {
-                cList = wh.CTRIConditions(condList);
-            }
-            else
-            {
-                cList = condList;
-            }
+
+            List<WhoCondition> cList = source_id == 100121 ? wh.CTRIConditions(condList) : condList;
                                     
             foreach (WhoCondition cn in cList)
             {
@@ -912,7 +895,7 @@ public class WHOProcessor : IStudyProcessor
                 if (!string.IsNullOrEmpty(country))
                 {
                     string country_name = country;
-                    country_name = country_name.Trim().ReplaceApos()!;
+                    country_name = country_name.LineClean()!;
 
                     if (country_name.EndsWith(".") || country_name.EndsWith(",")
                         || country_name.EndsWith(")") || country_name.EndsWith("?")
@@ -986,18 +969,18 @@ public class WHOProcessor : IStudyProcessor
         List<StudyPerson> people2 = new();
         if (people.Count > 0)
         {
-            bool add = true;
             foreach (StudyPerson p in people)
             {
+                bool add = true;
                 string? full_name = p.person_full_name?.ToLower();
-                if (!string.IsNullOrEmpty(full_name) && !full_name.AppearsGenuinePersonName())
+                if (!full_name.AppearsGenuinePersonName())
                 {
+                    add = false;
                     string? organisation_name = p.person_full_name.TidyOrgName(sid);
-                    if (organisation_name is not null)
+                    if (organisation_name.AppearsGenuineOrgName())
                     {
                         organisations.Add(new StudyOrganisation(sid, p.contrib_type_id, p.contrib_type,
                             null, organisation_name));
-                        add = false;
                     }
                 }
                 if (add)
@@ -1014,14 +997,14 @@ public class WHOProcessor : IStudyProcessor
             {
                 bool add = true;
                 string? org_name = g.organisation_name?.ToLower();
-                if (!string.IsNullOrEmpty(org_name) && !org_name.AppearsGenuineOrgName())
+                if (!org_name.AppearsGenuineOrgName())
                 {
+                    add = false;
                     string? person_full_name = g.organisation_name.TidyPersonName();
-                    if (person_full_name is not null)
+                    if (person_full_name.AppearsGenuinePersonName())
                     {
                         people2.Add(new StudyPerson(sid, g.contrib_type_id, g.contrib_type, person_full_name,
                             null, null, null));
-                        add = false;
                     }
                 }
                 if (add)

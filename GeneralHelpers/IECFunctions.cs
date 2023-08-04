@@ -8,9 +8,10 @@ public static class IECFunctions
 
     public static List<Criterion>? GetNumberedCriteria(string sid, string? input_string, string type)
     {
-        // first trim, replace tags & non breaking spaces, regularise apostrophes & line endings 
+        // first trim, replace tags & non breaking spaces, regularise apostrophes and
+        // line endings, decode html escapes etc.
 
-        input_string = input_string.StringClean();
+        input_string = input_string.FullClean();
 
         if (string.IsNullOrEmpty(input_string))
         {
@@ -43,7 +44,7 @@ public static class IECFunctions
         List<string> cleaned_lines = new();
         foreach (string s in raw_lines)
         {
-            string this_line = s.TrimPlus()!;
+            string this_line = s.TrimEnds()!;
             if (!string.IsNullOrEmpty(this_line) && !this_line.Contains(new string('_', 4)))
             {
                 cleaned_lines.Add(this_line);
@@ -168,8 +169,8 @@ public static class IECFunctions
                             {
                                 // should parse OK given regex match
                                 // May need to be ignored if a number appears out of sequence
-                                // Also the case if number is followed by a time period - almost
-                                // always part of the line above 
+                                // Also the case if number is followed by a time period or unit
+                                // - almost always part of the line above 
 
                                 // ReSharper disable once ReplaceWithSingleAssignment.True
                                 bool genuine = true;
@@ -192,7 +193,9 @@ public static class IECFunctions
                                     || rest_of_text.StartsWith("month")
                                     || rest_of_text.StartsWith("year")
                                     || rest_of_text.StartsWith("mg")
+                                    || rest_of_text.StartsWith("ml")
                                     || rest_of_text.StartsWith("kg")
+                                    || rest_of_text.StartsWith("g/")
                                     || rest_of_text.StartsWith("cm")
                                     || rest_of_text.StartsWith("patient")
                                    )
@@ -270,7 +273,6 @@ public static class IECFunctions
                             break;
                         }
                     }
-
 
                     if (ldrName.StartsWith("reha"))
                     {
@@ -382,7 +384,6 @@ public static class IECFunctions
                         }
                     }
 
-
                     if (ldrName == "rethreeenum")
                     {
                         // Regex is @"^(1|2)\d{1,2}\.?\s?"
@@ -457,7 +458,6 @@ public static class IECFunctions
                         }
                     }
 
-
                     if (ldrName == "resnumdash")
                     {
                         // hdrName = "resnumdash", regex_pattern = @"^\d{1,2}\-" by default 
@@ -473,7 +473,6 @@ public static class IECFunctions
 
                         break;
                     }
-
 
                     if (ldrName == "resh1")
                     {
@@ -535,12 +534,57 @@ public static class IECFunctions
 
                         if (!genuine)
                         {
-                            // change the found pattern to include only the first number and point
-                            ldrName = "recrit1";
-                            leader = Regex.Match(this_line, @"^\d{1,2}\.").Value;
+                            // May be recrit 1, starting with a numeric value.
+                            // But may be a numeric X.Y value followed by a time or weight uit
+                            
+                            string rest_of_text = this_line[leader.Length..].Trim().ToLower();
+                            if (rest_of_text.StartsWith("secs")
+                                || rest_of_text.StartsWith("second")
+                                || rest_of_text.StartsWith("mins")
+                                || rest_of_text.StartsWith("minute")
+                                || rest_of_text.StartsWith("hour")
+                                || rest_of_text.StartsWith("day")
+                                || rest_of_text.StartsWith("week")
+                                || rest_of_text.StartsWith("month")
+                                || rest_of_text.StartsWith("year")
+                                || rest_of_text.StartsWith("mg")
+                                || rest_of_text.StartsWith("ml")
+                                || rest_of_text.StartsWith("kg")
+                                || rest_of_text.StartsWith("g/")
+                                || rest_of_text.StartsWith("cm")
+                                || rest_of_text.StartsWith("patient")
+                               )
+                            {
+                                ldrName = "none"; // not really a match for anything
+                                leader = "";
+                            }
+                            else
+                            {
+                                // change the found pattern to include only the first number and point
+                                ldrName = "recrit1";
+                                leader = Regex.Match(this_line, @"^\d{1,2}\.").Value;
+                            }
                         }
                     }
-
+                    
+                    
+                    if (ldrName == "restar")
+                    {
+                        // asterisk  -  more likely to be a final supplementary line, if the 
+                        // line before does not have an asterisk leader
+                        
+                        if (i == crLines.Count - 1)
+                        {
+                            if (crLines.Count > 1 && crLines[i - 1].leader != "*")
+                            {
+                                crLines[i].leader = "Spp";
+                                crLines[i].split_type = "cr";
+                                crLines[i].indent_level = crLines[i - 1].indent_level;
+                                crLines[i].indent_seq_num = ++levels[level].levelNum; // increment before applying
+                                crLines[i].type = tv.post_crit;
+                            }
+                        }
+                    }
 
                     break; // in all other cases simply break as an appropriate match found
                 }
@@ -565,13 +609,16 @@ public static class IECFunctions
                         levels.RemoveRange(2, levels.Count - 2);
                     }
                 }
-
+                
                 // Change the properties of the iec_line object
 
-                crLines[i].leader = leader;
-                crLines[i].indent_level = level;
-                crLines[i].indent_seq_num = ++levels[level].levelNum; // increment before applying
-                crLines[i].text = this_line[leader.Length..].Trim();
+                if (crLines[i].leader != "Spp")   // may have already been set above, e.g. with '*'
+                {
+                    crLines[i].leader = leader;
+                    crLines[i].indent_level = level;
+                    crLines[i].indent_seq_num = ++levels[level].levelNum; // increment before applying
+                    crLines[i].text = this_line[leader.Length..].Trim();
+                }
             }
             else
             {
@@ -582,7 +629,7 @@ public static class IECFunctions
                     // initially at least, make this final line without any 'leader' character
                     // a supplement (at the same indent level as the previous criteria).
 
-                    crLines[i].leader = "supp";
+                    crLines[i].leader = "Spp";
                     crLines[i].indent_level = level;
                     crLines[i].indent_seq_num = ++levels[level].levelNum; // increment before applying
                     crLines[i].type = tv.post_crit;
@@ -598,7 +645,6 @@ public static class IECFunctions
                     crLines[i].type = tv.grp_hdr;
                 }
             }
-
             oldLdrName = ldrName;
         }
 
@@ -612,7 +658,7 @@ public static class IECFunctions
         // check the 'all without a leader' possibility - allowing a single exception
 
         if ((crLines.Count > 4 && num_no_leader >= crLines.Count - 1) ||
-            (crLines.Count > 1 && num_no_leader == crLines.Count))
+            (crLines.Count > 2 && num_no_leader == crLines.Count))
         {
             // none of the lines had a leader character. If they (or most of them) had proper 
             // termination, or consistent line starting, then it is possible that they are
@@ -620,7 +666,7 @@ public static class IECFunctions
 
             bool assume_crs_only = IECH.CheckIfAllLinesEndConsistently(crLines, 1)
                                    || IECH.CheckIfAllLinesStartWithCaps(crLines, 1)
-                                   || IECH.CheckIfAllLinesStartConsistently(crLines, 0);
+                                   || IECH.CheckIfAllLinesStartWithLowerCase(crLines, 0);
 
             // otherwise check for a consistent bullet type character
 
@@ -758,12 +804,11 @@ public static class IECFunctions
                     {
                         // If line starts with 'Note' very likely to be a 'header' giving supp. information.
                         // Also do not try to merge upward if preceding line ends with ':'
+                        // because headers assumed to normally end with ':', but other checks made in addition
+                        // (N.B. Initial and last entries are not checked).
 
                         if (!thisText.ToLower().StartsWith("note") && !crLines[i - 1].text.EndsWith(':'))
                         {
-                            // headers assumed to normally end with ':', but other checks made in addition
-                            // (N.B. Initial and last entries are not checked).
-
                             char initChar = thisText[0];
                             if (!thisText.EndsWith(':'))
                             {
@@ -772,11 +817,11 @@ public static class IECFunctions
                                 // If not, add it to the preceding entry as it is 
                                 // likely to be a spurious \n in the original string rather than a genuine header.
 
-                                // Also if no end colon, starts with a lower case letter or digit, and
+                                // Also if starts with a lower case letter or digit, and
                                 // previous line does not add in a full stop.
 
-                                if (crLines[i].indent_level >= crLines[i + 1].indent_level
-                                    || (!crLines[i - 1].text.EndsWith('.')
+                                if (crLines[i].indent_level >= crLines[i + 1].indent_level || 
+                                    (!crLines[i - 1].text.EndsWith('.') 
                                         && (char.ToLower(initChar) == initChar || char.IsDigit(initChar)))
                                    )
                                 {
@@ -786,14 +831,17 @@ public static class IECFunctions
                                     crLines[i - 1].text += " " + thisText;
                                     crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
                                     transfer_crit = false;
+                                    
+                                    // Difficulty is that some spurious \n are mid-word...and some
+                                    // are between words - no easy way to distinguish
                                 }
                             }
 
                             if (thisText.EndsWith(':')
-                                && initChar.ToString() == initChar.ToString().ToLower() || char.IsDigit(initChar))
+                                && (initChar.ToString() == initChar.ToString().ToLower() || char.IsDigit(initChar)))
                             {
-                                // Header line that has a colon but starts with a lower case letter
-                                // merge it 'upwards' to the line before
+                                // Header line that has a colon but also starts with a lower case letter or digit
+                                // Likely to be a 'split header'. merge it 'upwards' to the line before
 
                                 string prev_line = crLines[i - 1].text;
                                 char prev_last_char = prev_line[^1];
@@ -863,36 +911,66 @@ public static class IECFunctions
             revised_lines[0].indent_seq_num = 1;
             revised_lines[0].sequence_string = tv.getSequenceStart() + "0A";
         }
-        else if (revised_lines.Count == 2 && revised_lines[0].type == tv.grp_hdr)
+        
+        if (revised_lines.Count == 2 && revised_lines[0].type == tv.grp_hdr)
         {
-            // More likely that these are a pair of criteria statements (or multiple criteria statements)
-            // header may be genuine but unusual
-
-            revised_lines[0].seq_num = 1;
-            revised_lines[1].seq_num = 2;
-            revised_lines[0].split_type = "cr pair";
-            revised_lines[1].split_type = "cr pair";
-
             string top_text = revised_lines[0].text;
-            if (!top_text.EndsWith(":")
-                && !top_text.ToLower().Contains("criteria"))
+            string bottom_text = revised_lines[1].text;
+            if (top_text.EndsWith(":") && top_text.ToLower().Contains("criteria"))
             {
-                revised_lines[0].type = tv.type;
-                revised_lines[0].leader = "-1-";
-                revised_lines[0].indent_level = 1;
-                revised_lines[0].indent_seq_num = 1;
-
-                revised_lines[1].type = tv.type;
-                revised_lines[1].leader = "-2-";
-                revised_lines[1].indent_level = 1;
-                revised_lines[1].indent_seq_num = 2;
-            }
-            else
-            {
+                // Probably a genuine header (unusual). Make the second line a criterion
+                
                 revised_lines[1].type = tv.type;
                 revised_lines[1].leader = "-1-";
                 revised_lines[1].indent_level = 1;
                 revised_lines[1].indent_seq_num = 1;
+            }
+            else
+            {
+                if (IECH.CheckIfAllLinesEndConsistently(crLines, 0)
+                    || IECH.CheckIfAllLinesStartWithCaps(crLines, 0))
+                {
+                    // More likely that these are a pair of criteria statements (or multiple criteria statements)
+                   
+                    revised_lines[0].seq_num = 1;
+                    revised_lines[1].seq_num = 2;
+                    revised_lines[0].split_type = "cr pair";
+                    revised_lines[1].split_type = "cr pair";
+                   
+                    revised_lines[0].type = tv.type;
+                    revised_lines[0].leader = "-1-";
+                    revised_lines[0].indent_level = 1;
+                    revised_lines[0].indent_seq_num = 1;
+                   
+                    revised_lines[1].type = tv.type;
+                    revised_lines[1].leader = "-2-";
+                    revised_lines[1].indent_level = 1;
+                    revised_lines[1].indent_seq_num = 2;
+                   
+                }
+                else if ((top_text.EndsWith(' ') || top_text.EndsWith(','))
+                         && bottom_text[0].ToString() != bottom_text[0].ToString().ToUpper())
+                    
+                {
+                   // More likely they are a single statement split for some reason
+
+                   revised_lines[0].text = revised_lines[0].text + " " + revised_lines[1].text;
+                   revised_lines[0].text = revised_lines[0].text.Replace("  ", " ");
+                   
+                   revised_lines[0].seq_num = 1;
+                   revised_lines[0].split_type = "none";
+                   revised_lines[0].type = tv.no_sep;
+                   revised_lines[0].leader = "All";
+                   revised_lines[0].indent_level = 0;
+                   revised_lines[0].indent_seq_num = 1;
+                   revised_lines[0].sequence_string = tv.getSequenceStart() + "0A";
+
+                   revised_lines.Remove(revised_lines[1]);
+                }
+                else
+                {
+                    // leave as a hdr / spp pair...
+                }
             }
         }
 

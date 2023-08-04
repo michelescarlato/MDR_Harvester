@@ -47,13 +47,13 @@ public class YodaProcessor : IStudyProcessor
         s.datetime_of_data_fetch = downloadDatetime;
 
         string? yoda_title = r.yoda_title;  
-        yoda_title = yoda_title.ReplaceApos()?.ReplaceTags();
+        yoda_title = yoda_title.FullClean();
         s.display_title = yoda_title;
 
         // name_base derived from CTG during download, if possible.
         // In most cases the name_base will be the NCT title.
 
-        string? name_base_title = r.name_base_title?.ReplaceApos();  
+        string? name_base_title = r.name_base_title?.LineClean();  
         string? name_base = string.IsNullOrEmpty(name_base_title) ? yoda_title : name_base_title;
 
         var st_titles = r.study_titles;  
@@ -72,7 +72,7 @@ public class YodaProcessor : IStudyProcessor
 
         // brief description mostly as derived from CTG.
 
-        s.brief_description = r.brief_description?.StringClean();
+        s.brief_description = r.brief_description?.FullClean();
         s.study_status_id = 21;
         s.study_status = "Completed";  // assumption for entry onto web site
 
@@ -139,7 +139,7 @@ public class YodaProcessor : IStudyProcessor
                 int? identifier_type_id = i.identifier_type_id; 
                 string? identifier_type = i.identifier_type;
                 int? source_id = i.source_id;  
-                string? source = i.source?.ReplaceApos();
+                string? source = i.source?.LineClean();
 
                 if (source_id == 0)
                 {
@@ -183,7 +183,7 @@ public class YodaProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(compound_product_name))
         {
             string? productName = compound_product_name.Replace(((char)174).ToString(), ""); // drop reg mark
-            productName = productName.CompressSpaces();
+            productName = productName.FullClean();
             if (productName is not null)
             {
                 // see if already exists
@@ -197,7 +197,7 @@ public class YodaProcessor : IStudyProcessor
             }
         }
 
-        string? conditions_studied = r.conditions_studied.ReplaceApos();
+        string? conditions_studied = r.conditions_studied.LineClean();
         if (!string.IsNullOrEmpty(conditions_studied) && conditions_studied != "Healthy Volunteers")
         {
             conditions.Add(new StudyCondition(sid, conditions_studied, null, null, null));
@@ -277,7 +277,6 @@ public class YodaProcessor : IStudyProcessor
                         int object_type_id = objectType.Item1;
                         string object_type = objectType.Item2;
 
-                        object_title = doc_name;
                         object_display_title = name_base + " :: " + object_type;
                         sd_oid = sid + " :: " + object_type_id + " :: " + object_type;
 
