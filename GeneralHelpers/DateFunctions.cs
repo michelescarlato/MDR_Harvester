@@ -202,13 +202,13 @@ public static class DateStringExtensions
     }
 
 
-    public static string? StandardiseCTGDateFormat(this string? inputDate)
+    public static string? StandardiseCTGDateString(this string? inputDate)
     {
         if (string.IsNullOrEmpty(inputDate))
         {
             return null;
         }
-        SplitDate? SD = inputDate.GetDatePartsFromCTGString();
+        SplitDate? SD = inputDate.GetDatePartsFromISOString();
         return SD?.date_string;
     }
 

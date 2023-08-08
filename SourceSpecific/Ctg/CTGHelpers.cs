@@ -1,347 +1,404 @@
-﻿
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace MDR_Harvester.Ctg;
 
 internal class CTGHelpers
 {
-    public IdentifierDetails GetCTGIdentifierProps(string? id_type, string? id_org, string id_value)
+    public IdentifierDetails ProcessCTGIdentifier(StudyIdentifier si)
     {
         // Use initial values to create id details object
         // then examine id_org and (mostly) id_type to provide
         // identifier details where possible (sometimes provides org as well)
-
-        IdentifierDetails id = new IdentifierDetails(null, id_type, null, id_org, id_value);
-
-        if (id_org is null or "Other" or "Alias Study Number")
-        {
-            id.id_org_id = 12;
-            id.id_org = "No organisation name provided in source data";
-        }
-
-        if (id_type == null)
-        {
-            id.id_type_id = 1;
-            id.id_type = "No type given in source data";
-        }
-
-        else if (id_type == "U.S. NIH Grant/Contract")
-        {
-            id.id_org_id = 100134;
-            id.id_org = "National Institutes of Health";
-            id.id_type_id = 13;
-            id.id_type = "Funder ID";
-        }
-
-        else if (id_type == "Other Grant/Funding Number")
-        {
-            id.id_type_id = 13;
-            id.id_type = "Funder ID";
-        }
-
-        else if (id_type == "EudraCT Number")
-        {
-            id.id_org_id = 100123;
-            id.id_org = "EU Clinical Trials Register";
-            id.id_type_id = 11;
-            id.id_type = "Trial Registry ID";
-        }
-
-        else if (id_type == "Registry Identifier")
-        {
-            id.id_type_id = 11;
-            id.id_type = "Trial Registry ID";
-
-            if (id_org != null)
-            {
-                string idorg = id_org.ToLower();
-
-                if (idorg.Contains("who") || idorg.Contains("utn")
-                                          || idorg.Contains("ictrp") || idorg.Contains("universal"))
-                {
-                    // UTN number - check for ictrp before checking ctrp
-                    id.id_org_id = 100115;
-                    id.id_org = "International Clinical Trials Registry Platform";
-                }
-
-                else if (idorg.Contains("ctrp") || idorg.Contains("pdq") || idorg.Contains("nci"))
-                {
-                    // NCI CTRP programme
-                    id.id_org_id = 100162;
-                    id.id_org = "National Cancer Institute";
-                    id.id_type_id = 39;
-                    id.id_type = "NIH CTRP ID";
-                }
-
-                else if (idorg.Contains("daids"))
-                {
-                    // NAID programme
-                    id.id_org_id = 100168;
-                    id.id_org = "National Institute of Allergy and Infectious Diseases";
-                    id.id_type_id = 40;
-                    id.id_type = "DAIDS ID";
-                }
-
-                else if (idorg.Contains("japic") || idorg.Contains("cti"))
-                {
-                    // japanese registry
-                    id.id_org_id = 100157;
-                    id.id_org = "Japan Pharmaceutical Information Center";
-                }
-
-                else if (idorg.Contains("umin"))
-                {
-                    // japanese registry
-                    id.id_org_id = 100156;
-                    id_org = "University Hospital Medical Information Network CTR";
-                }
-
-                else if (idorg.Contains("isrctn"))
-                {
-                    // isrctn registry
-                    id.id_org_id = 100126;
-                    id.id_org = "ISRCTN";
-                }
-
-                else if (idorg.Contains("india") || id_org.Contains("ctri"))
-                {
-                    // indian registry
-                    id.id_org_id = 100121;
-                    id.id_org = "Clinical Trials Registry - India";
-                    id.id_value = id.id_value!.Replace("/", "-"); // slashes in id causes problems for derived paths
-                }
-
-                else if (idorg.Contains("eudract"))
-                {
-                    // EU CTR
-                    id.id_org_id = 100123;
-                    id.id_org = "EU Clinical Trials Register";
-                }
-
-                else if (idorg.Contains("drks") || idorg.Contains("german") || idorg.Contains("deutsch"))
-                {
-                    // German registry
-                    id.id_org_id = 100124;
-                    id.id_org = "Deutschen Register Klinischer Studien";
-                }
-
-                else if (idorg.Contains("nederlands") || idorg.Contains("dutch"))
-                {
-                    // Dutch registry
-                    id.id_org_id = 100132;
-                    id.id_org = "The Netherlands National Trial Register";
-                }
-
-                else if (idorg.Contains("ansm") || idorg.Contains("agence") || idorg.Contains("rcb"))
-                {
-                    // French asnsm number
-                    id.id_org_id = 101408;
-                    id.id_org = "Agence Nationale de Sécurité du Médicament";
-                    id.id_type_id = 41;
-                    id.id_type = "Regulatory Body ID";
-                }
-
-                else if (idorg.Contains("iras") || idorg.Contains("hra"))
-                {
-                    // uk IRAS number
-                    id.id_org_id = 101409;
-                    id.id_org = "Health Research Authority";
-                    id.id_type_id = 41;
-                    id.id_type = "Regulatory Body ID";
-                }
-
-                else if (idorg.Contains("anzctr") || idorg.Contains("australian"))
-                {
-                    // australian registry
-                    id.id_org_id = 100116;
-                    id.id_org = "Australian New Zealand Clinical Trials Registry";
-                }
-
-                else if (idorg.Contains("chinese"))
-                {
-                    // chinese registry
-                    id.id_org_id = 100118;
-                    id.id_org = "Chinese Clinical Trial Register";
-                }
-
-                else if (idorg.Contains("thai"))
-                {
-                    // thai registry
-                    id.id_org_id = 100131;
-                    id.id_org = "Thai Clinical Trials Register";
-                }
-
-                else if (idorg == "jhmirb" || idorg == "jhm irb")
-                {
-                    // ethics approval number
-                    id.id_org_id = 100190;
-                    id.id_org = "Johns Hopkins University";
-                    id.id_type_id = 12;
-                    id.id_type = "Ethics Review ID";
-                }
-
-                else if (idorg.ToLower().Contains("ethics") || idorg == "Independent Review Board" 
-                                                            || idorg.Contains("IRB"))
-                {
-                    // ethics approval number
-                    id.id_type_id = 12;
-                    id.id_type = "Ethics Review ID";
-                }
-            }
-            
-        }
         
-        else if (id_type == "Other Identifier")
+        string id_value = si.identifier_value!;
+        int? id_type = si.identifier_type_id;
+        
+        string id_org = si.source!;        
+        string org_lower = id_org.ToLower();
+        
+        IdentifierDetails idd = new IdentifierDetails(null, si.identifier_type, null, si.source, si.identifier_value);
+        
+        // if source has no alpha characters then probably source and 
+        // value should be inverted (if not the same). Rare but happens.
+
+        if (!Regex.Match(id_org, @"[A-Za-z]").Success)
         {
-             id.id_type_id = 90;
-             id.id_type = "Other";
-        }
-
-        if (id.id_type_id is 1 or 90 && !string.IsNullOrEmpty(id_org))
-        {
-            // if source has no alpha characters then probably source and 
-            // value should be inverted (if not the same).
-            
-            if (!Regex.Match(id_org, @"[A-Za-z]").Success)
+            if (id_org != id_value)
             {
-                if (id_org != id_value)
-                {
-                    (id_value, id_org) = (id_org, id_value);
-                }
-            }
-
-            if (id_org == "UTN" || Regex.Match(id_value, @"^1111-").Success)
-            {
-                // WHO universal trail number
-                id.id_org_id = 100115;
-                id.id_org = "International Clinical Trials Registry Platform";
-                id.id_type_id = 11;
-                id.id_type = "Trial Registry ID";
-            }
-
-            else if (id_org.ToLower().Contains("ansm") || id_org.ToLower().Contains("rcb")
-                    || id_org.ToLower().Contains("afssaps") || Regex.Match(id_value, @"^\d{4}-A\d{5}-\d{2}$").Success)
-            {
-                // French ANSM number
-                id.id_org_id = 101408;
-                id.id_org = "Agence Nationale de Sécurité du Médicament";
-                id.id_type_id = 41;
-                id.id_type = "Regulatory Body ID";
-            }
-
-            else if (id_org.ToLower().StartsWith("isrctn"))
-            {
-                id.id_org_id = 100126;
-                id.id_org = "ISRCTN";
-                id.id_type_id = 11;
-                id.id_type = "Trial Registry ID";
-            }
- 
-            else if (id_org == "IRAS" || id_org.StartsWith("IRAS"))
-            {
-                // uk IRAS number
-                id.id_org_id = 101409;
-                id.id_org = "Health Research Authority";
-                id.id_type_id = 41;
-                id.id_type = "Regulatory Body ID";
-            }
-
-            else if (id_org == "JHMIRB" || id_org == "JHM IRB")
-            {
-                // ethics approval number
-                id.id_org_id = 100190;
-                id.id_org = "Johns Hopkins University";
-                id.id_type_id = 12;
-                id.id_type = "Ethics Review ID";
-            }
-
-            else if (id_org.ToLower().Contains("ethics") || id_org == "Independent Review Board" ||
-                id_org == "Institutional Review Board" || id_org.Contains("IRB"))
-            {
-                // ethics approval number
-                id.id_type_id = 12;
-                id.id_type = "Ethics Review ID";
-                id.id_org_id = 102374;
-                id.id_org = "Unspecified IRB / Ethics Review Board";
-            }
-
-            else if (Regex.Match(id_value, @"^CDR\d{10}$").Success)
-            {
-                // CDR number
-                id.id_type_id = 49;
-                id.id_type = "CDR number";
-                id.id_org_id = 100162;
-                id.id_org = "National Cancer Institute";
-            }
-            
-            else if (id_org.ToLower() == "pdq")
-            {
-                // NCI Physician Database id
-                id.id_org_id = 100162;
-                id.id_org = "National Cancer Institute";
-            }
-            
-            else if (id_org is "Breast International Group" or "Eastern Cooperative Oncology Group" 
-                     or "Gynecologic Oncology Group" or "Pediatric Oncology Group" 
-                     or "Radiation Therapy Oncology Group" or "South Weest Oncology Group" 
-                     or "Children’s Oncology Group" or "Children’s Cancer Group" or "ECOG" or "SWOG" )
-            {
-                id.id_type_id = 50;
-                id.id_type = "Research Collaboration ID";
-            }
-            
-            else if (id_org.ToLower().StartsWith("eu ct") || id_org.ToLower().StartsWith("eu trial") ||
-                     id_org.ToLower().StartsWith("eudract") || id_org.ToLower().StartsWith("ema") ||
-                     id_org.ToLower().StartsWith("eu clinical trials") ||
-                     id_org.ToLower().StartsWith("european medicines"))
-
-            {
-                if (!id_value.Contains("p/") && !id_value.Contains("pip") && !id_value.Contains("eupa")
-                    && !id_value.Contains("irb") && !id_value.Contains("med"))
-                {
-                    id.id_org_id = 100123;
-                    id.id_org = "EU Clinical Trials Register";
-                    id.id_type_id = 11;
-                    id.id_type = "Trial Registry ID";
-                }
+                (id_value, id_org) = (id_org, id_value);
             }
         }
 
-        if (id_value.Length > 4 && id_value[..4] == "NCI-")
+        // Where possible use regex matches with the id value as the prime method of matching or
+        // over-riding identifier types, as the given type and org names may not be consistently applied.
+        // Otherwise, or in addition, use the org name. 
+
+        if (Regex.Match(id_value, @"20(0|1|2)[0-9]-[0-9]{6}-[0-9]{2}").Success)
         {
-            // NCI id
-            id.id_org_id = 100162;
-            id.id_org = "National Cancer Institute";
+            idd.id_value = Regex.Match(id_value, @"20(0|1|2)[0-9]-[0-9]{6}-[0-9]{2}").Value;
+            idd.id_org_id = 100123;      // Eudract number
+            idd.id_org = "EU Clinical Trials Register";
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"1111-[0-9]{4}-[0-9]{4}").Success)
+        {
+            idd.id_value = "U" + Regex.Match(id_value, @"1111-\d{4}-\d{4}").Value;
+            idd.id_org_id = 100115;       // WHO universal trail number
+            idd.id_org = "International Clinical Trials Registry Platform";
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"^CDR\d{10}").Success)
+        {
+            idd.id_value = Regex.Match(id_value, @"^CDR\d{10}").Value;
+            idd.id_type_id = 49;         // CDR number - NCI PDQ ID
+            idd.id_type = "NCI PDQ ID";
+            idd.id_org_id = 100162;
+            idd.id_org = "National Cancer Institute";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"NCI-20(0|1|2)[0-9]-[0-9]{5}").Success)
+        {
+            idd.id_value = Regex.Match(id_value, @"NCI-20(0|1|2)[0-9]-[0-9]{5}").Value;
+            idd.id_type_id = 39;          // CTRP number - NCI CTRP ID
+            idd.id_type = "NCI CTRP ID";
+            idd.id_org_id = 100162;
+            idd.id_org = "National Cancer Institute";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"^NCI-").Success)
+        {
+            idd.id_type_id = 13;   // Remaining NCI- ids appear to be NCI grant identifiers
+            idd.id_type = "Funder / Contract ID";   // though take care not a non-US NCI!
+            idd.id_org_id = 100162;
+            idd.id_org = "National Cancer Institute";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"^\d{4}-A\d{5}-\d{2}$").Success)
+        {
+            idd.id_org_id = 101408;    // French asnsm number
+            idd.id_org = "Agence Nationale de Sécurité du Médicament";
+            idd.id_type_id = 41;
+            idd.id_type = "Regulatory Body ID";
+            idd.changed = true;
+        }
+        else if (org_lower.Contains("ansm") || org_lower.Contains("agence") || org_lower.Contains("rcb")
+                         || org_lower.Contains("afssaps"))
+        {
+            if (Regex.Match(id_value, @"\d{4}-A\d{5}-\d{2}").Success)
+            {
+                // Value often embedded in a longer string
+                idd.id_value = Regex.Match(id_value, @"\d{4}-A\d{5}-\d{2}").Value;
+            }
+            idd.id_org_id = 101408;    // French asnsm number
+            idd.id_org = "Agence Nationale de Sécurité du Médicament";
+            idd.id_type_id = 41;
+            idd.id_type = "Regulatory Body ID";
+            idd.changed = true;
+        }
+        else if (org_lower.Contains("cnil"))
+        {
+            idd.id_org_id = 109732;    // French CNIL number
+            idd.id_org = "CNIL";
+            idd.id_type_id = 41;
+            idd.id_type = "Regulatory Body ID";
+            idd.changed = true;
+        }          
+        else if (Regex.Match(id_value, @"^NL ?[0-9]{5}\.[0-9]{3}\.(0|1|2)[0-9]").Success)
+        {
+            idd.id_value = Regex.Match(id_value, @"^NL ?[0-9]{5}\.[0-9]{3}\.(0|1|2)[0-9]").Value;
+            idd.id_org_id = 109113;    // Dutch CCMO number (type 1)
+            idd.id_org = "CCMO";
+            idd.id_type_id = 12;
+            idd.id_type = "Ethics Review ID";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"^NL ?[0-9]{8}(0|1|2)[0-9]").Success)
+        {
+            idd.id_value = Regex.Match(id_value, @"^NL ?[0-9]{8}(0|1|2)[0-9]").Value;
+            idd.id_org_id = 109113;    // Dutch CCMO number (type 2)
+            idd.id_org = "CCMO";
+            idd.id_type_id = 12;
+            idd.id_type = "Ethics Review ID";
+            idd.changed = true;
+        }
+        else if (id_value.StartsWith("NL") || id_value.StartsWith("NTR")
+                 && (org_lower.Contains("nederlands") || org_lower.Contains("netherlands") 
+                 || org_lower.Contains("dutch") || org_lower == "ntr"))   
+        {
+            idd.id_type_id = 11;  // remaining NLs Dutch Trial Registry Ids, if they meet criteria above
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100132;
+            idd.id_org = "The Netherlands National Trial Register";
+            idd.changed = true;
+        }
+        else if (id_type == 11 && org_lower.Contains("isrctn")
+                 || id_value.ToLower().Contains("isrctn"))
+        {
+            if (id_value.Length == 9)
+            {
+                id_value = id_value[1..];  // rare but take last 8 characters
+            }
+            if (Regex.Match(id_value, @"[0-9]{8}").Success) // Try and regularise the value
+            {
+                id_value = "ISRCTN" + Regex.Match(id_value, @"[0-9]{8}").Value;
+            }
+            idd.id_value = id_value;
+            idd.id_type_id = 11;   
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100126;  // isrctn registry
+            idd.id_org = "ISRCTN";
+            idd.changed = true;
+        }
+        else if ((id_type == 11 && (org_lower.Contains("drks") || org_lower.Contains("german") 
+                 || org_lower.Contains("deutsch")) || id_value.Contains("DRKS")))
+        {
+            if (Regex.Match(id_value, @"[0-9]{8}").Success) // Try and regularise the value
+            {
+                id_value = "DRKS" + Regex.Match(id_value, @"[0-9]{8}").Value;
+            }
+            idd.id_value = id_value;
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100124;  // German registry
+            idd.id_org = "Deutschen Register Klinischer Studien";
+            idd.changed = true;
+        }
+        else if ((id_type == 11 && (org_lower.Contains("india") || org_lower.Contains("ctri"))
+                 || id_value.Contains("CTRI-") || id_value.Contains("CTRI/")))
+        {
+            idd.id_value = id_value.Replace("/", "-"); // slashes in id causes problems for derived paths
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100121;  // indian registry
+            idd.id_org = "Clinical Trials Registry - India";
+            idd.changed = true;
+        }
+        else if ((id_type == 11 && (org_lower.Contains("anzctr") || org_lower.Contains("australian"))
+                  || id_value.Contains("ACTRN")))
+        {
+            id_value = id_value.Replace("ACTRNO", "ACTRN0"); // just 1 occurence
+            if (Regex.Match(id_value, @"[0-9]{14}").Success) // Try and regularise the value
+            {
+                id_value = "ACTRN" + Regex.Match(id_value, @"[0-9]{14}").Value;
+            }
+            idd.id_value = id_value;
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100116;  // Australian registry
+            idd.id_org = "Australian New Zealand Clinical Trials Registry";
+            idd.changed = true;
+        }
+        else if (id_value.ToLower().StartsWith("rbr-"))
+        {
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100117;    // CRIS Korea
+            idd.id_org = "Registro Brasileiro de Ensaios Clínicos";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"^KCT[0-9]{7}").Success)
+        {
+            idd.id_value = Regex.Match(id_value, @"^KCT[0-9]{7}").Value;
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100119;    // CRIS Korea
+            idd.id_org = "Clinical Research Information Service";
+            idd.changed = true;
+        }
+        else if (id_value.ToLower().StartsWith("chictr"))
+        {
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100118;   // Chinese registry
+            idd.id_org = "Chinese Clinical Trial Register";
+            idd.changed = true;
+        }
+        else if (id_value.ToLower().StartsWith("tctr"))
+        {
+            // thai registry
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100131;
+            idd.id_org = "Thai Clinical Trials Register";
+            idd.changed = true;
+        }   
+        else if (org_lower.StartsWith("japan registry") || org_lower.StartsWith("jrct") || id_value.ToLower().StartsWith("jrct") )
+        {
+            if (!id_value.ToLower().StartsWith("jrct"))
+            {
+                id_value = "jRCT" + id_value;
+            }
+            idd.id_value = id_value;
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 104547;     // japanese register f clinical trialsregistry
+            idd.id_org = "";
+            idd.changed = true;
+        }
+        else if (org_lower.StartsWith("japic") || id_value.ToLower().StartsWith("japic") )
+        {
+            if (id_value.ToLower().StartsWith("CTI"))
+            {
+                id_value = "Japic" + id_value;
+            }
+            if (!id_value.ToLower().StartsWith("Japic"))
+            {
+                id_value = "JapicCTI-" + id_value;
+            }
+            idd.id_value = id_value;           
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100157;    // japanese registry
+            idd.id_org = "Japan Pharmaceutical Information Center";
+            idd.changed = true;
+        }
+        else if (id_org.Contains("UMIN") || (id_value.ToLower().StartsWith("umin") 
+                  && !id_value.ToLower().StartsWith("uminho") &&  !id_value.ToLower().StartsWith("uminne"))  )
+        {
+            if (Regex.Match(id_org, @"[0-9]{9}").Success) // in 2 cases value is in the wrong field !
+            {
+                idd.id_value = "UMIN" + Regex.Match(id_org, @"[0-9]{9}").Value;
+            }
+            if (Regex.Match(id_value, @"[0-9]{9}").Success) // Try and regularise the value
+            {
+                idd.id_value = "UMIN" + Regex.Match(id_value, @"[0-9]{9}").Value;
+            }
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 100156;   // japanese UMIN registry
+            idd.id_org = "University Hospital Medical Information Network CTR";
+            idd.changed = true;
+        }
+        else if (Regex.Match(id_value, @"^EUPAS[0-9]").Success) 
+        {
+            idd.id_value = "EUPAS " + id_value.Replace("EUPAS", "").Trim();
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 109753;    // EU PAS Register
+            idd.id_org = "EU PAS Register";
+            idd.changed = true;
+        }
+        else if (id_value.StartsWith("ENCEPP/SDPP/"))
+        {
+            idd.id_value = "EUPAS " + id_value.Replace("ENCEPP/SDPP/", "").Trim();
+            idd.id_type_id = 11;
+            idd.id_type = "Trial Registry ID";
+            idd.id_org_id = 109753;    // EU PAS Register
+            idd.id_org = "EU PAS Register";
+            idd.changed = true;
+        }
+        else if (id_value.Contains("CIV-"))
+        {
+            idd.id_value = id_value.Replace("EUDAMED", "").Replace("EUDRAMED", "").Trim();
+            idd.id_type_id = 41;
+            idd.id_type = "Regulatory Body ID";    
+            idd.id_org_id = 1023011;    // EUDAMED EU Medical Device approval 
+            idd.id_org = "European Database on Medical Devices";
+            idd.changed = true;
+        }
+        else if (id_value.Contains("MHRA"))
+        {
+            idd.id_type_id = 41;
+            idd.id_type = "Regulatory Body ID";    
+            idd.id_org_id = 100161;    // UK Medicines agency approval
+            idd.id_org = "Medicines and Healthcare Products Regulatory Agency";
+            idd.changed = true;
+        }
+        else if (id_org.Contains("IRAS") || id_org.Contains("HRA"))
+        {
+            idd.id_type_id = 41;
+            idd.id_type = "Regulatory Body ID";            
+            idd.id_org_id = 109755;    // UK IRAS number
+            idd.id_org = "Integrated Research Application System";
+            idd.changed = true;
+        }
+        else if (org_lower is "independent review board" or "institutional review board" or "irb" or "ethics committee")
+        {
+            idd.id_type_id = 12;
+            idd.id_type = "Ethics Review ID";
+            idd.id_org_id = 14;
+            idd.id_org = "Unspecified IRB / Ethics Review Board";
+            idd.changed = true;
+        }
+        else if (org_lower is "nres")
+        {
+            idd.id_type_id = 12;
+            idd.id_type = "Ethics Review ID";
+            idd.id_org_id = 109754;   // UK Ethics Service
+            idd.id_org = "National Research Ethics Service";
+            idd.changed = true;
+        }
+        else if ((org_lower.Contains(" irb") || org_lower.StartsWith("irb")) && id_value.Contains("DUMC"))
+        {
+            idd.id_type_id = 12;
+            idd.id_type = "Ethics Review ID";
+            idd.id_org_id = 109744;  
+            idd.id_org = "Duke University IRB";
+            idd.changed = true;
+        }
+        else if (org_lower.Contains(" irb") || org_lower.StartsWith("irb") || org_lower.Contains("ethics") 
+                || org_lower.Contains("review board"))
+        {
+            idd.id_type_id = 12;
+            idd.id_type = "Ethics Review ID";
+            idd.changed = true;
+        }
+        else if (org_lower is "ctep" or "nci/ctep" )
+        {
+            idd.id_org_id = 101412; // CTEP
+            idd.id_org = "Cancer Therapy Evaluation Program";
+            idd.id_type_id = 46;
+            idd.id_type = "CTEP ID";
+            idd.changed = true;
+        }
+        else if (org_lower.Contains("daids"))
+        {
+            idd.id_org_id = 100168; // NAID programme / registry Id
+            idd.id_org = "National Institute of Allergy and Infectious Diseases";
+            idd.id_type_id = 40;
+            idd.id_type = "DAIDS-ES registry ID";
+            idd.changed = true;
+        }
+        else if (org_lower.Contains("niaid") && org_lower.Contains("crms"))
+        {
+            idd.id_org_id = 100168; // NAID programme / registry Id
+            idd.id_org = "National Institute of Allergy and Infectious Diseases";
+            idd.id_type_id = 43;
+            idd.id_type = "CTMS ID";
+            idd.changed = true;
+        }
+        else if (org_lower.Contains("niaid"))
+        {
+            idd.id_org_id = 100168; // NAID programme / registry Id
+            idd.id_org = "National Institute of Allergy and Infectious Diseases";
+        }
+        else if (org_lower is "oncore" or "uf oncore")
+        {
+            idd.id_org_id = 102371; 
+            idd.id_org = "OnCore";  // OnCore system
+            idd.id_type_id = 43;
+            idd.id_type = "CTMS ID";
+            idd.changed = true;
+        } 
+        else if ( org_lower.EndsWith("oncology group") || org_lower.EndsWith("cancer group") 
+                                   || id_org is "Breast International Group" or "ECOG" or "SWOG")
+        {
+            idd.id_type_id = 50;
+            idd.id_type = "Research Collaboration ID";
+            idd.changed = true;
         }
 
-        return id;
-    }
-    
-    
-    // check name...
-    internal int CheckObjectName(List<ObjectTitle> titles, string object_display_title)
-    {
-        int num_of_this_type = 0;
-        if (titles.Count > 0)
-        {
-            for (int j = 0; j < titles.Count; j++)
-            {
-                string? title_to_test = titles[j].title_text;
-                if (title_to_test is not null)
-                {
-                    if (title_to_test.Contains(object_display_title))
-                    {
-                        num_of_this_type++;
-                    }
-                }
-            }
-        }
-        return num_of_this_type;
+        return idd;
     }
 }
 
 public class IdentifierDetails
 {
+    public bool changed { get; set; }
     public int? id_type_id { get; set; }
     public string? id_type { get; set; }
     public int? id_org_id { get; set; }
@@ -351,6 +408,7 @@ public class IdentifierDetails
     public IdentifierDetails(int? _id_type_id, string? _id_type, int? _id_org_id, string? _id_org,
         string? _id_value)
     {
+        changed = false;
         id_type_id = _id_type_id;
         id_type = _id_type;
         id_org_id = _id_org_id;
