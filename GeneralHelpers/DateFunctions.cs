@@ -51,46 +51,7 @@ public static class DateStringExtensions
             : new SplitDate(year_num, month_num, day_num, date_as_string);
     }
     
-    
-    public static SplitDate? GetDatePartsFromCTGString(this string dateString)
-    {
-        // Designed to deal with CTG dates...
-        // input date string is in the form of "<month name> day, year"
-        // or in some cases in the form "<month name> year"
-
-        if (string.IsNullOrEmpty(dateString))
-        {
-            return null;
-        }
-
-        // First split the string on any comma.
-        
-        string? year_string, month_name, day_string;
-        int comma_pos = dateString.IndexOf(',');
-        if (comma_pos > 0)
-        {
-            year_string = dateString[(comma_pos + 1)..].Trim();
-            string first_part = dateString[0..comma_pos].Trim();
-
-            // First part should split on the space
-
-            int space_pos = first_part.IndexOf(' ');
-            day_string = first_part[(space_pos + 1)..].Trim();
-            month_name = first_part[..space_pos].Trim();
-        }
-        else
-        {
-            int space_pos = dateString.IndexOf(' ');
-            year_string = dateString[(space_pos + 1)..].Trim();
-            month_name = dateString[..space_pos].Trim();
-            day_string = "";
-        }
-
-        string month_string = GetMonthAsInt(month_name).ToString();
-        return GetDateFromParts(year_string, month_string, day_string);
-    }
-
-    
+  
     public static SplitDate? GetDatePartsFromEuropeanString(this string dateString)
     {
         // Dates in different EU sources nay be in different formats
@@ -138,7 +99,7 @@ public static class DateStringExtensions
         return GetDateFromParts(year_string, month_string, day_string);
     }
 
-
+/*
     public static SplitDate? GetDatePartsFromUSString(this string dateString)
     {
         // date here is in the format mm/dd/yyyy, e.g. 06/25/2018.
@@ -157,6 +118,7 @@ public static class DateStringExtensions
         string year_string = dateString.Substring(6, 4);
         return GetDateFromParts(year_string, month_string, day_string);
     }
+    */
 
     public static SplitDate? GetDatePartsFromEUString(this string dateString)
     {
@@ -179,26 +141,49 @@ public static class DateStringExtensions
     
     public static SplitDate? GetDatePartsFromISOString(this string dateString)
     {
-        // input date string is in the form of "yyyy-MM-dd", sometimes just yyyyMMdd.
+        // input date string is in the form of "yyyy-MM-dd", sometimes yyyy-MM,
+        // occasionally just yyyyMMdd or yyyMM.
 
         if (string.IsNullOrEmpty(dateString))
         {
             return null;
         }
-        if (Regex.Match(dateString, @"^\d{8}$").Success)   // Add hyphens to create the standard format.
+        
+        string year_string;
+        string month_string;
+        string day_string;
+        
+        if (Regex.Match(dateString, @"^\d{4}-\d{2}-\d{2}$").Success)   // Normal ISO date.
         {
-            dateString = dateString.Substring(0, 4) + "-" + dateString.Substring(4, 2) 
-                         + "-" + dateString.Substring(6, 2);
+            year_string = dateString.Substring(0, 4);
+            month_string = dateString.Substring(5, 2);
+            day_string = dateString.Substring(8, 2);
+            return GetDateFromParts(year_string, month_string, day_string);
         }
-        if (!Regex.Match(dateString, @"^\d{4}-\d{2}-\d{2}$").Success)
+        if (Regex.Match(dateString, @"^\d{4}-\d{2}$").Success)   // Partial date.
         {
-            return null;
+            year_string = dateString.Substring(0, 4);
+            month_string = dateString.Substring(5, 2);
+            return GetDateFromParts(year_string, month_string, "");
         }
-
-        string year_string = dateString.Substring(0, 4);
-        string month_string = dateString.Substring(5, 2);
-        string day_string = dateString.Substring(8, 2);
-        return GetDateFromParts(year_string, month_string, day_string);
+        if (Regex.Match(dateString, @"^\d{8}$").Success)   // condensed data
+        {
+            year_string = dateString.Substring(0, 4);
+            month_string = dateString.Substring(4, 2);
+            day_string = dateString.Substring(6, 2);
+            return GetDateFromParts(year_string, month_string, day_string);
+        }
+        if (Regex.Match(dateString, @"^\d{6}$").Success)   // condensed partial date.
+        {
+            year_string = dateString.Substring(0, 4);
+            month_string = dateString.Substring(4, 2);
+            return GetDateFromParts(year_string, month_string, "");
+        }
+        if (Regex.Match(dateString, @"^\d{4}$").Success) // year only
+        {
+            return GetDateFromParts(dateString, "", "");
+        }
+        return null;  // does not match anything
     }
 
 

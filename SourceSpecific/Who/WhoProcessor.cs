@@ -661,7 +661,6 @@ public class WHOProcessor : IStudyProcessor
             }
         }
 
-
         bool condition_is_new(string candidate_condition)
         {
             foreach (StudyCondition k in conditions)

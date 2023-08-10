@@ -21,7 +21,8 @@ public static class TypeHelpers
             "withdrawn" => 11,
             "available" => 12,
             "withheld" => 13,
-            "no longer available" => 17,
+            "no longer available" or
+                "temporarily not available" => 17,
             "suspended" => 18,
             "terminated" => 22,
             "prematurely ended" => 22,
@@ -31,7 +32,6 @@ public static class TypeHelpers
             _ => null,
         };
     }
-
 
     public static int? GetTypeId(this string? study_type)
     {
@@ -44,7 +44,7 @@ public static class TypeHelpers
             "interventional" => 11,
             "observational" => 12,
             "observational patient registry" => 13,
-            "expanded access" => 14,
+            "expanded access"=> 14,
             "funded programme" => 15,
             "not yet known" => 0,
             _ => null
@@ -99,8 +99,7 @@ public static class TypeHelpers
         }
         return phase.ToLower() switch
         {
-            "n/a" => 100,
-            "not applicable" => 100,
+            "n/a" or "na" or "not applicable" => 100,
             "early phase 1" => 105,
             "phase 1" => 110,
             "phase 1/phase 2" => 115,
@@ -112,8 +111,7 @@ public static class TypeHelpers
             _ => null,
         };
     }
-
-
+    
     public static int? GetPrimaryPurposeId(this string primary_purpose)
     {
         if (string.IsNullOrEmpty(primary_purpose))
@@ -136,7 +134,7 @@ public static class TypeHelpers
             _ => null,
         };
     }
-
+  
     public static int? GetAllocationTypeId(this string allocation_type)
     {
         if (string.IsNullOrEmpty(allocation_type))
@@ -145,14 +143,15 @@ public static class TypeHelpers
         }
         return allocation_type.ToLower() switch
         {
-            "n/a" => 200,
+            "n/a" or "na" or "not applicable" => 200,
             "randomized" => 205,
             "non-randomized" => 210,
             "not provided" => 215,
             _ => null,
         };
     }
-
+    
+    
     public static int? GetDesignTypeId(this string design_type)
     {
         if (string.IsNullOrEmpty(design_type))
@@ -170,8 +169,7 @@ public static class TypeHelpers
             _ => null,
         };
     }
-
-
+    
     public static int? GetMaskingTypeId(this string masking_type)
     {
         if (string.IsNullOrEmpty(masking_type))
@@ -180,7 +178,7 @@ public static class TypeHelpers
         }
         return masking_type.ToLower() switch
         {
-            "none (open label)" => 500,
+            "none (open label)" or "none" => 500,
             "single" => 505,
             "double" => 510,
             "triple" => 515,
@@ -200,12 +198,11 @@ public static class TypeHelpers
         return obs_model_type.ToLower() switch
         {
             "cohort" => 600,
-            " control" => 605,
-            "-control" => 605,
-            "-only" => 610,
-            "-crossover" => 615,
+            "case control" or "case-control" => 605,
+            "case-only" => 610,
+            "case-crossover" => 615,
             "ecologic or community" => 620,
-            "family-based" => 625,
+            "family-based" or "family based" => 625,
             "other" => 630,
             "not provided" => 635,
             "defined population" => 640,
@@ -251,7 +248,6 @@ public static class TypeHelpers
         };
     }
 
-    
     public static string? GetTimeUnits(this string? time_units)
     {
 

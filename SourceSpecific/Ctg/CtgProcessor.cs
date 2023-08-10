@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.Eventing.Reader;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using MDR_Harvester.Extensions;
@@ -11,7 +10,7 @@ public class CTGProcessor : IStudyProcessor
     public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper)
     {
         ///////////////////////////////////////////////////////////////////////////////////////
-        // Deserialise string representing sdtudy details
+        // Deserialise string representing study details
         ///////////////////////////////////////////////////////////////////////////////////////
 
         var json_options = new JsonSerializerOptions()
@@ -57,8 +56,6 @@ public class CTGProcessor : IStudyProcessor
         List<ObjectDate> object_dates = new();
         List<ObjectInstance> object_instances = new();
 
-        CTGHelpers ctgh = new();
-
         ProtocolSection? ps = r.protocolSection;
         SponsorCollaboratorsModule? SponsorCollaboratorsModule = ps?.sponsorCollaboratorsModule;
         DescriptionModule? DescriptionModule = ps?.descriptionModule;
@@ -79,9 +76,10 @@ public class CTGProcessor : IStudyProcessor
         IdentificationModule? IdentificationModule = ps?.identificationModule;
         StatusModule? StatusModule = ps?.statusModule;
 
-
+        TextInfo TI = CultureInfo.CurrentCulture.TextInfo;
+        
         ///////////////////////////////////////////////////////////////////////////////////////
-        // Basics - id, Submission date, NCT identifier
+        // Basics - id, Submission date, NCT identifier, whether has results
         ///////////////////////////////////////////////////////////////////////////////////////
 
         if (IdentificationModule is null || StatusModule is null)
@@ -102,7 +100,8 @@ public class CTGProcessor : IStudyProcessor
 
         s.sd_sid = sid;
         s.datetime_of_data_fetch = download_datetime;
-
+        bool? results_present = r.hasResults;
+        
         // This date is a simple field in the status module
         // assumed to be the date the identifier was assigned.
 
@@ -189,25 +188,23 @@ public class CTGProcessor : IStudyProcessor
             // In general org Id will be added later in coding process
 
             string? sponsor_candidate = SponsorCollaboratorsModule.leadSponsor?.name;
-            if (sponsor_candidate.IsNotPlaceHolder() && sponsor_candidate.AppearsGenuineOrgName())
+            if (sponsor_candidate == "[Redacted]")
             {
-                sponsor_name = sponsor_candidate.TidyOrgName(sid);
-                if (sponsor_name == "[Redacted]")
-                {
-                    sponsor_name = "Sponsor name redacted in registry record";
-                    organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", 13, sponsor_name));
-                }
-                else
-                {
-                    organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, sponsor_name));
-                }
+                sponsor_name = "Sponsor name redacted in registry record";
+                organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", 13, sponsor_name));
             }
-
+            else if (sponsor_candidate.IsNotPlaceHolder() && sponsor_candidate.AppearsGenuineOrgName())
+            {
+                sponsor_name = sponsor_candidate.TidyOrgName(sid).StandardisePharmaName();
+                organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, sponsor_name));
+            }
+            
+                
             var resp_party = SponsorCollaboratorsModule.responsibleParty;
             if (resp_party is not null)
             {
                 string? rp_type = resp_party.type;
-                if (rp_type != "Sponsor")
+                if (rp_type != "SPONSOR")
                 {
                     rp_name = resp_party.investigatorFullName;
                     string? rp_affil = resp_party.investigatorAffiliation;
@@ -239,7 +236,7 @@ public class CTGProcessor : IStudyProcessor
                                     // If they do not appear to be the same try to extract the 
                                     // organisation from the affiliation string.
 
-                                    rp_affil = rp_affil.TidyOrgName(sid);
+                                    rp_affil = rp_affil.TidyOrgName(sid).StandardisePharmaName();
                                     if (!string.IsNullOrEmpty(sponsor_name)
                                         && rp_affil!.ToLower().Contains(sponsor_name.ToLower()))
                                     {
@@ -251,12 +248,12 @@ public class CTGProcessor : IStudyProcessor
                                     }
                                 }
 
-                                if (rp_type == "Principal Investigator")
+                                if (rp_type == "PRINCIPAL_INVESTIGATOR")
                                 {
                                     people.Add(new StudyPerson(sid, 51, "Study Lead",
                                         rp_name, rp_affil, null, affil_organisation));
                                 }
-                                else if (rp_type == "Sponsor-Investigator")
+                                else if (rp_type == "SPONSOR_INVESTIGATOR")
                                 {
                                     people.Add(new StudyPerson(sid, 70, "Sponsor-investigator",
                                         rp_name, rp_affil, null, affil_organisation));
@@ -275,7 +272,7 @@ public class CTGProcessor : IStudyProcessor
                     string? collab_candidate = col.name;
                     if (collab_candidate.IsNotPlaceHolder() && collab_candidate.AppearsGenuineOrgName())
                     {
-                        string? collab_name = collab_candidate?.TidyOrgName(sid);
+                        string? collab_name = collab_candidate?.TidyOrgName(sid).StandardisePharmaName();
                         organisations.Add(new StudyOrganisation(sid, 69,
                             "Collaborating organisation", null, collab_name));
                     }
@@ -300,98 +297,66 @@ public class CTGProcessor : IStudyProcessor
         
         // Add the sponsor's identifier for the study.
 
-        if (!string.IsNullOrEmpty(pri_id_value))
+        if (pri_id_value.IsNotBlankOrPlaceHolder(pri_id_org))
         {
-            // Establish a flag (add_id) to indicate whether or not to add the id value provided.
-            // Occasionally 'nil values' inserted and therefore need to be trapped.
+            // use identifier type as a default indicator of type and organisation. This may be changed later
+            // by a detailed examination of the identifier (as many seem to be wrongly classified). At
+            // present only NIH, AHRQ and FDA appear to be used. The default is to assume, in the absence 
+            // of a specified type, that the identifier is a sponsor identifier. The great majority of these
+            // Ids are therefore initially classified as sponsor Ids.
 
-            bool add_id = true;
-            string pri_id_value_lc = pri_id_value.ToLower();
-            if (pri_id_value_lc is "pending" or "nd" or "na" or "n/a" or "n.a."
-                or "none" or "n/a." or "no" or "none" or "pending")
+            var (ident_type_id, ident_type, ident_org_id, ident_org) = pri_id_type switch
             {
-                add_id = false;
+                "NIH" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
+                    100134, "National Institutes of Health"),
+                "FDA" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
+                    108548, "United States Food and Drug Administration"),
+                "VA" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
+                    100224, "US Department of Veterans Affairs"),
+                "CDC" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
+                    100245, "Centers for Disease Control and Prevention"),
+                "AHRQ" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
+                    100407, "Agency for Healthcare Research and Quality"),
+                "SAMHSA" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
+                    108270, "Substance Abuse and Mental Health Services Administration"),
+                _ => new Tuple<int, string, int, string>(14, "Sponsor’s ID", 0, "")
+            };
+
+            if (ident_type_id != 14)
+            {
+                identifiers.Add(new StudyIdentifier(sid, pri_id_value, ident_type_id, ident_type,
+                    ident_org_id, ident_org, null, pri_id_link));
             }
-
-            if (pri_id_value_lc.StartsWith("not ") || pri_id_value_lc.StartsWith("to be ")
-                                                   || pri_id_value_lc.StartsWith("not-") || pri_id_value_lc.StartsWith("not_")
-                                                   || pri_id_value_lc.StartsWith("notapplic") || pri_id_value_lc.StartsWith("notavail")
-                                                   || pri_id_value_lc.StartsWith("tobealloc") || pri_id_value_lc.StartsWith("tobeapp"))
+            else
             {
-                add_id = false;
-            }
+                // Is a 'sponsor Id' but some special cases need to be considered 
+                // In general a sponsor name is provided but at this stage not an Id
+                // (will mostly be added in the coding process)
 
-            // Rarely, people put the same name in both org and org_study_id fields...
-            // i.e. they put the organisation name in as the identifier value, or vice versa -
-            // as not easy to know which, better not add the potentially false identifier.
-
-            if (pri_id_org is not null
-                && String.Equals(pri_id_value, pri_id_org, StringComparison.CurrentCultureIgnoreCase))
-            {
-                add_id = false;
-            }
-
-            if (add_id)
-            {
-                // use identifier type as a default indicator of type and organisation. This may be changed later
-                // by a detailed examination of the identifier (as many seem to be wrongly classified). At
-                // present only NIH, AHRQ and FDA appear to be used. The default is to assume, in the absence 
-                // of a specified type, that the identifier is a sponsor identifier. The great majority of these
-                // Ids are therefore initially classified as sponsor Ids.
-
-                var (ident_type_id, ident_type, ident_org_id, ident_org) = pri_id_type switch
+                if (string.IsNullOrEmpty(pri_id_org))
                 {
-                    "NIH" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
-                        100134, "National Institutes of Health"),
-                    "FDA" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
-                        108548, "United States Food and Drug Administration"),
-                    "VA" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
-                        100224, "US Department of Veterans Affairs"),
-                    "CDC" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
-                        100245, "Centers for Disease Control and Prevention"),
-                    "AHRQ" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
-                        100407, "Agency for Healthcare Research and Quality"),
-                    "SAMHSA" => new Tuple<int, string, int, string>(13, "Funder / Contract ID",
-                        108270, "Substance Abuse and Mental Health Services Administration"),
-                    _ => new Tuple<int, string, int, string>(14, "Sponsor’s ID", 0, "")
-                };
-
-                if (ident_type_id != 14)
-                {
-                    identifiers.Add(new StudyIdentifier(sid, pri_id_value, ident_type_id, ident_type,
-                        ident_org_id, ident_org, null, pri_id_link));
-                }
-                else
-                {
-                    // Is a 'sponsor Id' but some special cases need to be considered 
-                    // In general a sponsor name is provided but at this stage not an Id
-                    // (will mostly be added in the coding process)
-
-                    if (string.IsNullOrEmpty(pri_id_org))
+                    if (!string.IsNullOrEmpty(sponsor_name))
                     {
-                        if (!string.IsNullOrEmpty(sponsor_name))
-                        {
-                            identifiers.Add(new StudyIdentifier(sid, pri_id_value, 14, "Sponsor’s ID",
-                                null, sponsor_name, null, pri_id_link));
-                        }
-                        else
-                        {
-                            string dummy_org_name = "No organisation name provided in source data";
-                            identifiers.Add(new StudyIdentifier(sid, pri_id_value, 14, "Sponsor’s ID",
-                                12, dummy_org_name, null, pri_id_link));
-                        }
-                    }
-                    else if (pri_id_org == "[Redacted]")
-                    {
-                        string dummy_org_name = "Sponsor name redacted in registry record";
                         identifiers.Add(new StudyIdentifier(sid, pri_id_value, 14, "Sponsor’s ID",
-                            13, dummy_org_name, null, pri_id_link));
+                            null, sponsor_name, null, pri_id_link));
                     }
                     else
                     {
+                        string dummy_org_name = "No organisation name provided in source data";
                         identifiers.Add(new StudyIdentifier(sid, pri_id_value, 14, "Sponsor’s ID",
-                            null, pri_id_org, null, pri_id_link));
+                            12, dummy_org_name, null, pri_id_link));
                     }
+                }
+                else if (pri_id_org == "[Redacted]")
+                {
+                    string dummy_org_name = "Sponsor name redacted in registry record";
+                    identifiers.Add(new StudyIdentifier(sid, pri_id_value, 14, "Sponsor’s ID",
+                        13, dummy_org_name, null, pri_id_link));
+                }
+                else
+                {
+                    identifiers.Add(new StudyIdentifier(sid, pri_id_value, 14, "Sponsor’s ID",
+                        null, pri_id_org, null, pri_id_link));
                 }
             }
         }
@@ -408,28 +373,52 @@ public class CTGProcessor : IStudyProcessor
                 string? sec_id_type = sec_id.type;
                 string? sec_id_link = sec_id.link;
 
-                if (!string.IsNullOrEmpty(sec_id_value))
+                if (sec_id_value.IsNotBlankOrPlaceHolder(sec_id_org))
                 {
                     // Check not already used as the sponsor id (= pri_id_value)
-                    // or is a copy of the NCT Id (it happens!)
 
                     if (!string.IsNullOrEmpty(pri_id_value) &&
                         string.Equals(pri_id_value, sec_id_value, StringComparison.CurrentCultureIgnoreCase))
                     {
                         continue;
                     }
-                    if (sec_id_value == sid)
-                    {
-                        continue;
-                    }
-                    
-                    // In a few cases a secondary id appears to be a different NCT number
-                    // If true, implies a relationship between the two studies rather than
-                    // a 'secondary id'
-                    
-                    //********************************************************************
-                    //********************************************************************
 
+                    if (sec_id_value!.StartsWith("NCT"))
+                    {
+                        // Secondary Ids that are themselves NCT numbers are dealt with separately here.
+                        // First regularise and check NCT form. Non CTG Ids should 'drop through'.
+                        // Most of the CTG Ids are duplicates of the sid and can be ignored.
+                        // On checking the remainder (~30) most appear to be an obsolete
+                        // number, but check against any listed obsolete numbers before adding.
+
+                        if (Regex.Match(sec_id_value, @"[0-9]{8}").Success)
+                        {
+                            sec_id_value = "NCT" + Regex.Match(sec_id_value, @"[0-9]{8}").Value;
+                            if (sec_id_value != sid)
+                            {
+                                bool addAsObsolete = true;
+                                var obsIds = IdentificationModule.nctIdAliases;
+                                if (obsIds?.Any() is true)
+                                {
+                                    foreach (string obsId in obsIds)
+                                    {
+                                        if (obsId == sec_id_value)
+                                        {
+                                            addAsObsolete = false;
+                                        }
+                                    }
+                                }
+                                if (addAsObsolete)
+                                {
+                                    identifiers.Add(new StudyIdentifier(sid, sec_id_value, 44, "Obsolete NCT number",
+                                        100120, "ClinicalTrials.gov", null, null));
+                                }
+                            }
+                            continue;
+                        }
+                    }
+
+                    // Otherwise...
                     // use the 'type' of identifier to provide a baseline categorisation of
                     // the id - though some may be reclassified later after inspection of the 
                     // id or organisation in detail. Note that the bulk of Ids fit into the
@@ -459,12 +448,11 @@ public class CTGProcessor : IStudyProcessor
                         _ => new Tuple<int, string, int?, string?>(1, "No type given in source data", null, sec_id_org)
                     };
 
-                    string? org_lower = sec_id_org?.ToLower();
-                    if (sec_id_org is null || org_lower is "other" or "alias study number")
+                    string? org_lower = ident_org?.ToLower();
+                    if (org_lower is null or "other" or "alias study number")
                     {
-                        identifiers.Add(new StudyIdentifier(sid, sec_id_value,
-                            12, "No organisation name provided in source data",
-                            null, null, null, sec_id_link));
+                        identifiers.Add(new StudyIdentifier(sid, sec_id_value, ident_type_id, ident_type,
+                            12, "No organisation name provided in source data", null, sec_id_link));
                     }
                     else if (org_lower is "company internal" or "sponsor")
                     {
@@ -494,36 +482,45 @@ public class CTGProcessor : IStudyProcessor
                     }
                 }
             }
+        }
+        
+        // and then go through ALL identifiers (including the claimed sponsor Id but excepting
+        // the initial NCT one) to see if they can be better characterised
 
-            // and then go through ALL identifiers (including the claimed sponsor Id but excepting
-            // the initial NCT one) to see if they can be better characterised
-
-            foreach (StudyIdentifier si in identifiers)
+        foreach (StudyIdentifier si in identifiers)
+        {
+            if (si.identifier_value != sid)
             {
-                if (si.identifier_value != sid)
+                IdentifierDetails idd = si.ProcessCTGIdentifier();
+                if (idd.changed)
                 {
-                    IdentifierDetails idd = ctgh.ProcessCTGIdentifier(si);
-                    if (idd.changed)
+                    si.identifier_value = idd.id_value;
+                    si.identifier_type_id = idd.id_type_id;
+                    si.identifier_type = idd.id_type;
+                    si.source_id = idd.id_org_id;
+                    si.source = idd.id_org;
+                }
+                else
+                {  
+                    // If not characterised above at least try to identify any pharma names
+                    
+                    if (si.identifier_type_id == 14 && si.source_id != 12 && si.source_id is null)
                     {
-                        si.identifier_value = idd.id_value;
-                        si.identifier_type_id = idd.id_type_id;
-                        si.identifier_type = idd.id_type;
-                        si.source_id = idd.id_org_id;
-                        si.source = idd.id_org;
+                         si.source = si.source.StandardisePharmaName();
                     }
                 }
             }
+        }
 
-            // Also add any NCT aliases (obsolete Ids).
+        // Also add any NCT aliases (obsolete Ids).
 
-            var obsoleteIds = IdentificationModule.nctIdAliases;
-            if (obsoleteIds?.Any() is true)
+        var obsoleteIds = IdentificationModule.nctIdAliases;
+        if (obsoleteIds?.Any() is true)
+        {
+            foreach (string obsId in obsoleteIds)
             {
-                foreach (string obsId in obsoleteIds)
-                {
-                    identifiers.Add(new StudyIdentifier(sid, obsId, 44, "Obsolete NCT number",
-                        100120, "ClinicalTrials.gov", null, null));
-                }
+                identifiers.Add(new StudyIdentifier(sid, obsId, 44, "Obsolete NCT number",
+                    100120, "ClinicalTrials.gov", null, null));
             }
         }
 
@@ -532,50 +529,40 @@ public class CTGProcessor : IStudyProcessor
         // Study dates
         ///////////////////////////////////////////////////////////////////////////////////////
 
-        SplitDate? first_post = null;
-        SplitDate? results_post = null;
-        SplitDate? update_post = null;
+        SplitDate? first_post_date = null;
+        SplitDate? results_post_date = null;
+        SplitDate? update_post_date = null;
 
-        var FirstPostDate = StatusModule.studyFirstPostDateStruct;
-        string? first_post_type = FirstPostDate?.type;
-        if (first_post_type is "Actual" or "Estimate")
+        var FirstPostDateStruct = StatusModule.studyFirstPostDateStruct;
+        if (FirstPostDateStruct is not null)
         {
-            first_post = FirstPostDate?.date?.GetDatePartsFromISOString();
-            if (first_post is not null && first_post_type == "Estimate")
+            first_post_date = FirstPostDateStruct.date?.GetDatePartsFromISOString();
+            string? first_post_type = FirstPostDateStruct.type;
+            if (first_post_type == "ESTIMATE" && first_post_date is not null)
             {
-                first_post.date_string += " (est.)";
+                 first_post_date.date_string += " (est.)";
             }
         }
 
-        bool results_present = false;
-
-        var ResultsPostDate = StatusModule.resultsFirstPostDateStruct;
-        string? results_type = ResultsPostDate?.type;
-        if (results_type is "Actual" or "Estimate")
+        var ResultsPostDateStruct = StatusModule.resultsFirstPostDateStruct;
+        if (ResultsPostDateStruct is not null)
         {
-            results_post = ResultsPostDate?.date?.GetDatePartsFromISOString();
-            if (results_post is not null && results_type == "Estimate")
+            results_post_date = ResultsPostDateStruct.date?.GetDatePartsFromISOString();
+            string? results_post_type = ResultsPostDateStruct.type;
+            if (results_post_type == "ESTIMATE" && results_post_date is not null)
             {
-                results_post.date_string += " (est.)";
+                results_post_date.date_string += " (est.)";
             }
-
-            // Assumption is that if results are available the results post
-            // must be present with an actual or estimated (not anticipated) date.
-
-            results_present = true;
         }
 
-        var LastUpdateDate = StatusModule.lastUpdatePostDateStruct;
-        if (LastUpdateDate is not null)
+        var LastUpdateDateStruct = StatusModule.lastUpdatePostDateStruct;
+        if (LastUpdateDateStruct is not null)
         {
-            string? update_type = LastUpdateDate.type;
-            if (update_type is "Actual" or "Estimate")
+            update_post_date = LastUpdateDateStruct.date?.GetDatePartsFromISOString();
+            string? update_post_type = LastUpdateDateStruct.type;
+            if (update_post_type == "ESTIMATE" && update_post_date is not null)
             {
-                update_post = LastUpdateDate.date?.GetDatePartsFromISOString();
-                if (update_post is not null && update_type == "Estimate")
-                {
-                    update_post.date_string += " (est.)";
-                }
+                update_post_date.date_string += " (est.)";
             }
         }
 
@@ -609,7 +596,7 @@ public class CTGProcessor : IStudyProcessor
         // Study status
         ///////////////////////////////////////////////////////////////////////////////////////
 
-        s.study_status = StatusModule.overallStatus;
+        s.study_status = StatusModule.overallStatus.GetCTGStatusString();
         s.study_status_id = s.study_status.GetStatusId();
         string? status_verified_date = StatusModule.statusVerifiedDate;
 
@@ -620,7 +607,7 @@ public class CTGProcessor : IStudyProcessor
 
         if (DescriptionModule is not null)
         {
-            s.brief_description = DescriptionModule.briefSummary.FullClean(); // need to remove \\ sequences
+            s.brief_description = DescriptionModule.briefSummary.FullClean(); 
         }
 
 
@@ -662,25 +649,17 @@ public class CTGProcessor : IStudyProcessor
             }
         }
 
-
         var keywords = ConditionsModule?.keywords;
         if (keywords?.Any() is true)
         {
             foreach (string keyword in keywords)
             {
-                // Regularise drug name
-                string k_word = keyword; // need to do this indirectly as cannot alter the foreach variable
-                if (k_word.Contains(((char)174).ToString()))
-                {
-                    // add to CleanLine?
-
-                    k_word = k_word.Replace(((char)174).ToString(), ""); // drop reg mark
-                    k_word = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(k_word.ToLower());
-                }
-
-                // only add the keyword if not already present in the topics or conditions
-
-                if (topic_is_new(k_word) && condition_is_new(k_word))
+                // Regularise drug name and then only add the keyword
+                // if not already present in the topics or conditions.
+                // Do indirectly as cannot alter the foreach variable.
+                
+                string? k_word = keyword.LineClean().Capitalised(TI);  
+                if (!string.IsNullOrEmpty(k_word) && topic_is_new(k_word) && condition_is_new(k_word))
                 {
                     topics.Add(new StudyTopic(sid, 11, "keyword", k_word));
                 }
@@ -714,6 +693,34 @@ public class CTGProcessor : IStudyProcessor
 
             return true;
         }
+        
+        // Finally filter both topics and conditions to remove 'non-informative' terms
+
+        if (conditions.Any())
+        {
+            List<StudyCondition> c2 = new ();
+            foreach (StudyCondition c in conditions)
+            {
+                if (c.original_value.IsUsefulTopic())
+                {
+                    c2.Add(c);
+                }
+            }
+            conditions = c2;
+        }
+        
+        if (topics.Any())
+        {
+            List<StudyTopic> t2 = new();
+            foreach (StudyTopic t in topics)
+            {
+                if (t.original_value.IsUsefulTopic())
+                {
+                    t2.Add(t);
+                }
+            }
+            topics = t2;
+        }
 
         ///////////////////////////////////////////////////////////////////////////////////////
         // Study design
@@ -721,7 +728,7 @@ public class CTGProcessor : IStudyProcessor
 
         if (DesignModule is not null)
         {
-            s.study_type = DesignModule.studyType;
+            s.study_type = DesignModule.studyType.GetCTGTypeString();
             s.study_type_id = s.study_type.GetTypeId();
 
             if (s.study_type == "Interventional")
@@ -731,40 +738,48 @@ public class CTGProcessor : IStudyProcessor
                 {
                     foreach (string phase in Phaselist)
                     {
-                        features.Add(new StudyFeature(sid, 20, "phase", phase.GetPhaseId(), phase));
+                        string? p = phase.GetCTGPhaseString();
+                        if (!string.IsNullOrEmpty(p))
+                        {
+                            features.Add(new StudyFeature(sid, 20, "Phase", p.GetPhaseId(), p));
+                        }
                     }
                 }
-                else
-                {
-                    string phase = "Not provided";
-                    features.Add(new StudyFeature(sid, 20, "phase", phase.GetPhaseId(), phase));
-                }
-
 
                 var design_info = DesignModule.designInfo;
                 if (design_info is not null)
                 {
-                    string design_allocation = design_info.allocation ?? "Not provided";
-                    features.Add(new StudyFeature(sid, 22, "allocation type",
-                        design_allocation.GetAllocationTypeId(), design_allocation));
-
-                    string design_intervention_model = design_info.interventionModel ?? "Not provided";
-                    features.Add(new StudyFeature(sid, 23, "intervention model",
-                        design_intervention_model.GetDesignTypeId(), design_intervention_model));
-
-                    string design_primary_purpose = design_info.primaryPurpose ?? "Not provided";
-                    features.Add(new StudyFeature(sid, 21, "primary purpose",
-                        design_primary_purpose.GetPrimaryPurposeId(), design_primary_purpose));
-
-                    var masking_details = design_info.maskingInfo;
-                    string design_masking = "Not provided"; // default value             
-                    if (masking_details != null)
+                    string? design_allocation = design_info.allocation?.GetCTGAllocationTypeString();
+                    if (!string.IsNullOrEmpty(design_allocation))
                     {
-                        design_masking = masking_details.masking ?? "Not provided";
+                        features.Add(new StudyFeature(sid, 22, "Allocation type",
+                            design_allocation.GetAllocationTypeId(), design_allocation));
                     }
 
-                    features.Add(new StudyFeature(sid, 24, "masking", design_masking.GetMaskingTypeId(),
-                        design_masking));
+                    string? design_intervention_model = design_info.interventionModel?.GetCTGInterventionTypeString();
+                    if (!string.IsNullOrEmpty(design_intervention_model))
+                    {
+                        features.Add(new StudyFeature(sid, 23, "Intervention model",
+                            design_intervention_model.GetDesignTypeId(), design_intervention_model));
+                    }
+
+                    string? design_primary_purpose = design_info.primaryPurpose?.GetCTGPrimaryPurposeString();
+                    if (!string.IsNullOrEmpty(design_primary_purpose))
+                    {
+                        features.Add(new StudyFeature(sid, 21, "Primary purpose",
+                            design_primary_purpose.GetPrimaryPurposeId(), design_primary_purpose));
+                    }
+
+                    var masking_details = design_info.maskingInfo;
+                    if (masking_details != null)
+                    {
+                        string? design_masking = masking_details.masking?.GetCTGMaskingTypeString();
+                        if (!string.IsNullOrEmpty(design_masking))
+                        {
+                            features.Add(new StudyFeature(sid, 24, "Masking", design_masking.GetMaskingTypeId(),
+                                                    design_masking));
+                        }
+                    }
                 }
             }
 
@@ -781,29 +796,17 @@ public class CTGProcessor : IStudyProcessor
                 var design_info = DesignModule.designInfo;
                 if (design_info is not null)
                 {
-                    var obs_model = design_info.observationalModel;
-                    if (obs_model is not null)
+                    string? obs_model = design_info.observationalModel?.GetCTGObsModelTypeString();
+                    if (!string.IsNullOrEmpty(obs_model))
                     {
-                        features.Add(new StudyFeature(sid, 30, "observational model",
+                        features.Add(new StudyFeature(sid, 30, "Observational model",
                             obs_model.GetObsModelTypeId(), obs_model));
                     }
-                    else
+                    
+                    string? time_persp = design_info.timePerspective?.GetCTGTimePerspectiveString();
+                    if (!string.IsNullOrEmpty(time_persp))
                     {
-                        obs_model = "Not provided";
-                        features.Add(new StudyFeature(sid, 30, "observational model",
-                            obs_model.GetObsModelTypeId(), obs_model));
-                    }
-
-                    var time_persp = design_info.timePerspective;
-                    if (time_persp is not null)
-                    {
-                        features.Add(new StudyFeature(sid, 31, "time perspective",
-                            time_persp.GetTimePerspectiveId(), time_persp));
-                    }
-                    else
-                    {
-                        time_persp = "Not provided";
-                        features.Add(new StudyFeature(sid, 31, "time perspective",
+                        features.Add(new StudyFeature(sid, 31, "Time perspective",
                             time_persp.GetTimePerspectiveId(), time_persp));
                     }
                 }
@@ -811,10 +814,12 @@ public class CTGProcessor : IStudyProcessor
                 var biospec_details = DesignModule.bioSpec;
                 if (biospec_details is not null)
                 {
-                    // add - description?
-                    string biospecs = biospec_details.retention ?? "Not provided";
-                    features.Add(new StudyFeature(sid, 32, "biospecimens retained",
-                        biospecs.GetSpecimenRetentionId(), biospecs));
+                    string? biospecs = biospec_details.retention?.GetCTGSpecimenRetentionString();
+                    if (!string.IsNullOrEmpty(biospecs))
+                    {
+                        features.Add(new StudyFeature(sid, 32, "Biospecimens retained",
+                            biospecs.GetSpecimenRetentionId(), biospecs));
+                    }
                 }
             }
 
@@ -842,12 +847,11 @@ public class CTGProcessor : IStudyProcessor
 
         if (EligibilityModule is not null)
         {
-            s.study_gender_elig = EligibilityModule.sex ?? "Not provided";
+            s.study_gender_elig = EligibilityModule.sex.Capitalised(TI) ?? "Not provided";
             if (s.study_gender_elig == "All")
             {
                 s.study_gender_elig = "Both";
             }
-
             s.study_gender_elig_id = s.study_gender_elig.GetGenderEligId();
 
             string? min_age = EligibilityModule.minimumAge;
@@ -1078,12 +1082,11 @@ public class CTGProcessor : IStudyProcessor
 
                     string? city = location.city;
                     string? country = location.country;
-                    string? status = location.status;
+                    string? status = location.status.Capitalised(TI);
                     int? status_id = string.IsNullOrEmpty(status) ? null : status.GetStatusId();
                     sites.Add(new StudyLocation(sid, facility, city, country, status_id, status));
                 }
             }
-
 
             // derive distinct countries from sites
 
@@ -1109,7 +1112,6 @@ public class CTGProcessor : IStudyProcessor
                                     break;
                                 }
                             }
-
                             if (add_country)
                             {
                                 countries.Add(new StudyCountry(sid, st.country_name!));
@@ -1132,8 +1134,7 @@ public class CTGProcessor : IStudyProcessor
 
             if (IPDSharing is not null)
             {
-                sharing_statement = "IPD Sharing: " + IPDSharing.FullClean() + " (as of " + status_verified_date +
-                                    ")";
+                sharing_statement = "IPD Sharing: " + IPDSharing.Capitalised(TI);
             }
 
             string? IPDSharingDescription = IPDSharingModule.description;
@@ -1164,11 +1165,16 @@ public class CTGProcessor : IStudyProcessor
                 if (other_info_types?.Any() is true)
                 {
                     string itemList =
-                        other_info_types.Aggregate("", (current, info_type) => current + ", " + info_type);
+                        other_info_types.Aggregate("", (current, info_type) => current + ", " + info_type.Capitalised(TI));
                     sharing_statement += "\nAdditional information available: " + itemList[1..].FullClean();
                 }
             }
-
+            
+            if (sharing_statement != "")
+            {
+                sharing_statement += " (as of " + status_verified_date.StandardiseCTGDateString() + ")";
+            }
+  
             // put data reference at end ?
             s.data_sharing_statement = sharing_statement;
         }
@@ -1203,8 +1209,10 @@ public class CTGProcessor : IStudyProcessor
             "proposal to Servier after registering on the site. If the request is approved and before the transfer of data, ";
         servier_access_details += "a so-called Data Sharing Agreement will have to be signed with Servier";
 
-        // Set up initial registry entry data objects.
-        // First establish base for title.
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Initial Registry Entry
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         if (brief_title is not null)
         {
@@ -1237,53 +1245,56 @@ public class CTGProcessor : IStudyProcessor
 
         string sd_oid = sid + " :: 13 :: " + object_title;
 
-        data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, first_post?.year,
+        data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, first_post_date?.year,
             23, "Text", 13, "Trial Registry entry", 100120,
             "ClinicalTrials.gov", 12, download_datetime));
 
         object_titles.Add(new ObjectTitle(sd_oid, object_display_title, title_type_id, title_type, true));
 
-        if (first_post is not null)
+        if (first_post_date is not null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 12, "Available",
-                first_post.year, first_post.month, first_post.day, first_post.date_string));
+                first_post_date.year, first_post_date.month, first_post_date.day, first_post_date.date_string));
         }
 
-        if (update_post is not null)
+        if (update_post_date is not null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 18, "Updated",
-                update_post.year, update_post.month, update_post.day, update_post.date_string));
+                update_post_date.year, update_post_date.month, update_post_date.day, update_post_date.date_string));
         }
 
         string url = "https://clinicaltrials.gov/ct2/show/study/" + sid;
         object_instances.Add(new ObjectInstance(sd_oid, 100120, "ClinicalTrials.gov", url, true,
             39, "Web text with XML or JSON via API"));
 
-        // If present, set up results data object, with title, dates and instance.
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Results Data
+        ///////////////////////////////////////////////////////////////////////////////////////
 
-        if (results_present)
+        if (results_present == true)
         {
             object_title = "CTG results entry";
             object_display_title = title_base + " :: CTG results entry";
             sd_oid = sid + " :: 28 :: " + object_title;
 
-            data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_post?.year,
+            data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_post_date?.year,
                 23, "Text", 28, "Trial registry results summary", 100120,
                 "ClinicalTrials.gov", 12, download_datetime));
 
             object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
                 title_type_id, title_type, true));
 
-            if (results_post is not null)
+            if (results_post_date is not null)
             {
                 object_dates.Add(new ObjectDate(sd_oid, 12, "Available",
-                    results_post.year, results_post.month, results_post.day, results_post.date_string));
+                    results_post_date.year, results_post_date.month, results_post_date.day, results_post_date.date_string));
             }
 
-            if (update_post is not null)
+            if (update_post_date is not null)
             {
                 object_dates.Add(new ObjectDate(sd_oid, 18, "Updated",
-                    update_post.year, update_post.month, update_post.day, update_post.date_string));
+                    update_post_date.year, update_post_date.month, update_post_date.day, update_post_date.date_string));
             }
 
             url = "https://clinicaltrials.gov/ct2/show/results/" + sid;
@@ -1292,6 +1303,10 @@ public class CTGProcessor : IStudyProcessor
         }
 
 
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Large Documents
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         if (LargeDocumentModule is not null)
         {
             var large_docs = LargeDocumentModule.largeDocs;
@@ -1393,6 +1408,10 @@ public class CTGProcessor : IStudyProcessor
             }
         }
 
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // References
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         if (ReferencesModule != null)
         {
@@ -1406,11 +1425,14 @@ public class CTGProcessor : IStudyProcessor
                 foreach (var refce in refs)
                 {
                     string? ref_type = refce.type;
-                    if (ref_type is "result" or "derived")
+                    if (ref_type is "RESULT" or "DERIVED")
                     {
+                        int type_id = ref_type == "RESULT" ? 202 : 12;
+                        string type = ref_type == "RESULT" ? "Journal article - results" 
+                                                           : "Journal article - unspecified";
                         string? pmid = refce.pmid;
                         string? citation = refce.citation.LineClean();
-                        references.Add(new StudyReference(sid, pmid, citation, null, null));
+                        references.Add(new StudyReference(sid, pmid, citation, null, type_id, type, null));
                     }
 
                     var rets = refce.retractions;
@@ -1427,7 +1449,10 @@ public class CTGProcessor : IStudyProcessor
                 }
             }
 
-
+            ///////////////////////////////////////////////////////////////////////////////////////
+            // Available IPD
+            ///////////////////////////////////////////////////////////////////////////////////////
+            
             // some of the available ipd may be transformable into data objects available, either
             // directly or after review of requests
             // Others will need to be stored as records for future processing
@@ -2051,6 +2076,8 @@ public class CTGProcessor : IStudyProcessor
                 string? full_name = p.person_full_name?.ToLower();
                 if (full_name is not null && !full_name.AppearsGenuinePersonName())
                 {
+                    // If not a person is it an organisation?
+                    
                     string? organisation_name = p.person_full_name.TidyOrgName(sid);
                     if (organisation_name is not null)
                     {
@@ -2059,7 +2086,6 @@ public class CTGProcessor : IStudyProcessor
                         add = false;
                     }
                 }
-
                 if (add)
                 {
                     people2.Add(p);
@@ -2076,6 +2102,8 @@ public class CTGProcessor : IStudyProcessor
                 string? org_name = g.organisation_name?.ToLower();
                 if (org_name is not null && !org_name.AppearsGenuineOrgName())
                 {
+                    // If not an organisation is it a person?
+                    
                     string? person_full_name = g.organisation_name.TidyPersonName();
                     if (person_full_name is not null)
                     {
@@ -2084,7 +2112,6 @@ public class CTGProcessor : IStudyProcessor
                         add = false;
                     }
                 }
-
                 if (add)
                 {
                     orgs2.Add(g);

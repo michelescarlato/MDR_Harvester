@@ -1,4 +1,6 @@
 ﻿
+using System.Globalization;
+
 namespace MDR_Harvester.Extensions;
 
 public static class StringHelpers
@@ -86,6 +88,14 @@ public static class StringHelpers
         // replace combination sometimes used to denote an 'unprintable character'
         
         output_string = output_string.Replace("â??", "");
+        
+        // replace 'double escape' sequence now found in some CTG text
+        
+        output_string = output_string.Replace("\\", "");
+        
+        // Drop this 'special' symbol
+        
+        output_string = output_string.Replace(((char)174).ToString(), ""); // reg mark
         
         return output_string;
     }
@@ -375,6 +385,26 @@ public static class StringHelpers
 
     }
 
+    public static string? Capitalised(this string? input, TextInfo TI )
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return null;
+        }
+        string output_string = TI.ToTitleCase(input.Trim().ToLower());
+        
+        // At present normally expecting a single word rather than a phrase
+        // But some small words may be included in the string (e.g. in a keyword phrase)
+
+        if (output_string.Contains(' '))
+        {
+            output_string = output_string.Replace(" And ", " and ").Replace(" The ", " the ");
+            output_string = output_string.Replace(" Of", " of ").Replace(" To ", " to ");
+            output_string = output_string.Replace(" In ", " in ").Replace(" On ", " on ");
+            output_string = output_string.Replace(" For ", " for ");
+        }
+        return output_string.Replace("_", " ");  
+    }
 
     public static string? TidyORCIDId(this string? input_identifier)
     {
@@ -382,24 +412,23 @@ public static class StringHelpers
         {
             return null;
         }
-        else
+
+        string identifier = input_identifier.Replace("https://orcid.org/", "");
+        identifier = identifier.Replace("http://orcid.org/", "");
+        identifier = identifier.Replace("/", "-");
+        identifier = identifier.Replace(" ", "-");
+
+        if (identifier.Length == 16)
         {
-            string identifier = input_identifier.Replace("https://orcid.org/", "");
-            identifier = identifier.Replace("http://orcid.org/", "");
-            identifier = identifier.Replace("/", "-");
-            identifier = identifier.Replace(" ", "-");
-
-            if (identifier.Length == 16)
-            {
-                identifier = identifier.Substring(0, 4) + "-" + identifier.Substring(4, 4) +
-                             "-" + identifier.Substring(8, 4) + "-" + identifier.Substring(12, 4);
-            }
-
-            if (identifier.Length == 15) identifier = "0000" + identifier;
-            if (identifier.Length == 14) identifier = "0000-" + identifier;
-
-            return identifier;
+            identifier = identifier.Substring(0, 4) + "-" + identifier.Substring(4, 4) +
+                         "-" + identifier.Substring(8, 4) + "-" + identifier.Substring(12, 4);
         }
+
+        if (identifier.Length == 15) identifier = "0000" + identifier;
+        if (identifier.Length == 14) identifier = "0000-" + identifier;
+
+        return identifier;
+
     }
 
     
@@ -430,9 +459,17 @@ public static class StringHelpers
             return null;
         }
         
-        // Trim any odd' characters
+        // Trim any odd' characters and remove any 'The ' prefix    
+        
         name = name.Trim(',', '-', '*', ';', ' ');
-
+        if (name.ToLower().StartsWith("the "))
+        {
+            if (name.Length > 4 && name.Split().Length > 2)
+            {
+                name = name[4..];
+            }
+        }
+        
         // try and deal with possible ambiguities (organisations with genuinely the same name)
 
         string nLower = name.ToLower();
