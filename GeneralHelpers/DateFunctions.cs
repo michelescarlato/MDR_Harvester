@@ -196,6 +196,30 @@ public static class DateStringExtensions
         SplitDate? SD = inputDate.GetDatePartsFromISOString();
         return SD?.date_string;
     }
+    
+    
+    public static string? MonthYearDateString(this string? inputDate)
+    {
+        if (string.IsNullOrEmpty(inputDate))
+        {
+            return null;
+        }
+        SplitDate? SD = inputDate.GetDatePartsFromISOString();
+        if (SD is null)
+        {
+            return null;
+        }
+        string? month_year;
+        if (SD.month is not null && SD.month != 0)
+        {
+            month_year = (MonthsFull)SD.month + " " + (SD.year?.ToString() ?? "");
+        }
+        else
+        {
+            month_year = SD.year?.ToString();
+        }
+        return month_year;
+    }
 
 
     private static int GetMonthAsInt(string month_name)

@@ -121,17 +121,18 @@ public class CTGProcessor : IStudyProcessor
         string? brief_title = IdentificationModule.briefTitle?.LineClean();
         string? official_title = IdentificationModule.officialTitle?.LineClean();
         string? acronym = IdentificationModule.acronym?.Trim();
-
+        const string title_source = "From ClinicalTrials.gov";
+        
         if (!string.IsNullOrEmpty(brief_title))
         {
-            titles.Add(new StudyTitle(sid, brief_title, 15, "Registry public title", true, "From Clinicaltrials.gov"));
+            titles.Add(new StudyTitle(sid, brief_title, 15, "Registry public title", true, title_source));
             s.display_title = brief_title;
 
             if (!string.IsNullOrEmpty(official_title)
                 && !string.Equals(official_title, brief_title, StringComparison.CurrentCultureIgnoreCase))
             {
                 titles.Add(new StudyTitle(sid, official_title, 16, "Registry scientific title", false,
-                    "From Clinicaltrials.gov"));
+                    title_source));
             }
 
             if (!string.IsNullOrEmpty(acronym) && !string.IsNullOrEmpty(official_title)
@@ -141,7 +142,7 @@ public class CTGProcessor : IStudyProcessor
                                                    StringComparison.CurrentCultureIgnoreCase))
             {
                 titles.Add(
-                    new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, "From Clinicaltrials.gov"));
+                    new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, title_source));
             }
         }
         else
@@ -150,22 +151,20 @@ public class CTGProcessor : IStudyProcessor
 
             if (!string.IsNullOrEmpty(official_title))
             {
-                titles.Add(new StudyTitle(sid, official_title, 16, "Registry scientific title", true,
-                    "From Clinicaltrials.gov"));
+                titles.Add(new StudyTitle(sid, official_title, 16, "Registry scientific title", true, title_source));
                 s.display_title = official_title;
 
-                if (!string.IsNullOrEmpty(acronym) && acronym.ToLower() != official_title.ToLower())
+                if (!string.IsNullOrEmpty(acronym) 
+                    && !string.Equals(acronym, official_title, StringComparison.CurrentCultureIgnoreCase))
                 {
-                    titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false,
-                        "From Clinicaltrials.gov"));
+                    titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, title_source));
                 }
             }
             else
             {
                 // Only an acronym present (very rare).
 
-                titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", true,
-                    "From Clinicaltrials.gov"));
+                titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", true, title_source));
                 s.display_title = acronym;
             }
         }
@@ -538,7 +537,7 @@ public class CTGProcessor : IStudyProcessor
         {
             first_post_date = FirstPostDateStruct.date?.GetDatePartsFromISOString();
             string? first_post_type = FirstPostDateStruct.type;
-            if (first_post_type == "ESTIMATE" && first_post_date is not null)
+            if (first_post_type == "ESTIMATED" && first_post_date is not null)
             {
                  first_post_date.date_string += " (est.)";
             }
@@ -549,7 +548,7 @@ public class CTGProcessor : IStudyProcessor
         {
             results_post_date = ResultsPostDateStruct.date?.GetDatePartsFromISOString();
             string? results_post_type = ResultsPostDateStruct.type;
-            if (results_post_type == "ESTIMATE" && results_post_date is not null)
+            if (results_post_type == "ESTIMATED" && results_post_date is not null)
             {
                 results_post_date.date_string += " (est.)";
             }
@@ -615,13 +614,15 @@ public class CTGProcessor : IStudyProcessor
         // Topics and Conditions
         ///////////////////////////////////////////////////////////////////////////////////////
 
+        // Order is from most informative to least, to maximise info for duplicate entries
+        
         var browser_conds = ConditionBrowseModule?.meshes;
         if (browser_conds?.Any() is true)
         {
             foreach (var con in browser_conds)
             {
                 string? mesh_code = con.id;
-                string? mesh_term = con.term;
+                string? mesh_term = con.term.CapFirstLetter();
                 conditions.Add(new StudyCondition(sid, mesh_term, 14, "MeSH", mesh_code));
             }
         }
@@ -633,7 +634,7 @@ public class CTGProcessor : IStudyProcessor
             {
                 if (condition_is_new(condition)) // only add the condition name if not already present.
                 {
-                    conditions.Add(new StudyCondition(sid, condition));
+                    conditions.Add(new StudyCondition(sid, condition.CapFirstLetter()));
                 }
             }
         }
@@ -644,7 +645,7 @@ public class CTGProcessor : IStudyProcessor
             foreach (var interv in interventions)
             {
                 string? mesh_code = interv.id;
-                string? mesh_term = interv.term;
+                string? mesh_term = interv.term.CapFirstLetter();
                 topics.Add(new StudyTopic(sid, 12, "chemical / agent", mesh_code, mesh_term));
             }
         }
@@ -658,7 +659,7 @@ public class CTGProcessor : IStudyProcessor
                 // if not already present in the topics or conditions.
                 // Do indirectly as cannot alter the foreach variable.
                 
-                string? k_word = keyword.LineClean().Capitalised(TI);  
+                string? k_word = keyword.LineClean().CapFirstLetter();;  
                 if (!string.IsNullOrEmpty(k_word) && topic_is_new(k_word) && condition_is_new(k_word))
                 {
                     topics.Add(new StudyTopic(sid, 11, "keyword", k_word));
@@ -893,10 +894,9 @@ public class CTGProcessor : IStudyProcessor
             ///////////////////////////////////////////////////////////////////////////////////////
 
             int study_iec_type = 0;
-            string? elig_statement = EligibilityModule.eligibilityCriteria;
+            string? elig_statement = EligibilityModule.eligibilityCriteria.FullClean();
             if (elig_statement is not null)
             {
-                elig_statement.FullClean();
                 string elig_low = elig_statement.ToLower();
                 if (elig_low.Contains("inclusion") && elig_low.Contains("exclusion"))
                 {
@@ -1055,28 +1055,23 @@ public class CTGProcessor : IStudyProcessor
             {
                 foreach (var location in locations)
                 {
-                    string? facility = null;
-                    string? fac = location.facility?.LineClean();
+                    string? fac = location.facility?.TidyOrgName(sid);
                     if (fac is not null)
                     {
                         // Common abbreviations used within CGT site descriptors
 
-                        facility = fac.Replace(".", "");
-                        facility = facility.Replace("Med ", "Medical ");
-                        facility = facility.Replace("Gen ", "General ");
-                        if (facility.EndsWith(" Univ") || facility.Contains("Univ "))
+                        fac = fac.Replace("Med ", "Medical ").Replace("Gen ", "General ");
+                        if (fac.EndsWith(" Univ") || fac.Contains("Univ "))
                         {
-                            facility = facility.Replace("Univ", "University");
+                            fac = fac.Replace("Univ", "University");
                         }
-
-                        if (facility.EndsWith(" Ctr") || facility.Contains("Ctr "))
+                        if (fac.EndsWith(" Ctr") || fac.Contains("Ctr "))
                         {
-                            facility = facility.Replace("Ctr", "Center"); // N.r. US spelling
+                            fac = fac.Replace("Ctr", "Center"); // N.B. US spelling
                         }
-
-                        if (facility.EndsWith(" Hosp") || facility.Contains("Hosp "))
+                        if (fac.EndsWith(" Hosp") || fac.Contains("Hosp "))
                         {
-                            facility = facility.Replace("Hosp", "Hospital"); // N.r. US spelling
+                            fac = fac.Replace("Hosp", "Hospital"); 
                         }
                     }
 
@@ -1084,7 +1079,7 @@ public class CTGProcessor : IStudyProcessor
                     string? country = location.country;
                     string? status = location.status.Capitalised(TI);
                     int? status_id = string.IsNullOrEmpty(status) ? null : status.GetStatusId();
-                    sites.Add(new StudyLocation(sid, facility, city, country, status_id, status));
+                    sites.Add(new StudyLocation(sid, fac, city, country, status_id, status));
                 }
             }
 
@@ -1134,7 +1129,9 @@ public class CTGProcessor : IStudyProcessor
 
             if (IPDSharing is not null)
             {
-                sharing_statement = "IPD Sharing: " + IPDSharing.Capitalised(TI);
+                string? month_year = status_verified_date.MonthYearDateString();
+                string as_of_date = month_year is null ? " (not dated)" : " (as of " + month_year + ")";
+                sharing_statement = "IPD Sharing" + as_of_date + ": " + IPDSharing.Capitalised(TI);
             }
 
             string? IPDSharingDescription = IPDSharingModule.description;
@@ -1170,10 +1167,6 @@ public class CTGProcessor : IStudyProcessor
                 }
             }
             
-            if (sharing_statement != "")
-            {
-                sharing_statement += " (as of " + status_verified_date.StandardiseCTGDateString() + ")";
-            }
   
             // put data reference at end ?
             s.data_sharing_statement = sharing_statement;
@@ -1263,7 +1256,7 @@ public class CTGProcessor : IStudyProcessor
                 update_post_date.year, update_post_date.month, update_post_date.day, update_post_date.date_string));
         }
 
-        string url = "https://clinicaltrials.gov/ct2/show/study/" + sid;
+        string url = "https://ClinicalTrials.gov/study/" + sid;
         object_instances.Add(new ObjectInstance(sd_oid, 100120, "ClinicalTrials.gov", url, true,
             39, "Web text with XML or JSON via API"));
 
@@ -1297,7 +1290,7 @@ public class CTGProcessor : IStudyProcessor
                     update_post_date.year, update_post_date.month, update_post_date.day, update_post_date.date_string));
             }
 
-            url = "https://clinicaltrials.gov/ct2/show/results/" + sid;
+            url = "https://ClinicalTrials.gov/study/" + sid + "?tab=results";
             object_instances.Add(new ObjectInstance(sd_oid, 100120, "ClinicalTrials.gov", url, true,
                 39, "Web text with XML or JSON via API"));
         }
@@ -1399,8 +1392,9 @@ public class CTGProcessor : IStudyProcessor
                             object_dates.Add(new ObjectDate(sd_oid, 12, "Available",
                                 uploaddate?.year, uploaddate?.month, uploaddate?.day, uploaddate?.date_string));
                         }
-
-                        url = "https://clinicaltrials.gov/ProvidedDocs/" + sid[^2..] + "/" + sid + "/" + file_name;
+                        
+                        url = "https://storage.googleapis.com/ctgov2-large-docs/" + sid[^2..] + "/" 
+                              + sid + "/" + file_name;
                         object_instances.Add(new ObjectInstance(sd_oid, 100120, "ClinicalTrials.gov", url, true, 11,
                             "PDF"));
                     }
@@ -1745,7 +1739,7 @@ public class CTGProcessor : IStudyProcessor
                         {
                             "study protocol" => new Tuple<int, string>(11, "Study protocol"),
                             "individual participant data set" => new Tuple<int, string>(80,
-                                "Statistical analysis plan"),
+                                "Individual participant data"),
                             "clinical study report" => new Tuple<int, string>(26, "Clinical study report"),
                             "informed consent form" => new Tuple<int, string>(18, "Informed consent forms"),
                             "study forms" => new Tuple<int, string>(21, "Data collection forms"),
@@ -1794,11 +1788,11 @@ public class CTGProcessor : IStudyProcessor
                             int next_num = CheckObjectName(object_titles, object_display_title);
                             if (next_num > 0)
                             {
-                                object_display_title += "_" + next_num.ToString();
+                                object_display_title += "_" + next_num;
                             }
 
                             object_title = object_display_title.Substring(title_base.Length + 4);
-                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                            sd_oid = sid + " :: " + object_type_id + " :: " + object_title;
 
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null,
                                 object_class_id, object_class, object_type_id, object_type, null, sponsor_name,

@@ -406,6 +406,11 @@ public static class StringHelpers
         return output_string.Replace("_", " ");  
     }
 
+    public static string? CapFirstLetter(this string? input)
+    {
+        return string.IsNullOrEmpty(input) ? null : char.ToUpper(input[0]) + input[1..];
+    }
+
     public static string? TidyORCIDId(this string? input_identifier)
     {
         if (string.IsNullOrEmpty(input_identifier))
