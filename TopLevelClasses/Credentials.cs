@@ -36,7 +36,8 @@ public class Credentials : ICredentials
             Username = _username,
             Password = _password,
             Port = _port,
-            Database = database_name
+            Database = database_name,
+            KeepAlive = 300
         };
         return builder.ConnectionString;
     }

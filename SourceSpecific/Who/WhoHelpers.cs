@@ -1,10 +1,11 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace MDR_Harvester.Who;
 
-internal class WhoHelpers
+internal static class WhoHelpers
 {
-    internal string? GetSourceName(int? source_id)
+    internal static string? GetSourceName(this int? source_id)
     {
         if (!source_id.HasValue)
         {
@@ -31,9 +32,9 @@ internal class WhoHelpers
             100130 => "Sri Lanka Clinical Trials Registry",
             100131 => "Thai Clinical Trials Register",
             100132 => "Netherlands National Trial Register",
-            101989 => "Lebanon Clinical Trials Registry",
+            101989 => "Lebanon Clinical Trial Registry",
             104545 => "Chinese Medicine Clinical Trials Registry",
-            109108 => "International Traditional Medicine Clinical Trials Registry",
+            109108 => "International Traditional Medicine Clinical Trial Registry",
             102000 => "Anvisa (Brazil)",
             102001 => "Comitê de Ética em Pesquisa (local) (Brazil)",
             _ => null
@@ -41,7 +42,7 @@ internal class WhoHelpers
     }
 
 
-    internal string? GetRegistryPrefix(int? source_id)
+    internal static string? GetRegistryPrefix(this int? source_id)
     {
         // Used for WHO registries only
         
@@ -73,7 +74,7 @@ internal class WhoHelpers
     }
     
 
-    internal StudyIdentifier TryToGetANZIdentifier(string sid, string processed_id, 
+    internal static StudyIdentifier TryToGetANZIdentifier(this string sid, string processed_id, 
                                                    bool? sponsor_is_org, string sponsor_name)
     {
         // australian nz identifiers
@@ -336,7 +337,7 @@ internal class WhoHelpers
     }
 
 
-    internal StudyIdentifier? TryToGetChineseIdentifier(string sid, string processed_id, 
+    internal static StudyIdentifier? TryToGetChineseIdentifier(this string sid, string processed_id, 
                                                         bool? sponsor_is_org, string sponsor_name)
     {
         if (processed_id.EndsWith("#32"))    // first ignore these (small sub group)
@@ -363,7 +364,7 @@ internal class WhoHelpers
     }
 
 
-    internal StudyIdentifier TryToGetJapaneseIdentifier(string sid, string processed_id, 
+    internal static StudyIdentifier TryToGetJapaneseIdentifier(this string sid, string processed_id, 
                                                         bool? sponsor_is_org, string sponsor_name)
     {
         if (processed_id.StartsWith("JapicCTI"))
@@ -390,7 +391,48 @@ internal class WhoHelpers
     }
     
     
-    internal StudyIdentifier? TryToGetDutchIdentifier(string sid, string processed_id, 
+    internal static List<string> SplitNTRIdString(this string input_string, string splitter)
+    {
+        List<string> possible_ids = new();
+        string[] sections = input_string.Split(splitter);
+        if (sections.Length == 2)
+        {
+            sections[0] = sections[0].Trim('(', ')', ' ');
+            if (sections[0].ToLower() != "ccmo" && sections[0].ToLower() != "abr")
+            {
+                possible_ids.Add(sections[0].Trim());
+            }
+            sections[1] = sections[1].Trim('(', ')', ' ');
+            if (sections[1].ToLower() != "ccmo" && sections[1].ToLower() != "abr")
+            {
+                possible_ids.Add(sections[1].Trim());
+            }
+        }
+        else if (sections.Length == 3 && sections[1].Contains(':'))
+        {
+            int colon_pos = sections[1].IndexOf(':');
+            string part_1 = sections[0] + " : " + sections[1][(colon_pos + 1)..];
+            string part_2 = sections[1][..colon_pos] + " : " + sections[2];
+            possible_ids.Add(part_1.Trim());
+            possible_ids.Add(part_2.Trim());
+
+        }
+        else
+        {
+            foreach (string sec in sections)
+            {
+                if (sec.ToLower() != "ccmo" && sec.ToLower() != "abr")
+                {
+                    possible_ids.Add(sec.Trim());
+                }
+            }
+        }
+        return possible_ids;
+    }
+    
+    
+    
+    internal static StudyIdentifier? TryToGetDutchIdentifier(this string sid, string processed_id, 
                                                      bool? sponsor_is_org, string sponsor_name)
     {
         processed_id = processed_id.Replace("dossiernummer", "").Trim();
@@ -515,7 +557,7 @@ internal class WhoHelpers
             : new StudyIdentifier(sid, processed_id, 14, "Sponsor ID", 12, "No organisation name provided in source data");
     }
     
-    internal string CheckChineseFunderType(string funder_name)
+    internal static string CheckChineseFunderType(this string funder_name)
     {
         string fname = funder_name.ToLower();
         
@@ -572,7 +614,7 @@ internal class WhoHelpers
             return "Reported as commercially funded, no further details";
         }
         
-        if (fname is "government" or "government funding" 
+        if (fname is "government" or "government funding" or "government funds" 
             or "central government funding" or "central government"
             or "central government funds" or "central government special funds"
             or "government grants" or "government support"
@@ -631,8 +673,53 @@ internal class WhoHelpers
         return funder_name;
     }
 
+    internal static string[] GetFunders(this string funderList, int? source_id)
+    {
+        // Can have multiple names separated by semi-colons
+        // Cuban funders also sometimes in pairs split by commas or /
 
-    internal List<WhoCondition> CTRIConditions(List<WhoCondition> condList)
+        string[] funder_names = funderList.Split(";");  
+        if (source_id == 100122 && funder_names.Length == 1)
+        {
+            string cfn = funder_names[0];        
+            List<string> cfnList = new();
+            if (cfn.Contains("MINSAP") || cfn.Contains("Public Health"))
+            {
+                cfnList.Add("Cuban Ministry of Public Health (MINSAP)");
+                cfn = cfn.Replace("Cuban Public Ministry of Health (MINSAP)", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Replace("Cuban Ministry of Public Health (MINSAP)", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Replace("Ministry of Public Health (MINSAP)", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Replace("Ministry of Public Health, CUBA", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Replace("Cuban Ministry of Public Health", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Trim(' ', ',', '/');
+                if (cfn.Length > 6)
+                {
+                    cfnList.Add(cfn);  // added remainder of line after MINSAP reference removed
+                }
+            }
+            else if (cfn.Contains("BioCubaFarma"))
+            {
+                cfnList.Add("BioCubaFarma Central Account");
+                cfn = cfn.Replace("  ", " ");  // minor tidying
+                cfn = cfn.Replace("Central account for BioCubaFarma", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Replace("Account for BioCubaFarma", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Replace("BioCubaFarma Central Account", "", true, CultureInfo.CurrentCulture);
+                cfn = cfn.Trim(' ', ',', '/');
+                if (cfn.Length > 6)
+                {
+                    cfnList.Add(cfn);  // added remainder of line after BioCubaFarma reference removed
+                }
+            }
+            else
+            {
+                cfnList.Add(cfn); // leave as original
+            }
+            funder_names = cfnList.ToArray();
+        }
+        return funder_names;
+    }
+    
+    internal static List<WhoCondition> CTRIConditions(this List<WhoCondition> condList)
     {
         List<WhoCondition> cList = new();
         foreach (WhoCondition cn in condList)
@@ -650,13 +737,13 @@ internal class WhoHelpers
                     bool end_of_string = false;
                     while (!end_of_string)
                     {
-                        string startcon = "health condition " + n;
-                        string endcon = "health condition " + (n + 1);
-                        if (con.ToLower().Contains(endcon))
+                        string start_con = "health condition " + n;
+                        string end_con = "health condition " + (n + 1);
+                        if (con.ToLower().Contains(end_con))
                         {
-                            int endcon_pos = con.IndexOf(endcon, StringComparison.OrdinalIgnoreCase);
+                            int endcon_pos = con.IndexOf(end_con, StringComparison.OrdinalIgnoreCase);
                             string con_string = con[..endcon_pos];
-                            con_string = con_string.Replace(startcon, "", StringComparison.OrdinalIgnoreCase);
+                            con_string = con_string.Replace(start_con, "", StringComparison.OrdinalIgnoreCase);
                             con_string = con_string.Trim(' ', ':');
                             if (!string.IsNullOrEmpty(con_string))
                             {
@@ -666,7 +753,7 @@ internal class WhoHelpers
                         }
                         else
                         {
-                            string con_string = con.Replace(startcon, "", StringComparison.OrdinalIgnoreCase);
+                            string con_string = con.Replace(start_con, "", StringComparison.OrdinalIgnoreCase);
                             con_string = con_string.Trim(' ', ':');
                             if (!string.IsNullOrEmpty(con_string))
                             {
@@ -682,7 +769,7 @@ internal class WhoHelpers
         return cList;
     }
 
-    internal WhoCondition split_condition_details(string con_string)
+    internal static WhoCondition split_condition_details(string con_string)
     {
         string? cond_name, cond_code = null, code_system = null;
         if (con_string.Contains('-'))    // already trimmed in calling proc
@@ -727,6 +814,6 @@ internal class WhoHelpers
         }
         return new WhoCondition(cond_name, cond_code, code_system);
     }
-    
+
 }
 

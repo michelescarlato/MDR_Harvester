@@ -77,7 +77,7 @@ internal class IsrctnHelpers
                 usable = false; // urls rather than identifiers
             }
             
-            // Onl;y proceed if id is potentially 'usable'. The second set uses possible key words / acronyms
+            // Only proceed if id is potentially 'usable'. The second set uses possible key words / acronyms
             // in the value to distinguish particular id types and organisational sources. 
             // An id details object is created. If no match then by the id is interpreted by default as a
             // sponsor serial number, which is how it is described in the source. 

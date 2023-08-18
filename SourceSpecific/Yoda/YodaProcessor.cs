@@ -8,7 +8,9 @@ public class YodaProcessor : IStudyProcessor
 {
     public Study? ProcessData(string jsonString, DateTime? downloadDatetime, ILoggingHelper _logging_helper)
     {
-        // set up json reader and deserialise file to a BioLiNCC object.
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Set up and deserialise string 
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         var json_options = new JsonSerializerOptions()
         {
@@ -42,12 +44,16 @@ public class YodaProcessor : IStudyProcessor
         List<ObjectTitle> object_titles = new();
         List<ObjectInstance> object_instances = new();
 
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Basics - id, Submission date, titles
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         string sid = r.sd_sid!;
         s.sd_sid = sid;
         s.datetime_of_data_fetch = downloadDatetime;
 
-        string? yoda_title = r.yoda_title;  
-        yoda_title = yoda_title.FullClean();
+        string? yoda_title = r.yoda_title?.FullClean();
         s.display_title = yoda_title;
 
         // name_base derived from CTG during download, if possible.
@@ -61,7 +67,7 @@ public class YodaProcessor : IStudyProcessor
         {
             foreach (var t in st_titles)
             {
-                string? title_text = t.title_text;
+                string? title_text = t.title_text.LineClean(); 
                 int? title_type_id = t.title_type_id; 
                 string? title_type = t.title_type; 
                 bool? is_default = t.is_default;
@@ -70,15 +76,18 @@ public class YodaProcessor : IStudyProcessor
             }
         }
 
-        // brief description mostly as derived from CTG.
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study basic attributes - type,status, description, enrolment, gender
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         s.brief_description = r.brief_description?.FullClean();
         s.study_status_id = 21;
         s.study_status = "Completed";  // assumption for entry onto web site
 
-        // study type only really relevant for non registered studies (others will  
-        // have type identified in registered study entry
-        // here, usually previously obtained from the ctg or isrctn entry
+        // Study type only really relevant for non registered studies (others will have type identified
+        // in registered study entry here, usually previously obtained from the ctg or isrctn entry.
+        
         s.study_type_id = r.study_type_id;
         s.study_type = s.study_type_id switch
         {
@@ -127,7 +136,11 @@ public class YodaProcessor : IStudyProcessor
             s.study_gender_elig = "Not provided";
         }
 
-        // transfer identifier data
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study identifiers
+        ///////////////////////////////////////////////////////////////////////////////////////
+
         // Normally a protocol id will be the only addition (may be a duplicate of one already in the system).
 
         var study_idents = r.study_identifiers;  
@@ -138,19 +151,23 @@ public class YodaProcessor : IStudyProcessor
                 string? identifier_value = i.identifier_value; 
                 int? identifier_type_id = i.identifier_type_id; 
                 string? identifier_type = i.identifier_type;
-                int? source_id = i.source_id;  
-                string? source = i.source?.LineClean();
+                int? source_id = i.source_id;                  
+                string? source = i.source?.TidyOrgName(sid).StandardisePharmaName();
 
                 if (source_id == 0)
                 {
-                    source_id = null;  // Otherwise 0 is inserted in the JSON file by default
+                    source_id = null;  // Otherwise 0 is inserted from the JSON file by default
                 }
                 identifiers.Add(new StudyIdentifier(sid, identifier_value, identifier_type_id, identifier_type,
                                                     source_id, source));
             }
         }
 
-        // study contributors
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study sponsor
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         // only sponsor known, and only relevant for non registered studies (others will  
         // have the sponsor identified in registered study entry).
         // If study registered elsewhere sponsor details wil be ignored during the aggregation.
@@ -161,7 +178,7 @@ public class YodaProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(sponsor))
         {
             sponsor_org_id = sponsor_id;
-            sponsor_org = sponsor.TidyOrgName(sid);
+            sponsor_org = sponsor.TidyOrgName(sid).StandardisePharmaName();
         }
         else
         {
@@ -170,11 +187,15 @@ public class YodaProcessor : IStudyProcessor
         }
         organisations.Add(new StudyOrganisation(sid, 54, "Study Sponsor", sponsor_org_id, sponsor_org));
 
-        // study topics.
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study topics and conditions
+        ///////////////////////////////////////////////////////////////////////////////////////
 
-        string? compound_generic_name = r.compound_generic_name;
-        string? compound_product_name = r.compound_product_name;
-
+        string? compound_generic_name = r.compound_generic_name.LineClean();
+        string? compound_product_name = r.compound_product_name.LineClean();
+        string? conditions_studied = r.conditions_studied.LineClean();
+        
         if (!string.IsNullOrEmpty(compound_generic_name))
         {
             topics.Add(new StudyTopic(sid, 12, "chemical / agent", compound_generic_name));
@@ -182,28 +203,24 @@ public class YodaProcessor : IStudyProcessor
 
         if (!string.IsNullOrEmpty(compound_product_name))
         {
-            string? productName = compound_product_name.Replace(((char)174).ToString(), ""); // drop reg mark
-            productName = productName.FullClean();
-            if (productName is not null)
+            if (compound_product_name.IsNotInTopicsAlready(topics))
             {
-                // see if already exists
-                bool addProduct = topics.All(t => productName.ToLower() != t.original_value?.ToLower());
-
-                if (addProduct)
-                {
-                    productName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(productName.ToLower());
-                    topics.Add(new StudyTopic(sid, 12, "chemical / agent", productName));
-                }
+                compound_product_name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(compound_product_name.ToLower());
+                topics.Add(new StudyTopic(sid, 12, "chemical / agent", compound_product_name));
             }
         }
 
-        string? conditions_studied = r.conditions_studied.LineClean();
-        if (!string.IsNullOrEmpty(conditions_studied) && conditions_studied != "Healthy Volunteers")
+        if (!string.IsNullOrEmpty(conditions_studied))
         {
             conditions.Add(new StudyCondition(sid, conditions_studied, null, null, null));
+            conditions = conditions.RemoveNonInformativeConditions();
         }
-
         
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study references
+        ///////////////////////////////////////////////////////////////////////////////////////
+
         // Create study references (pmids).
         
         var refs = r.study_references;
@@ -219,11 +236,11 @@ public class YodaProcessor : IStudyProcessor
             }
         }
 
-        // data objects...
-
-        // Do the yoda web page itself first,
-        // creating the sd oid for the data object.
         
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Yoda web page data object
+        ///////////////////////////////////////////////////////////////////////////////////////
+       
         string object_title = "Yoda web page";
         string object_display_title = name_base + " :: " + "Yoda web page";
         string? remote_url = r.remote_url;
@@ -235,6 +252,11 @@ public class YodaProcessor : IStudyProcessor
                         "Study short name :: object type", true));
         object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda",
                             remote_url, true, 35, "Web text"));
+        
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Supplementary docs data objects
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         // then for each supp doc...
         var sds = r.supp_docs;
@@ -330,8 +352,11 @@ public class YodaProcessor : IStudyProcessor
             }
         }
 
-
-        // add in the study properties
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Construct final study object
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         s.identifiers = identifiers;
         s.titles = titles;
         s.references = references;

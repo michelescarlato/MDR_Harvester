@@ -58,10 +58,17 @@ public static class IECFunctions
         // then transfer data to list of iec_line structures (each iec_line will be processed further below).
 
         List<iec_line> final_cr_lines = new(); // target list to develop
-        if (checked_lines.Count == 1) // No CRs in source, simply add single line
-        {
-            final_cr_lines.Add(new iec_line(1, tv.no_sep, "none", "All", checked_lines[0], 0, 1,
-                tv.getSequenceStart() + "0A"));
+        if (checked_lines.Count == 1) 
+        {   
+            // No CRs in source, so simply add single line (for later inspection to
+            // see if it can be split), though check not (if rarely) a very short 'dummy' line
+            
+            string single_line = checked_lines[0].TrimInternalHeaders();
+            if (!string.IsNullOrEmpty(single_line) && single_line.Length > 3)
+            {
+                final_cr_lines.Add(new iec_line(1, tv.no_sep, "none", "All", single_line, 0, 1,
+                                tv.getSequenceStart() + "0A"));
+            }
         }
         else
         {
@@ -101,6 +108,10 @@ public static class IECFunctions
         foreach (iec_line ln in expanded_lines)
         {
             ln.text = ln.text.TrimStart('-', '.', ',', ')').Trim();
+            if (ln.sequence_string is "n0.0" or "e0.0" or "n.0A" or "e.0A")
+            {
+                ln.text = ln.text.TrimStart('*').Trim();   // May be necessary, especially for CTG.
+            }
             crits.Add(new Criterion(ln.seq_num, ln.type, tv.getTypeName(ln.type), ln.split_type,
                 ln.leader, ln.indent_level, ln.indent_seq_num, ln.sequence_string, ln.text));
         }
@@ -773,126 +784,120 @@ public static class IECFunctions
         {
             bool transfer_crit = true; // by default
             string thisText = crLines[i].text;
-
-            // Remove (i.e. don't transfer) simple lines or headings with no information
-
-            string lowtext = thisText.ToLower();
-            if (lowtext is "inclusion:" or "inclusion criteria" or "inclusion criteria:" or "included:"
-                or "exclusion:" or "exclusion criteria" or "exclusion criteria:" or "excluded:")
+            
+            // Remove (i.e. don't transfer) simple header lines or headings with no information
+            
+            if (thisText.IsSpuriousLine())
             {
                 transfer_crit = false;
             }
 
-            if (crLines[i].type == tv.grp_hdr)
-            {
-                if (lowtext.Contains("key criteria") || lowtext.Contains("key inclusion criteria")
-                                                     || lowtext.Contains("inclusion criteria include") ||
-                                                     lowtext.Contains("key exclusion criteria")
-                                                     || lowtext.Contains("exclusion criteria include"))
-                {
-                    transfer_crit = false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(thisText))
+            if (!string.IsNullOrEmpty(crLines[i].text))
             {
                 // Try and identify spurious 'headers', i.e. lines without leaders, caused by spurious CRs.
+                // Following recent revisions spurious CRs no longer seem to exist within CGT IEC data. 
+                // Lines without headers (usually 1., 2., *, *) are therefore normally genuine header
+                // statements for this source. The next two routines therefore do not apply for CTG data.
 
-                try
+                if (!tv.sd_sid.StartsWith("NCT"))
                 {
-                    if (crLines[i].type == tv.grp_hdr && i < crLines.Count - 1 && i > 0)
+                    try
                     {
-                        // If line starts with 'Note' very likely to be a 'header' giving supp. information.
-                        // Also do not try to merge upward if preceding line ends with ':'
-                        // because headers assumed to normally end with ':', but other checks made in addition
-                        // (N.B. Initial and last entries are not checked).
-
-                        if (!thisText.ToLower().StartsWith("note") && !crLines[i - 1].text.EndsWith(':'))
+                        if (crLines[i].type == tv.grp_hdr && i < crLines.Count - 1 && i > 0)
                         {
-                            char initChar = thisText[0];
-                            if (!thisText.EndsWith(':'))
+                            // If line starts with 'Note' very likely to be a 'header' giving supp. information.
+                            // Also do not try to merge upward if preceding line ends with ':'
+                            // because headers assumed to normally end with ':', but other checks made in addition
+                            // (N.B. Initial and last entries are not checked).
+
+                            if (!thisText.ToLower().StartsWith("note") && !crLines[i - 1].text.EndsWith(':'))
                             {
-                                // Does the entry following the header have an indentation level greater than the header?,
-                                // as would be expected with a 'true' header.
-                                // If not, add it to the preceding entry as it is 
-                                // likely to be a spurious \n in the original string rather than a genuine header.
-
-                                // Also if starts with a lower case letter or digit, and
-                                // previous line does not add in a full stop.
-
-                                if (crLines[i].indent_level >= crLines[i + 1].indent_level || 
-                                    (!crLines[i - 1].text.EndsWith('.') 
-                                        && (char.ToLower(initChar) == initChar || char.IsDigit(initChar)))
-                                   )
+                                char initChar = thisText[0];
+                                if (!thisText.EndsWith(':'))
                                 {
-                                    // Almost certainly a spurious \n in the
-                                    // original string rather than a genuine header.
+                                    // Does the entry following the header have an indentation level greater than the header?,
+                                    // as would be expected with a 'true' header.
+                                    // If not, add it to the preceding entry as it is 
+                                    // likely to be a spurious \n in the original string rather than a genuine header.
 
-                                    crLines[i - 1].text += " " + thisText;
-                                    crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
-                                    transfer_crit = false;
-                                    
-                                    // Difficulty is that some spurious \n are mid-word...and some
-                                    // are between words - no easy way to distinguish
+                                    // Also if starts with a lower case letter or digit, and
+                                    // previous line does not add in a full stop.
+
+                                    if (crLines[i].indent_level >= crLines[i + 1].indent_level ||
+                                        (!crLines[i - 1].text.EndsWith('.')
+                                         && (char.ToLower(initChar) == initChar || char.IsDigit(initChar)))
+                                       )
+                                    {
+                                        // Almost certainly a spurious \n in the
+                                        // original string rather than a genuine header.
+
+                                        crLines[i - 1].text += " " + thisText;
+                                        crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
+                                        transfer_crit = false;
+
+                                        // Difficulty is that some spurious \n are mid-word...and some
+                                        // are between words - no easy way to distinguish
+                                    }
                                 }
-                            }
 
-                            if (thisText.EndsWith(':')
-                                && (initChar.ToString() == initChar.ToString().ToLower() || char.IsDigit(initChar)))
-                            {
-                                // Header line that has a colon but also starts with a lower case letter or digit
-                                // Likely to be a 'split header'. merge it 'upwards' to the line before
-
-                                string prev_line = crLines[i - 1].text;
-                                char prev_last_char = prev_line[^1];
-                                if (prev_last_char is not ('.' or ';' or ':'))
+                                if (thisText.EndsWith(':')
+                                    && (initChar == char.ToLower(initChar) || char.IsDigit(initChar)))
                                 {
-                                    crLines[i - 1].text = (prev_line + " " + thisText).Replace("  ", " ");
-                                    crLines[i - 1].type = tv.grp_hdr;
-                                    transfer_crit = false;
+                                    // Header line that has a colon but also starts with a lower case letter or digit
+                                    // Likely to be a 'split header'. merge it 'upwards' to the line before
+
+                                    string prev_line = crLines[i - 1].text;
+                                    char prev_last_char = prev_line[^1];
+                                    if (prev_last_char is not ('.' or ';' or ':'))
+                                    {
+                                        crLines[i - 1].text = (prev_line + " " + thisText).Replace("  ", " ");
+                                        crLines[i - 1].type = tv.grp_hdr;
+                                        transfer_crit = false;
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    throw;
-                }
-
-                // check to see if a last line 'supplement' is better characterised as a normal criterion
-
-                if (crLines[i].type == tv.post_crit && i > 0
-                                                    && !thisText.EndsWith(':') && !thisText.StartsWith('*')
-                                                    && !thisText.ToLower().StartsWith("note") &&
-                                                    !thisText.ToLower().StartsWith("other ")
-                                                    && !thisText.ToLower().StartsWith("for further details")
-                                                    && !thisText.ToLower().StartsWith("for more information"))
-                {
-                    // Almost always is a spurious supplement.
-                    // Whether should be joined depends on whether there is an initial
-                    // lower case or upper case letter... 
-
-                    char initLetter = crLines[i].text[0];
-                    if (char.ToLower(initLetter) == initLetter)
+                    catch (Exception e)
                     {
-                        crLines[i - 1].text += " " + thisText;
-                        crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
-                        transfer_crit = false;
+                        Console.WriteLine(e);
+                        throw;
                     }
-                    else
-                    {
-                        crLines[i].indent_level = crLines[i - 1].indent_level;
-                        crLines[i].indent_seq_num = crLines[i - 1].indent_seq_num + 1;
-                    }
-                }
 
-                if (transfer_crit)
-                {
-                    revised_lines.Add(crLines[i]);
+                    // check to see if a last line 'supplement' is better characterised as a normal criterion
+
+                    if (crLines[i].type == tv.post_crit && i > 0
+                                                        && !thisText.EndsWith(':') && !thisText.StartsWith('*')
+                                                        && !thisText.ToLower().StartsWith("note") &&
+                                                        !thisText.ToLower().StartsWith("other ")
+                                                        && !thisText.ToLower().StartsWith("for further details")
+                                                        && !thisText.ToLower().StartsWith("for more information"))
+                    {
+                        // Almost always is a spurious supplement.
+                        // Whether should be joined depends on whether there is an initial
+                        // lower case or upper case letter... 
+
+                        char initLetter = crLines[i].text[0];
+                        if (char.ToLower(initLetter) == initLetter)
+                        {
+                            crLines[i - 1].text += " " + thisText;
+                            crLines[i - 1].text = crLines[i - 1].text.Replace("  ", " ");
+                            transfer_crit = false;
+                        }
+                        else
+                        {
+                            crLines[i].indent_level = crLines[i - 1].indent_level;
+                            crLines[i].indent_seq_num = crLines[i - 1].indent_seq_num + 1;
+                        }
+                    }
                 }
+            }      
+            
+            if (transfer_crit)
+            {
+                revised_lines.Add(crLines[i]);
             }
+
         }
 
         // Put things back in correct order
@@ -946,8 +951,14 @@ public static class IECFunctions
                     revised_lines[1].leader = "-2-";
                     revised_lines[1].indent_level = 1;
                     revised_lines[1].indent_seq_num = 2;
-                   
+                    
+                    // In case they include them strip lines of headers.
+                    // Are not removed beforehand as first and last lines are not processed
+                    
+                    revised_lines[0].text = revised_lines[0].text.TrimInternalHeaders(); 
+                    revised_lines[1].text = revised_lines[1].text.TrimInternalHeaders(); 
                 }
+                
                 else if ((top_text.EndsWith(' ') || top_text.EndsWith(','))
                          && bottom_text[0].ToString() != bottom_text[0].ToString().ToUpper())
                     

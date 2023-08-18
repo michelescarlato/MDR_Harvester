@@ -9,7 +9,9 @@ public class IsrctnProcessor : IStudyProcessor
 
     public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper)
     {
-        // set up json reader and deserialise file to a ISCTRN_Record object.
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Set up and deserialise string 
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         var json_options = new JsonSerializerOptions()
         {
@@ -46,7 +48,12 @@ public class IsrctnProcessor : IStudyProcessor
         List<ObjectInstance> object_instances = new();
 
         IsrctnHelpers ih = new();
-
+        
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Basics - id, titles
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         string? sid = r.sd_sid;
 
         if (string.IsNullOrEmpty(sid))
@@ -94,7 +101,10 @@ public class IsrctnProcessor : IStudyProcessor
             titles.Add(new StudyTitle(sid, acro, 14, "Acronym or Abbreviation", s.display_title == r.acronym, "From ISRCTN"));
         }
 
-        // Brief description.
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Study description
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         s.brief_description = r.plainEnglishSummary;  // the default. If not present use below...
         
@@ -140,7 +150,10 @@ public class IsrctnProcessor : IStudyProcessor
                 "No description or hypothesis / outcomes information provided at time of study registration";
         }
 
-        // Study start date.
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Study start date, type and status, registry page dates
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         string? ss_date = r.overallStartDate;
         if (!string.IsNullOrEmpty(ss_date))
@@ -152,8 +165,6 @@ public class IsrctnProcessor : IStudyProcessor
                 s.study_start_month = study_start_date.month;
             }
         }
-
-        // Study type and status.
 
         s.study_type = r.primaryStudyDesign;
         s.study_type_id = s.study_type.GetTypeId();
@@ -227,7 +238,10 @@ public class IsrctnProcessor : IStudyProcessor
             last_edit = d_edited[..10].GetDatePartsFromISOString();
         }
 
-        // Study sponsor(s) and funders.
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Study sponsors and funders
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         var sponsors = r.sponsors;
         string? sponsor_name = null;    // For later use
@@ -238,7 +252,7 @@ public class IsrctnProcessor : IStudyProcessor
                 string? org = stSponsor.organisation;
                 if (org.IsNotPlaceHolder() && org.AppearsGenuineOrgName())
                 {
-                    string? org_name = org.TidyOrgName(sid);
+                    string? org_name = org.TidyOrgName(sid).StandardisePharmaName();
                     organisations.Add(new StudyOrganisation(sid, 54, "Trial Sponsor", null, org_name));
                 }
             }
@@ -256,20 +270,23 @@ public class IsrctnProcessor : IStudyProcessor
                 string? funder_name = funder.name;
                 if (funder_name.IsNotPlaceHolder() && funder_name.AppearsGenuineOrgName())
                 {
-                    // check a funder is not simply the sponsor...(or repeated).
-                    if (funder_name is not null)
+                    // Situation where the same organisation is the sponsor and funder
+                    // now resolved in the Coding module, but a funder can be repeated.
+                    // N.B. All organisations assumed to be funders (type id = 58)
+                    
+                    funder_name = funder_name.TidyOrgName(sid).StandardisePharmaName();
+                    if (funder_name!.IsNotInOrgsAsRoleAlready(58, organisations))
                     {
-                        // Situation where the same organisation is the sponsor and (a) funder
-                        // now resolved in the Coding module
-
-                        funder_name = funder_name.TidyOrgName(sid);
                         organisations.Add(new StudyOrganisation(sid, 58, "Study Funder", null, funder_name));
                     }
                 }
             }
         }
 
-        // Individual contacts.
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Study contacts / contributors
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         var contacts = r.contacts;
         if (contacts?.Any() is true)
@@ -280,9 +297,7 @@ public class IsrctnProcessor : IStudyProcessor
                 string givenName = contact.forename.TidyPersonName() ?? "";
                 string familyName = contact.surname.TidyPersonName() ?? "";
 
-                string? affil = contact.address?.Replace("\n", ", ");
-                affil = affil?.Replace(" - ", ", ").Replace(" ,", ",");
-                affil = affil.LineClean();
+                string? affil =  contact.address?.TidyOrgName(sid).StandardisePharmaName();
                 string? affil_organisation = affil?.ExtractOrganisation(sid);
                 
                 string? orcid = contact.orcid.TidyORCIDId();
@@ -377,8 +392,11 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
         
-        // Locations. Do these before identifiers as 'location in UK only' used
-        // to help identify some identifier types.
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Study locations
+        ///////////////////////////////////////////////////////////////////////////////////////
+
+        // Do these before identifiers as 'location in UK only' used to help identify some identifier types.
         // N.B. Some countries have already been renamed and checked for duplication
         // as part of the download process
 
@@ -418,9 +436,9 @@ public class IsrctnProcessor : IStudyProcessor
         }
         
         
-
-        // Study identifiers - do the isrctn id first...
-        // then any others that might be listed.
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Study identifiers
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         identifiers.Add(new StudyIdentifier(sid, sid, 11, "Trial Registry ID", 100126, 
                                             "ISRCTN", reg_date?.date_string, null));
@@ -464,9 +482,11 @@ public class IsrctnProcessor : IStudyProcessor
                 }
             }
         }
+        
 
-        // Design info and study features.
-        // First provide phase for interventional trials.
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Design info and features
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         string? phase = r.phase;
         if (!string.IsNullOrEmpty(phase) && s.study_type_id == 11)
@@ -492,10 +512,8 @@ public class IsrctnProcessor : IStudyProcessor
             }
         }
 
-        // Other features can be found in secondary design and / or study design fields.
-        // Concatenate these before searching them.
-        // Interventional study features considered first,
-        // then observational study features
+        // Other features can be found in secondary design and / or study design fields. Concatenate these
+        // before searching them. Interventional study features considered first, then observational features
 
         string secondary_design = r.secondaryStudyDesign ?? "";
         string study_design = r.studyDesign ?? "";
@@ -622,64 +640,62 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
 
-        // Include listed drug or device names as topics.
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Design topics and conditions
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         List<string> topic_names = new();
 
         string? drugNames = r.drugNames;
         if (!string.IsNullOrEmpty(drugNames) && drugNames != "N/A"
-            && !drugNames.ToLower().StartsWith("the sponsor has confirmed")
-            && !drugNames.ToLower().StartsWith("the health research authority (hra) has approved"))
+              && !drugNames.ToLower().StartsWith("the sponsor has confirmed")
+              && !drugNames.ToLower().StartsWith("the health research authority (hra) has approved"))
         {
-            drugNames = drugNames.Replace("\u00AE", string.Empty); //  lose (r) Registration mark
-            drugNames = drugNames.Replace("\u2122", string.Empty); //  lose (tm) Trademark mark
-
-            if (drugNames.Contains("1.") && drugNames.Contains("2."))
+            drugNames = drugNames.LineClean();
+            if (drugNames is not null)
             {
-                // Numbered list (almost certainly) - split and add list
-
-                List<string> numbered_strings = drugNames.GetNumberedStrings(".", 8);
-                topic_names.AddRange(numbered_strings);
-            }
-            else if ((r.interventionType is "Drug" or "Supplement") && drugNames.Contains(','))
-            {
-                // if there are commas split on the commas (does not work well for devices).
-
-                List<string>? split_drug_names = drugNames.SplitStringWithMinWordSize(',', 4);
-                if (split_drug_names is not null)
+                if (drugNames.Contains("1.") && drugNames.Contains("2."))
                 {
-                    topic_names.AddRange(split_drug_names);
+                    // Numbered list (almost certainly) - split and add list
+
+                    List<string> numbered_strings = drugNames.GetNumberedStrings(".", 8);
+                    topic_names.AddRange(numbered_strings);
                 }
-            }
-            else
-            {
-                topic_names.Add(drugNames);
+                else if ((r.interventionType is "Drug" or "Supplement") && drugNames.Contains(','))
+                {
+                    // if there are commas split on the commas (does not work well for devices).
+
+                    List<string>? split_drug_names = drugNames.SplitStringWithMinWordSize(',', 4);
+                    if (split_drug_names is not null)
+                    {
+                        topic_names.AddRange(split_drug_names);
+                    }
+                }
+                else
+                {
+                    topic_names.Add(drugNames);
+                }
+
+                string topic_type = r.interventionType == "Device" ? "Device" : "Chemical / agent";
+                int topic_type_id = r.interventionType == "Device" ? 21 : 12;
+                foreach (string tn in topic_names)
+                {
+                    topics.Add(new StudyTopic(sid, topic_type_id, topic_type, tn.Trim()));
+                }
+
+                topics = topics.RemoveNonInformativeTopics();
             }
         }
-
-        if (topic_names.Count > 0)
-        {
-            string topic_type = r.interventionType == "Device" ? "Device" : "Chemical / agent";
-            int topic_type_id = r.interventionType == "Device" ? 21 : 12;
-            foreach (string tn in topic_names)
-            {
-                topics.Add(new StudyTopic(sid, topic_type_id, topic_type, tn.Trim()));
-            }
-        }
-
-
-        // Conditions.
 
         string? listed_condition = r.conditionDescription;
         if (string.IsNullOrEmpty(listed_condition))
         {
-            listed_condition = r.diseaseClass1;
+            listed_condition = r.diseaseClass1;  // use this only if the first field empty
         }
        
         if (!string.IsNullOrEmpty(listed_condition))
         {
-            // Can be very general - high level classifications.
-            // Often a delimited list.
+            // Can be very general - high level classifications, but can be a delimited list.
             List<string> conds = new();
             
             if (listed_condition.Contains(','))
@@ -692,7 +708,6 @@ public class IsrctnProcessor : IStudyProcessor
             }
             else if (listed_condition.Contains(';'))
             {
-                // add condition
                 string[] cons = listed_condition.Split(';');
                 foreach (var c in cons)
                 {
@@ -713,6 +728,8 @@ public class IsrctnProcessor : IStudyProcessor
 
             foreach (string cond1 in conds)
             {
+                // Remove spurious text
+                
                 string cond = cond1;
                 if (!cond.StartsWith("Topic") 
                     && !cond.StartsWith("Primary Care Research Network")
@@ -744,10 +761,14 @@ public class IsrctnProcessor : IStudyProcessor
                     }
                 }
             }
+
+            conditions = conditions.RemoveNonInformativeConditions();
         }
 
-
-        // Eligibility.
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Eligibility
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         string? final_enrolment = r.totalFinalEnrolment;
         string? target_enrolment = r.targetEnrolment?.ToString();
@@ -810,8 +831,10 @@ public class IsrctnProcessor : IStudyProcessor
             }
         }
 
-
-        // Inclusion / Exclusion Criteria
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Inclusion / Exclusion criteria
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         string? ic = r.inclusion;
         string? ec = r.exclusion;
@@ -853,11 +876,12 @@ public class IsrctnProcessor : IStudyProcessor
 
         s.iec_level = study_iec_type;
        
-
-        // Data Sharing.
-        // Given by the data sharing statement and any data policies.
-        // At the moment these seem to be a single string summarising
-        // the management of IPD.
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Design sharing
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
+        // At the moment these seem to be a single string summarising the management of IPD.
 
         string? ipd_ss = r.ipdSharingStatement;
         if (!string.IsNullOrEmpty(ipd_ss) && ipd_ss != "Not provided at time of registration")
@@ -901,10 +925,11 @@ public class IsrctnProcessor : IStudyProcessor
         {
             s.data_sharing_statement = null;
         }
-               
         
-        // DATA OBJECTS and their attributes
-        // initial data object is the ISRCTN registry entry
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Registry entry data object
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         int? pub_year = null;
         if (reg_date is not null)
@@ -949,8 +974,11 @@ public class IsrctnProcessor : IStudyProcessor
                     "https://www.isrctn.com/" + sid, true, 39, "Web text with XML or JSON via API"));
 
 
-        // PIS details seem to have been largely transferred
-        // to the 'Additional files' section.
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Patient Information Sheets data object
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
+        // N.B. PIS details now seem to have been largely transferred to the 'Additional files' section.
 
         string? PIS_details = r.patientInfoSheet;
         if (PIS_details is not null && !PIS_details.StartsWith("Not available") 
@@ -990,9 +1018,11 @@ public class IsrctnProcessor : IStudyProcessor
                 }
             }
         }
-
-
-        // Possible trial web site
+        
+        
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Possible web site data object
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         string? trial_website = r.trialWebsite;
         if (!string.IsNullOrEmpty(trial_website) && trial_website.Contains("http"))
@@ -1011,11 +1041,14 @@ public class IsrctnProcessor : IStudyProcessor
         }
 
 
-        // Possible additional files and external links. Output list appears to be composed of both
-        // external links to published papers and local files of unpublished supplementary material.
-        // External links may be published papers - almost always referred to by pubmed ids, or links to 
-        // web sites or unpublished papers with different types of information on them.
-        // Local filers are often PIS, but may be result summaries and other objects.
+        ////////////////////////////////////////////////////////////////////////////////////////
+        // Additional files and external links data objects
+        ///////////////////////////////////////////////////////////////////////////////////////
+
+        // Output list appears to be composed of both external links to published papers and local files
+        // of unpublished supplementary material. External links may be published papers - almost always
+        // referred to by pubmed ids, or links to web sites or unpublished papers with different types of
+        // information on them. Local filers are often PIS, but may be result summaries and other objects.
 
         var outputs = r.outputs;
         if(outputs?.Any() is true)
@@ -1356,6 +1389,11 @@ public class IsrctnProcessor : IStudyProcessor
                 }
             }
         }
+        
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Construct final study object
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         s.identifiers = identifiers;
         s.titles = titles;
@@ -1375,7 +1413,6 @@ public class IsrctnProcessor : IStudyProcessor
         s.object_instances = object_instances;
 
         return s;
-
     }
    
     private int checkOID(string sd_oid, List<DataObject> data_objects)

@@ -21,8 +21,6 @@ public class TestHelper
         string sql_string = @"DROP TABLE IF EXISTS mn.test_study_list;
                         CREATE TABLE mn.test_study_list as 
                         SELECT sd.sd_sid from mn.source_data sd
-                        inner join sd.studies s
-                        on sd.sd_sid = s.sd_sid
                         WHERE sd.for_testing = true";
         conn.Execute(sql_string);
 
@@ -32,7 +30,7 @@ public class TestHelper
         {
             sql_string = @"DROP TABLE IF EXISTS mn.test_object_list;
                                 CREATE TABLE mn.test_object_list as 
-                                SELECT sd_oid from sd.data_objects sdo
+                                SELECT sd_oid from ad.data_objects sdo
                                 inner join mn.test_study_list tsl
                                 on sdo.sd_sid = tsl.sd_sid";
             conn.Execute(sql_string);
@@ -46,8 +44,6 @@ public class TestHelper
         string sql_string = @"DROP TABLE IF EXISTS mn.test_object_list;
                         CREATE TABLE mn.test_object_list as 
                         SELECT sd.sd_oid from mn.source_data sd
-                        inner join sd.data_objects s
-                        on sd.sd_oid = s.sd_oid
                         WHERE sd.for_testing = true";
         conn.Execute(sql_string);
         
@@ -62,7 +58,7 @@ public class TestHelper
         using var conn = new NpgsqlConnection(_db_conn);
         conn.Execute(sql_string);
     }
-
+ 
     
     private void delete_study_test_recs(string schema_name, string table_name)
     {

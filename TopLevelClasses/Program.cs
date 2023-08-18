@@ -84,7 +84,9 @@ catch (Exception e)
         loggingHelper.OpenNoSourceLogFile();
     }
     loggingHelper.LogHeader("UNHANDLED EXCEPTION");
-    loggingHelper.LogCodeError("MDR_Harvester application aborted", e.Message, e.StackTrace);
+    string message = (e.InnerException is null) ? e.Message
+            : e.Message + "\nInnerException Message:\n" + e.InnerException.Message;
+    loggingHelper.LogCodeError("MDR_Harvester application aborted", message, e.StackTrace);
     loggingHelper.CloseLog();
     return -1;
 }

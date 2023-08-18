@@ -191,15 +191,7 @@ public static class DataHelpers
             {
                 if (org_lower.StartsWith("sanofi"))
                 {
-                    if (org_lower.Contains("pasteur"))
-                    {
-                        org_name = "Sanofi Pasteur";
-                        
-                    }
-                    else
-                    {
-                        org_name = "Sanofi";
-                    }
+                    org_name = org_lower.Contains("pasteur") ? "Sanofi Pasteur" : "Sanofi";
                     matched = true;
                 }
                 if (org_lower.StartsWith("sigma-tau"))
@@ -301,7 +293,7 @@ public static class DataHelpers
             }
             case 'C':
             {
-                if (t_lower is "child" or "chronic disease" or "clinical research/ practice" or "complication" 
+                if (t_lower is "child" or "chronic disease" or "clinical research/ practice" or "complication"
                     or "complications" or "constriction, pathologic" or "critical illness" or "critically ill patients")
                 {
                     is_useful = false;
@@ -336,9 +328,9 @@ public static class DataHelpers
             {
                 if (t_lower.StartsWith("healthy"))
                 {
-                    if (t_lower is "healthy" or "healthy adults" or "healthy adult" or "healthy person" or 
-                        "healthy people" or "healthy adult female" or "healthy adult male" or "healthy volunteer" or 
-                        "healthy volunteers" or "healthy individual" or "healthy individuals" or 
+                    if (t_lower is "healthy" or "healthy adults" or "healthy adult" or "healthy person" or
+                        "healthy people" or "healthy adult female" or "healthy adult male" or "healthy volunteer" or
+                        "healthy volunteers" or "healthy individual" or "healthy individuals" or
                         "healthy older adults" or "healthy control" or "healthy japanese subjects")
                     {
                         is_useful = false;
@@ -371,7 +363,7 @@ public static class DataHelpers
             }
             case 'N':
             {
-                if (t_lower is "n/a" or "not applicable" or "n/a(healthy adults)" or "n/a (healthy adults)" 
+                if (t_lower is "n/a" or "not applicable" or "n/a(healthy adults)" or "n/a (healthy adults)"
                     or "none (healthy adults)" or "normal control")
                 {
                     is_useful = false;
@@ -388,8 +380,8 @@ public static class DataHelpers
             }
             case 'P':
             {
-                if (t_lower is "physical activity" or "physical function" or "physical inactivity" or "prediction" 
-                    or "prep" or "process evaluation" or "predictors" or "public health" or 
+                if (t_lower is "physical activity" or "physical function" or "physical inactivity" or "prediction"
+                    or "prep" or "process evaluation" or "predictors" or "public health" or
                     "public health - epidemiology" or "public health - health promotion/education" or "normal control")
                 {
                     is_useful = false;
@@ -452,10 +444,59 @@ public static class DataHelpers
                 }
                 break;
             }
- 
-
         }
 
         return is_useful;
     }
+
+    public static bool IsNotInTopicsAlready(this string candidate, List<StudyTopic> topics)
+    {
+        foreach (StudyTopic k in topics)
+        {
+            if (string.Equals(k.original_value!, candidate,
+                    StringComparison.CurrentCultureIgnoreCase))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static bool IsNotInConditionsAlready(this string candidate, List<StudyCondition> conditions)
+    {
+        foreach (StudyCondition k in conditions)
+        {
+            if (string.Equals(k.original_value!, candidate,
+                    StringComparison.CurrentCultureIgnoreCase))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    public static bool IsNotInOrgsAsRoleAlready(this string candidate, 
+                                                int role_id, List<StudyOrganisation> orgs)
+    {
+        foreach (StudyOrganisation k in orgs)
+        {
+            if (k.contrib_type_id == role_id && string.Equals(k.organisation_name!, candidate,
+                    StringComparison.CurrentCultureIgnoreCase))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static List<StudyTopic> RemoveNonInformativeTopics(this List<StudyTopic> topics)
+    {
+        return topics.Where(t => t.original_value.IsUsefulTopic()).ToList();
+    }
+
+    public static List<StudyCondition> RemoveNonInformativeConditions(this List<StudyCondition> conditions)
+    {
+        return conditions.Where(c => c.original_value.IsUsefulTopic()).ToList();
+    }
+
 }

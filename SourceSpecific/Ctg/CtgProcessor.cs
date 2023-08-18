@@ -228,14 +228,14 @@ public class CTGProcessor : IStudyProcessor
                             if (!string.IsNullOrEmpty(rp_name))
                             {
                                 string? affil_organisation = null;
-                                if (!string.IsNullOrEmpty(rp_affil)
-                                    && rp_affil.IsNotPlaceHolder() && rp_affil.AppearsGenuineOrgName())
+                                if (rp_affil.AppearsGenuineOrgName() && rp_affil.IsNotPlaceHolder())
                                 {
+                                    rp_affil = rp_affil.TidyOrgName(sid).StandardisePharmaName();
+                                    
                                     // Initially. compare affiliation with sponsor.
                                     // If they do not appear to be the same try to extract the 
                                     // organisation from the affiliation string.
-
-                                    rp_affil = rp_affil.TidyOrgName(sid).StandardisePharmaName();
+                                    
                                     if (!string.IsNullOrEmpty(sponsor_name)
                                         && rp_affil!.ToLower().Contains(sponsor_name.ToLower()))
                                     {
@@ -245,6 +245,10 @@ public class CTGProcessor : IStudyProcessor
                                     {
                                         affil_organisation = rp_affil!.ExtractOrganisation(sid);
                                     }
+                                }
+                                else
+                                {
+                                    rp_affil = null;
                                 }
 
                                 if (rp_type == "PRINCIPAL_INVESTIGATOR")
@@ -503,7 +507,7 @@ public class CTGProcessor : IStudyProcessor
                 {  
                     // If not characterised above at least try to identify any pharma names
                     
-                    if (si.identifier_type_id == 14 && si.source_id != 12 && si.source_id is null)
+                    if (si.identifier_type_id is 14 or 90 && si.source_id is null)
                     {
                          si.source = si.source.StandardisePharmaName();
                     }
@@ -559,7 +563,7 @@ public class CTGProcessor : IStudyProcessor
         {
             update_post_date = LastUpdateDateStruct.date?.GetDatePartsFromISOString();
             string? update_post_type = LastUpdateDateStruct.type;
-            if (update_post_type == "ESTIMATE" && update_post_date is not null)
+            if (update_post_type == "ESTIMATED" && update_post_date is not null)
             {
                 update_post_date.date_string += " (est.)";
             }
@@ -631,7 +635,7 @@ public class CTGProcessor : IStudyProcessor
         {
             foreach (string condition in conds)
             {
-                if (condition_is_new(condition)) // only add the condition name if not already present.
+                if (condition.IsNotInConditionsAlready(conditions)) 
                 {
                     conditions.Add(new StudyCondition(sid, condition.CapFirstLetter()));
                 }
@@ -654,72 +658,28 @@ public class CTGProcessor : IStudyProcessor
         {
             foreach (string keyword in keywords)
             {
-                // Regularise drug name and then only add the keyword
-                // if not already present in the topics or conditions.
+                // Only add the keyword if not already present in the topics or conditions.
                 // Do indirectly as cannot alter the foreach variable.
                 
-                string? k_word = keyword.LineClean().CapFirstLetter();;  
-                if (!string.IsNullOrEmpty(k_word) && topic_is_new(k_word) && condition_is_new(k_word))
+                string? k_word = keyword.LineClean().CapFirstLetter();
+                if (!string.IsNullOrEmpty(k_word) 
+                    && k_word.IsNotInTopicsAlready(topics) && k_word.IsNotInConditionsAlready(conditions))
                 {
                     topics.Add(new StudyTopic(sid, 11, "keyword", k_word));
                 }
             }
         }
 
-        bool topic_is_new(string candidate_topic)
-        {
-            foreach (StudyTopic k in topics)
-            {
-                if (String.Equals(k.original_value!, candidate_topic,
-                        StringComparison.CurrentCultureIgnoreCase))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        bool condition_is_new(string candidate_condition)
-        {
-            foreach (StudyCondition k in conditions)
-            {
-                if (String.Equals(k.original_value!, candidate_condition,
-                        StringComparison.CurrentCultureIgnoreCase))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-        
         // Finally filter both topics and conditions to remove 'non-informative' terms
 
         if (conditions.Any())
         {
-            List<StudyCondition> c2 = new ();
-            foreach (StudyCondition c in conditions)
-            {
-                if (c.original_value.IsUsefulTopic())
-                {
-                    c2.Add(c);
-                }
-            }
-            conditions = c2;
+            conditions = conditions.RemoveNonInformativeConditions();
         }
         
         if (topics.Any())
         {
-            List<StudyTopic> t2 = new();
-            foreach (StudyTopic t in topics)
-            {
-                if (t.original_value.IsUsefulTopic())
-                {
-                    t2.Add(t);
-                }
-            }
-            topics = t2;
+            topics = topics.RemoveNonInformativeTopics();
         }
 
         ///////////////////////////////////////////////////////////////////////////////////////
@@ -899,15 +859,29 @@ public class CTGProcessor : IStudyProcessor
                 string elig_low = elig_statement.ToLower();
                 if (elig_low.Contains("inclusion") && elig_low.Contains("exclusion"))
                 {
-                    // Need to be not too close too each other and not too near the end
+                    // Should normally not be not too close to each other nor too near the end,
+                    // though an exception applies to very short overall statements, which may
+                    // have near empty lists of criteria.
+                    
                     int inc_pos = elig_low.IndexOf("inclusion", 0, StringComparison.Ordinal);
                     int exc_pos = elig_low.IndexOf("exclusion", 0, StringComparison.Ordinal);
-                    if (exc_pos - inc_pos > 12
-                        && elig_statement.Length - exc_pos > 4 && elig_statement.Length - exc_pos > 20)
+                    if (exc_pos - inc_pos > 20 && elig_statement.Length - exc_pos > 12)
                     {
-                        // try and split on "exclusion"
+                        // try and split on "exclusion". Remove occasional ec prefixes, written before
+                        // 'exclusion', from the end of the ic string. For CTG will normally be preceded by a CR.
+                        
                         int num_inc_criteria = 0;
-                        string ic = elig_statement[..exc_pos];
+                        string ic = elig_statement[..exc_pos].Trim();
+                        string ec = elig_statement[exc_pos..].Trim();
+                        if (ic.ToLower().EndsWith("\nkey"))
+                        {
+                            ic = ic[..^3];
+                        }
+                        if (ic.ToLower().EndsWith("\nmain"))
+                        {
+                            ic = ic[..^4];
+                        }
+                        
                         if (!string.IsNullOrEmpty(ic))
                         {
                             List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ic, "inclusion");
@@ -922,12 +896,14 @@ public class CTGProcessor : IStudyProcessor
                                         cr.CritText));
                                 }
 
-                                study_iec_type = (crits.Count == 1) ? 2 : 4;
+                                if (crits.Count > 0)
+                                {
+                                    study_iec_type += (crits.Count == 1) ? 2 : 4;
+                                }
                                 num_inc_criteria = crits.Count;
                             }
                         }
 
-                        string ec = elig_statement[exc_pos..];
                         if (!string.IsNullOrEmpty(ec))
                         {
                             List<Criterion>? crits = IECFunctions.GetNumberedCriteria(sid, ec, "exclusion");
@@ -941,8 +917,10 @@ public class CTGProcessor : IStudyProcessor
                                         cr.SplitType, cr.Leader, cr.IndentLevel, cr.LevelSeqNum, cr.SequenceString,
                                         cr.CritText));
                                 }
-
-                                study_iec_type += (crits.Count == 1) ? 5 : 6;
+                                if (crits.Count > 0)
+                                {
+                                    study_iec_type += (crits.Count == 1) ? 5 : 6;
+                                }
                             }
                         }
                     }
@@ -1017,15 +995,13 @@ public class CTGProcessor : IStudyProcessor
                     if (official_name is not null && official_name.AppearsGenuinePersonName())
                     {
                         official_name = official_name.TidyPersonName();
-                        if (official_name != rp_name) // check not already present
+                        if (official_name != rp_name)       // check not already present
                         {
-                            string? official_affiliation = official.affiliation;
                             string? affil_organisation = null;
-                            if (official_affiliation is not null
-                                && official_affiliation.IsNotPlaceHolder()
-                                && official_affiliation.AppearsGenuineOrgName())
+                            string? official_affiliation = official.affiliation;
+                            if (official_affiliation.AppearsGenuineOrgName() && official_affiliation.IsNotPlaceHolder())
                             {
-                                official_affiliation = official_affiliation.TidyOrgName(sid);
+                                official_affiliation = official_affiliation.TidyOrgName(sid).StandardisePharmaName();
                                 if (!string.IsNullOrEmpty(sponsor_name)
                                     && official_affiliation!.ToLower().Contains(sponsor_name.ToLower()))
                                 {
@@ -1035,6 +1011,10 @@ public class CTGProcessor : IStudyProcessor
                                 {
                                     affil_organisation = official_affiliation!.ExtractOrganisation(sid);
                                 }
+                            }
+                            else
+                            {
+                                official_affiliation = null;
                             }
 
                             people.Add(new StudyPerson(sid, 51, "Study Lead",
@@ -1059,7 +1039,7 @@ public class CTGProcessor : IStudyProcessor
                     {
                         // Common abbreviations used within CGT site descriptors
 
-                        fac = fac.Replace("Med ", "Medical ").Replace("Gen ", "General ");
+                        fac = fac.Replace(" Med ", " Medical ").Replace("Gen ", "General ");
                         if (fac.EndsWith(" Univ") || fac.Contains("Univ "))
                         {
                             fac = fac.Replace("Univ", "University");
@@ -1160,9 +1140,21 @@ public class CTGProcessor : IStudyProcessor
                 var other_info_types = IPDSharingModule.infoTypes;
                 if (other_info_types?.Any() is true)
                 {
-                    string itemList =
-                        other_info_types.Aggregate("", (current, info_type) => current + ", " + info_type.Capitalised(TI));
-                    sharing_statement += "\nAdditional information available: " + itemList[1..].FullClean();
+                    string itemList = "";
+                    foreach (string info_abbrev in other_info_types)
+                    {
+                        string info_type = info_abbrev switch
+                        {
+                            "STUDY_PROTOCOL" => "Study Protocol",
+                            "SAP" => "Statistical Analysis Plan",
+                            "ICF" => "Informed Consent Form",
+                            "CSR" => "Clinical Study Report",
+                            "ANALYTIC_CODE" => "Analytic Code",
+                            _ => ""
+                        };
+                        itemList += ", " + info_type;
+                    }
+                    sharing_statement += "\nAdditional information available: " + itemList[1..].Trim();
                 }
             }
             

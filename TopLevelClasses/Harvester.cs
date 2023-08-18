@@ -25,38 +25,29 @@ class Harvester
 
     public void Run(Options opts)
     {
-        try
+        // Simply harvest the data for each listed source.
+            
+        foreach (int source_id in opts.source_ids!)
         {
-            // Simply harvest the data for each listed source.
-                
-            foreach (int source_id in opts.source_ids!)
-            {
-                // Obtain source details, augment with connection string for this database
-                // Open up the logging file for this source and then call the main 
-                // harvest routine. After initial checks source is guaranteed to be non-null.
-                
-                Source source = _monDataLayer.FetchSourceParameters(source_id);
-                string dbName = source.database_name!;
-                source.db_conn = _monDataLayer.GetConnectionString(dbName);
+            // Obtain source details, augment with connection string for this database
+            // Open up the logging file for this source and then call the main 
+            // harvest routine. After initial checks source is guaranteed to be non-null.
+            
+            Source source = _monDataLayer.FetchSourceParameters(source_id);
+            string dbName = source.database_name!;
+            source.db_conn = _monDataLayer.GetConnectionString(dbName);
 
-                _loggingHelper.OpenLogFile(dbName);
-                _loggingHelper.LogCommandLineParameters(opts);
-                _loggingHelper.LogHeader("STARTING HARVESTER");
-                _loggingHelper.LogStudyHeader(opts, "For source: " + source.id + ": " + dbName);
+            _loggingHelper.OpenLogFile(dbName);
+            _loggingHelper.LogCommandLineParameters(opts);
+            _loggingHelper.LogHeader("STARTING HARVESTER");
+            _loggingHelper.LogStudyHeader(opts, "For source: " + source.id + ": " + dbName);
 
-                HarvestData(source, opts);
+            HarvestData(source, opts);
 
-                _loggingHelper.LogTableStatistics(source, "sd");
-                _loggingHelper.CloseLog();
-            }
-        }
-
-        catch (Exception e)
-        {
-            _loggingHelper.LogHeader("UNHANDLED EXCEPTION");
-            _loggingHelper.LogCodeError("Harvester application aborted", e.Message, e.StackTrace);
+            _loggingHelper.LogTableStatistics(source, "sd");
             _loggingHelper.CloseLog();
         }
+
     }
 
 

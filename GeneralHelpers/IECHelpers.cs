@@ -1,4 +1,6 @@
-﻿namespace MDR_Harvester.Extensions;
+﻿using System.Globalization;
+
+namespace MDR_Harvester.Extensions;
 
 public static class IECH
 {
@@ -16,12 +18,12 @@ public static class IECH
             { "rehadb", @"^\([a-z]{1}\)" }, // alpha in brackets. (a), (b)
             { "rehab", @"^[a-z]{1}\)" }, // alpha with right bracket. a), b)
             { "renha", @"^\d{1,2}[a-z]{1}\s" }, // number plus letter  Na, Nb
-            
+
             { "retab1", @"^-\t" }, // hyphen followed by tab, -\t, -\t 
             { "retab2", @"^\d{1,2}\t" }, // number followed by tab, 1\t, 2\t
             { "retab3", @"^\uF0A7\t" }, // unknown character followed by tab
             { "retab4", @"^\*\t" }, // asterisk followed by tab    *\t, *\t
-            
+
             { "rebrnum", @"^\(\d{1,2}\)" }, // bracketed numbers (1), (2)
             { "rebrnumdot", @"^\d{1,2}\)\." }, // number followed by right bracket and dot 1)., 2).
             { "resbrnum", @"^\d{1,2}\)" }, // number followed by right bracket 1), 2)
@@ -29,19 +31,22 @@ public static class IECH
             { "renumdotbr", @"^\d{1,2}\.\)" }, // number followed by dot and right bracket  1.), 2.)
             { "resqbrnum", @"^\[\d{1,2}\]" }, // numbers in square brackets   [1], [2]
             { "resqrtnum", @"^\d{1,2}\]" }, // numbers with right square bracket   1], 2]
+            {
+                "resnumdashnumb", @"^\d{1,2}\-\d{1,2}\)"
+            }, //  numbers and following dash, then following number right bracket  1-1), 1-2)
             { "resnumdashb", @"^\d{1,2}\-\)" }, //  numbers and following dash, right bracket  1-), 2-)
             { "resnumdash", @"^\d{1,2}\-" }, //  numbers and following dash  1-, 2-
             { "resnumslash", @"^\d{1,2}\/" }, //  numbers and following slash  1/, 2/
-            
+
             { "rebull", @"^[\u2022,\u2023,\u25E6,\u2043,\u2219]" }, // various bullets 1
             { "rebull1", @"^[\u2212,\u2666,\u00B7,\uF0B7]" }, // various bullets 2
             { "reso", @"^o " }, // open 'o' bullet followed by space, o , o
             { "resotab", @"^o\t" }, // open 'o' bullet followed by tab  o\t, o\t
-            
+
             { "reslatbr", @"^\(x{0,3}(|ix|iv|v?i{0,3})\)" }, // roman numerals double bracket   (i), (ii)
             { "reslat", @"^x{0,3}(|ix|iv|v?i{0,3})\)" }, // roman numerals right brackets    i), ii)
             { "reslatdot", @"^x{0,3}(|ix|iv|v?i{0,3})\." }, // roman numerals dots   i., ii.
-            
+
             { "resssh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}\.\d{1,2}" }, // numeric Sub-sub-sub-heading. N.n.n.n
             { "ressh", @"^\d{1,2}\.\d{1,2}\.\d{1,2}" }, // numeric Sub-sub-heading. N.n.n            
             { "resh", @"^\d{1,2}\.\d{1,2}\." }, // numeric Sub-heading. N.n.     
@@ -51,21 +56,20 @@ public static class IECH
             { "recrit1", @"^\d{1,2}\." }, // number period only - can give false positives
             { "recrit2", @"^\d{1,2}\s" }, // number space only - can give false positives         
             { "recrit3", @"^\d{1,2}[A-Z]" }, // number-cap letter  - might give false positives     
-            
+
             { "redash", @"^-" }, // dash only   -, -
             { "redoubstar", @"^\*\*" }, // two asterisks   **, **
             { "restar", @"^\*" }, // asterisk only   *, *
             { "resemi", @"^;" }, // semi-colon only   ;, ; 
             { "request", @"^\?" }, // question mark only   ?, ?
             { "reinvquest", @"^¿" }, // inverted question mark only   ¿, ¿
-            
+
             { "reespacenum", @"^(E|e)\s?\d{1,2}" }, // exclusion as E or e numbers, optional space E 01, E 02
             { "reispacenum", @"^(I|i)\s?\d{1,2}" }, // inclusion as I or i numbers, optional space i1, i2
             { "rethreeenum", @"^(1|2)\d{1,2}\.?\s?" }, // 1 or 2 followed by 2 numbers, optional dot or space
         };
     }
 
-    
     public static List<string> CoalesceVeryShortLines(List<string> preLines)
     {
         // Function deals with a rare but possible problem with very short lines.
@@ -108,10 +112,11 @@ public static class IECH
                 }
             }
         }
+
         return checked_lines;
     }
-    
-    
+
+
     public static bool CheckIfAllLinesEndConsistently(List<iec_line> lines, int allowance)
     {
         int valid_end_chars = 0;
@@ -124,9 +129,10 @@ public static class IECH
             }
 
         }
+
         return valid_end_chars >= lines.Count - allowance;
     }
-    
+
     public static bool CheckIfAllLinesStartWithCaps(List<iec_line> lines, int allowance)
     {
         int valid_start_chars = 0;
@@ -138,9 +144,10 @@ public static class IECH
                 valid_start_chars++;
             }
         }
+
         return valid_start_chars >= lines.Count - allowance;
     }
-    
+
     public static bool CheckIfAllLinesStartWithLowerCase(List<iec_line> lines, int allowance)
     {
         int valid_start_chars = 0;
@@ -152,10 +159,11 @@ public static class IECH
                 valid_start_chars++;
             }
         }
+
         return valid_start_chars >= lines.Count - allowance;
     }
-    
-    
+
+
     public static int GetLevel(string hdr_name, List<Level> levels)
     {
         if (levels.Count == 1)
@@ -178,9 +186,7 @@ public static class IECH
         levels.Add(new Level(hdr_name, 0));
         return levels.Count - 1;
     }
-    
-    
-    
+
     public static List<iec_line> SplitOnSeperator(iec_line line, string splitter, int loop_depth, type_values tv)
     {
         string input_string = line.text;
@@ -228,7 +234,6 @@ public static class IECH
             split_strings.Add(new iec_line(input_line.seq_num, tv.grp_hdr, "seq", "Hdr",
                 input_string[..firstLeaderPos], loop_depth + 1, level_seq_num,
                 seq_base + level_seq_num.ToString("0#"))); // no leader - therefore a hdr
-
         }
 
         int i = 1;
@@ -613,12 +618,62 @@ public static class IECH
 
         return result;
     }
-    
-    
-    
 
+    public static string TrimInternalHeaders(this string input_line)
+    {
+        if (string.IsNullOrEmpty(input_line))
+        {
+            return "";
+        }
+
+        string line = input_line.Trim().ToLower();
+        if (line is "inclusion:" or "included:" or "exclusion:" or "excluded:")
+        {
+            return "";
+        }
+
+        input_line = input_line.Replace("key inclusion criteria", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("inclusion criteria include", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("key exclusion criteria", "", true, CultureInfo.CurrentCulture);
+        ;
+        input_line = input_line.Replace("exclusion criteria include", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("key criteria", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("inclusion criteria", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("exclusion criteria", "", true, CultureInfo.CurrentCulture);
+        return input_line.Trim(':', ' ');
+    }
+
+
+    public static bool IsSpuriousLine(this string input_line)
+    {
+        if (string.IsNullOrEmpty(input_line))
+        {
+            return true;
+        }
+
+        string line = input_line.Trim().ToLower();
+        if (line is "inclusion:" or "included:" or "exclusion:" or "excluded:")
+        {
+            return true;;
+        }
+
+        input_line = input_line.Replace("key inclusion criteria", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("inclusion criteria include", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("key exclusion criteria", "", true, CultureInfo.CurrentCulture);
+        ;
+        input_line = input_line.Replace("exclusion criteria include", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("key criteria", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("inclusion criteria", "", true, CultureInfo.CurrentCulture);
+        input_line = input_line.Replace("exclusion criteria", "", true, CultureInfo.CurrentCulture);
+        
+        if (string.IsNullOrEmpty(input_line) || input_line.Length < 4)
+        {
+            return true;;
+        }
+        
+        return false;  // the default if the line passes the tests below
+    }
 }
-
 
 public class type_values
 {

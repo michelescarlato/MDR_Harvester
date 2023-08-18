@@ -76,13 +76,21 @@ public static class StringHelpers
 
         // unicode equivalents of non-breaking spaces
 
-        if (output_string.Contains('\\'))
+        output_string = output_string.Replace('\u00A0', ' ');
+        output_string = output_string.Replace('\u2000', ' ').Replace('\u2001', ' ');
+        output_string = output_string.Replace('\u2002', ' ').Replace('\u2003', ' ');
+        output_string = output_string.Replace('\u2007', ' ').Replace('\u2008', ' ');
+        output_string = output_string.Replace('\u2009', ' ').Replace('\u200A', ' ');
+        
+        // may be in as explicit unicode codes
+
+        if (output_string.Contains("\\u"))
         {
-            output_string = output_string.Replace('\u00A0', ' ');
-            output_string = output_string.Replace('\u2000', ' ').Replace('\u2001', ' ');
-            output_string = output_string.Replace('\u2002', ' ').Replace('\u2003', ' ');
-            output_string = output_string.Replace('\u2007', ' ').Replace('\u2008', ' ');
-            output_string = output_string.Replace('\u2009', ' ').Replace('\u200A', ' ');
+            output_string = output_string.Replace("\u00A0", " ");
+            output_string = output_string.Replace("\u2000", " ").Replace("\u2001", " ");
+            output_string = output_string.Replace("\u2002", " ").Replace("\u2003", " ");
+            output_string = output_string.Replace("\u2007", " ").Replace("\u2008", " ");
+            output_string = output_string.Replace("\u2009", " ").Replace("\u200A", " ");
         }
 
         // replace combination sometimes used to denote an 'unprintable character'
@@ -93,9 +101,14 @@ public static class StringHelpers
         
         output_string = output_string.Replace("\\", "");
         
-        // Drop this 'special' symbol
+        // Drop any registration mark ot trademark symbols
         
-        output_string = output_string.Replace(((char)174).ToString(), ""); // reg mark
+        output_string = output_string.Replace(((char)174).ToString(), ""); 
+        output_string = output_string.Replace('\u00AE'.ToString(), ""); 
+        output_string = output_string.Replace('\u2122'.ToString(), "");
+        output_string = output_string.Replace("\u00AE", "");  // if already expanded explicitly
+        output_string = output_string.Replace("\u2122", ""); 
+        
         
         return output_string;
     }
@@ -150,7 +163,7 @@ public static class StringHelpers
             return input_string;
         }
 
-        // The commonest case.
+        // The commonest case...
 
         string output_string = input_string
             .Replace("<br>", "\n")
@@ -159,22 +172,24 @@ public static class StringHelpers
             .Replace("<br/ >", "\n")
             .Replace("< br / >", "\n");
 
-        // Check need to continue.
-
         if (!(output_string.Contains('<') && output_string.Contains('>')))
         {
             return output_string;
         }
-
+        
+        // Check need to continue.
+        
         output_string = RemoveTag(output_string, "p", "\n");
         output_string = RemoveTag(output_string, "li", "\n\u2022 ");
         output_string = RemoveTag(output_string, "ul", "");
         output_string = RemoveTag(output_string, "ol", "");
 
-        if (!(output_string.Contains('<') && output_string.Contains('>')))          // check need to continue
+        if (!(output_string.Contains('<') && output_string.Contains('>')))  
         {
             return output_string;
         }
+        
+        // check need to continue
         
         output_string = RemoveTag(output_string, "div", "");
         output_string = RemoveTag(output_string, "span", "");        
@@ -249,7 +264,6 @@ public static class StringHelpers
                 output_string = output_string.Replace("<sup>", "");
             }
         }
-
         return output_string;
     }
 
@@ -464,7 +478,15 @@ public static class StringHelpers
             return null;
         }
         
-        // Trim any odd' characters and remove any 'The ' prefix    
+        // A few org names (usually affiliation strings) have CRs, spaced hyphens etc. in them
+        
+        name = name.Replace("\n", ", ").Replace(" - ", ", ");
+        name = name.Replace("<br>", ", ").Replace("<br/>", ", ");
+        name = name.Replace(" - ", ", ");
+        name = name.Replace(" ,", ", ");  // can be created by the line above
+        name = name.Replace("  ", " ");   // likewise..., try and correct
+        
+        // Trim any 'odd' characters and remove any 'The ' prefix    
         
         name = name.Trim(',', '-', '*', ';', ' ');
         if (name.ToLower().StartsWith("the "))
@@ -701,6 +723,7 @@ public static class StringHelpers
         string low_name = in_name.ToLower();
         if (low_name.Contains("research") || low_name.Contains("development") ||
             low_name.Contains("trials") || low_name.Contains("pharma") ||
+            low_name.Contains("clinical") || low_name.Contains("advisor") ||
             low_name.Contains("national") || low_name.Contains("college") ||
             low_name.Contains("board") || low_name.Contains("council") ||
             low_name.Contains("ltd") || low_name.Contains("inc.")
@@ -782,10 +805,12 @@ public static class StringHelpers
             result = false;
         }
         
-        // In some cases components of a organisation's name indicate that
+        // In some cases components of a organisation's name indicate (as above) that
         // the name is that of a person rather than an organisation.
         // However it may be that the name is a composite of both a person's
-        // and an organisation's name. This therefore needs to be checked.
+        // and an organisation's name. This therefore needs to be checked. If the 
+        // name has organisation elements (i.e. fails the genuine person test)
+        // return true instead.
         
         if (!result && !in_name.AppearsGenuinePersonName())
         {
@@ -802,112 +827,116 @@ public static class StringHelpers
         {
             return null;
         }
-        string? affil_organisation = "";
+        string? affil_organisation;
         string aff = affil.ToLower();
         
         if (aff.Contains("univers"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "univers");
+            affil_organisation = FindSubPhrase(affil, "univers");
         }
         else if (aff.Contains("hospit"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "hospit");
+            affil_organisation = FindSubPhrase(affil, "hospit");
         }
         else if (aff.Contains("klinik"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "klinik");
+            affil_organisation = FindSubPhrase(affil, "klinik");
         }
         else if (aff.Contains("instit"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "instit");
+            affil_organisation = FindSubPhrase(affil, "instit");
         }
         else if (aff.Contains("hôpital"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "hôpital");
+            affil_organisation = FindSubPhrase(affil, "hôpital");
         }
         else if (aff.Contains("clinic"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "clinic");
+            affil_organisation = FindSubPhrase(affil, "clinic");
         }
         else if (aff.Contains("infirmary"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "infirmary");
+            affil_organisation = FindSubPhrase(affil, "infirmary");
         }
         else if (aff.Contains("medical center"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "medical center");
+            affil_organisation = FindSubPhrase(affil, "medical center");
         }
         else if (aff.Contains("medical centre"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "medical centre");
+            affil_organisation = FindSubPhrase(affil, "medical centre");
         }
         else if (aff.Contains("college"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "college");
+            affil_organisation = FindSubPhrase(affil, "college");
         }
         else if (aff.Contains("school"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "school");
+            affil_organisation = FindSubPhrase(affil, "school");
         }
         else if (aff.Contains("école"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "école");
+            affil_organisation = FindSubPhrase(affil, "école");
         }
         else if (aff.Contains("academy"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "academy");
+            affil_organisation = FindSubPhrase(affil, "academy");
         }
         else if (aff.Contains("nation"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "nation");
+            affil_organisation = FindSubPhrase(affil, "nation");
         }
         else if (aff.Contains(" inc."))
         {
-            affil_organisation = FindSubPhrase(affiliation, aff.Contains(", inc.") ? ", inc." : " inc.");
+            affil_organisation = FindSubPhrase(affil, aff.Contains(", inc.") ? ", inc." : " inc.");
         }
         else if (aff.Contains(" inc,"))
         {
-            affil_organisation = FindSubPhrase(affiliation, aff.Contains(", inc,") ? ", inc," : " inc,");
+            affil_organisation = FindSubPhrase(affil, aff.Contains(", inc,") ? ", inc," : " inc,");
         }
         else if (aff.Contains(" ltd"))
         {
-            affil_organisation = FindSubPhrase(affiliation, aff.Contains(", ltd") ? ", ltd" : " ltd");
+            affil_organisation = FindSubPhrase(affil, aff.Contains(", ltd") ? ", ltd" : " ltd");
         }
         else if (aff.Contains("centre"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "centre");
+            affil_organisation = FindSubPhrase(affil, "centre");
         }
         else if (aff.Contains("center"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "center");
+            affil_organisation = FindSubPhrase(affil, "center");
         }
         else if (aff.Contains("foundation"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "foundation");
+            affil_organisation = FindSubPhrase(affil, "foundation");
         }
         else if (aff.Contains(" nhs"))
         {
-            affil_organisation = FindSubPhrase(affiliation, " nhs");
+            affil_organisation = FindSubPhrase(affil, " nhs");
         }
         else if (aff.Contains(" mc "))
         {
-            affil_organisation = FindSubPhrase(affiliation, " mc ");
+            affil_organisation = FindSubPhrase(affil, " mc ");
         }
         else if (aff.Contains(" chu "))
         {
-            affil_organisation = FindSubPhrase(affiliation, " chu ");
+            affil_organisation = FindSubPhrase(affil, " chu ");
         }
         else if (aff.Contains(" mc,"))
         {
-            affil_organisation = FindSubPhrase(affiliation, " mc,");
+            affil_organisation = FindSubPhrase(affil, " mc,");
         }
         else if (aff.Contains(" chu,"))
         {
-            affil_organisation = FindSubPhrase(affiliation, " chu,");
+            affil_organisation = FindSubPhrase(affil, " chu,");
         }
         else if (aff.Contains("unit"))
         {
-            affil_organisation = FindSubPhrase(affiliation, "unit");
+            affil_organisation = FindSubPhrase(affil, "unit");
+        }
+        else
+        {
+            affil_organisation = affil;
         }
         return TidyOrgName(affil_organisation, sid);   // will return null if an empty string
     }
@@ -938,7 +967,9 @@ public static class StringHelpers
         p = p.Replace("prince of wales hospital,", "prince of wales hospital*");
         p = p.Replace("princess alexandra hospital,", "princess alexandra hospital*");
         p = p.Replace("queen elizabeth hospital,", "queen elizabeth hospital*");
-
+        p = p.Replace("queen’s hospital,", "queen’s hospital*");
+        p = p.Replace("texas health science center,", "texas health science center*");
+        
         // Find target in phrase if possible, and the position of the preceding comma,
         // and the comma after the target (if any). 
         // if no preceding comma make start the beginning of the string.
@@ -1024,14 +1055,7 @@ public static class StringHelpers
         List<string> strings = new();
         if (split_strings.Length > 0)
         {
-            for (int j = 0; j < split_strings.Length; j++)
-            {
-                if (split_strings[j] != "")
-                {
-                    strings.Add(split_strings[j]);
-                }
-            }
-
+            strings.AddRange(split_strings.Where(t => t != ""));
         }
         return strings;
     }

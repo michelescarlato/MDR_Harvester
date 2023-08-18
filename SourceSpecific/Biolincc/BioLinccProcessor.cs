@@ -8,7 +8,9 @@ public class BioLinccProcessor : IStudyProcessor
 {
     public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper)
     {
-        // set up json reader and deserialise file to a BioLiNCC object.
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Set up and deserialise string 
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         var json_options = new JsonSerializerOptions()
         {
@@ -41,8 +43,10 @@ public class BioLinccProcessor : IStudyProcessor
         List<ObjectDate> object_dates = new();
         List<ObjectInstance> object_instances = new();
 
-        // transfer features of main study object
-        // In most cases study will have already been registered in CGT
+
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Basics - id, Submission date, titles
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         string? sid = r.sd_sid;
         if (string.IsNullOrEmpty(sid))
@@ -50,34 +54,37 @@ public class BioLinccProcessor : IStudyProcessor
             _logging_helper.LogError($"No valid study identifier found for study\n{json_string[..1000]}... (first 1000 characters of json string");
             return null;
         }
-
+        
         s.sd_sid = sid;
         s.datetime_of_data_fetch = download_datetime;
+        
+        // In most cases study will have already been registered in CGT. For the study, set up two titles,
+        // acronym and display title. NHLBI title not always exactly the same as the trial registry entry.
+        // Study display title (= default title) in the context of the BioLINCC DB always the biolincc one.
 
-        // For the study, set up two titles, acronym and display title
-        // NHLBI title not always exactly the same as the trial registry entry.
-        // study display title (= default title) always the biolincc one.
-
-        string? title = r.title;
-        title = title?.FullClean();
+        string? title = r.title?.FullClean();
         s.display_title = title;
         titles.Add(new StudyTitle(sid, title, 18, "Other scientific title", true, "From BioLINCC web page"));
 
-        // but set up a 'name base' for data object names
-        // which will be the CGT name if one exists as this is usually shorter
-        // Only possible if the study is not one of those that are in a group,
-        // collectively corresponding to a single NCT entry and public title, 
-        // and only for those where an nct entry exists (Some BioLincc studies are not registered)
+        // But also set up a 'name base' for data object names which will be the CGT name if one exists as
+        // this is usually shorter. Only possible if the study is not one of those that are in a group,
+        // collectively corresponding to a single NCT entry and public title, and only for those where
+        // an NCT entry exists (Some BioLincc studies are not registered)./
 
         string? nct_name = r.nct_base_name?.LineClean();
         bool in_multiple_biolincc_group = r.in_multiple_biolincc_group is not null && (bool)r.in_multiple_biolincc_group;
-        string? name_base = (!in_multiple_biolincc_group && !string.IsNullOrEmpty(nct_name)) ? nct_name : title;
+        string? name_base = !in_multiple_biolincc_group && !string.IsNullOrEmpty(nct_name) ? nct_name : title;
 
         string? acronym = r.acronym;
         if (!string.IsNullOrEmpty(acronym))
         {
             titles.Add(new StudyTitle(sid, acronym, 14, "Acronym or Abbreviation", false, "From BioLINCC web page"));
         }
+        
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study basic attributes - type,status, description, start year
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         s.brief_description = r.brief_description?.FullClean();
         s.study_type_id = r.study_type_id;
@@ -128,7 +135,10 @@ public class BioLinccProcessor : IStudyProcessor
             }
         }
 
-        // Add study attribute records.
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Identifiers
+        ///////////////////////////////////////////////////////////////////////////////////////
         
         string? nhbli_identifier = r.accession_number;
         if (nhbli_identifier is not null)
@@ -149,9 +159,13 @@ public class BioLinccProcessor : IStudyProcessor
                     identifiers.Add(new StudyIdentifier(sid, nct_id, 11, "Trial Registry ID", 100120, "ClinicalTrials.gov"));
                 }
             }
-
         }
 
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study sponsor
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         int? sponsor_id = r.sponsor_id;
         if (sponsor_id == 0)
         {
@@ -160,9 +174,15 @@ public class BioLinccProcessor : IStudyProcessor
         string? sponsor_name = r.sponsor_name;
         if (sponsor_name is not null)
         {
+            sponsor_name = sponsor_name.TidyOrgName(sid).StandardisePharmaName();
             organisations.Add(new StudyOrganisation(sid, 54, "Trial sponsor", sponsor_id, sponsor_name));
         }
 
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Related studies
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         var rel_studies = r.related_studies;
         if (rel_studies?.Any() is true)
         {
@@ -176,7 +196,10 @@ public class BioLinccProcessor : IStudyProcessor
             }
         }
         
-        // Study references
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Study References
+        ///////////////////////////////////////////////////////////////////////////////////////
         
         var primary_docs = r.primary_docs;
         if (primary_docs?.Any() is true)
@@ -208,7 +231,6 @@ public class BioLinccProcessor : IStudyProcessor
                 }
             }
         }
-
         
         // check that the primary doc is not duplicated in the associated docs (it sometimes is)
         
@@ -242,12 +264,14 @@ public class BioLinccProcessor : IStudyProcessor
                 references2.Add(a);
             }
         }
-
-        // Create data object records.
-
-        // For the BioLincc web page, set up new data object, object title, object_instance and object dates
-
+        
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // BioLincc web page Data object record
+        ///////////////////////////////////////////////////////////////////////////////////////
+       
         // Get publication year if one exists
+        
         int? pub_year = null;
         int? p_year = r.publication_year;
         if (p_year is > 0)
@@ -284,8 +308,11 @@ public class BioLinccProcessor : IStudyProcessor
                         dt.Month, dt.Day, dt.ToString("d MMM yyyy")));
         }
 
-
-        // If there is a study web site...
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Possible study web site
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         string? study_website = r.study_website;
         if (!string.IsNullOrEmpty(study_website))
         {
@@ -301,10 +328,10 @@ public class BioLinccProcessor : IStudyProcessor
                                 study_website, true, 35, "Web text"));
         }
 
-
-        // create the data object relating to the dataset, instance not available, title possible...
-        // may be a description of the data in 'Data Available...'
-        // if so add a data object description....with a data object title
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Possible IPD Dataset data object
+        ///////////////////////////////////////////////////////////////////////////////////////
 
         string access_details = "Investigators wishing to request materials from studies ... must register (free) on the BioLINCC website. ";
         access_details += "Registered investigators may then request detailed searches and submit an application for data sets ";
@@ -375,6 +402,11 @@ public class BioLinccProcessor : IStudyProcessor
                                         consent_type_id, consent_type, restrictions));
             
         }
+        
+        
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Other associated data objects
+        ///////////////////////////////////////////////////////////////////////////////////////
        
         var resources = r.resources;
         if (resources is not null)
@@ -399,7 +431,7 @@ public class BioLinccProcessor : IStudyProcessor
                 object_display_title = name_base + " :: " + doc_name;
                 sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
 
-                // N.r. 'pub_year' no longer known
+                // N.B. 'pub_year' no longer known
 
                 data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", object_type_id, object_type,
                                 100167, "National Heart, Lung, and Blood Institute (US)", access_type_id, download_datetime));
@@ -409,7 +441,10 @@ public class BioLinccProcessor : IStudyProcessor
         }
 
         
-        // add in the study properties
+        ///////////////////////////////////////////////////////////////////////////////////////
+        // Construct final study object
+        ///////////////////////////////////////////////////////////////////////////////////////
+        
         s.titles = titles;
         s.identifiers = identifiers;
         s.references = references2;
