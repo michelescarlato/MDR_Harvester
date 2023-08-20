@@ -65,6 +65,8 @@ public static class StringHelpers
             output_string = output_string.Replace("&#45;", "-");
             output_string = output_string.Replace("&#38;", "&");
             output_string = output_string.Replace("&#39;", "'");
+            output_string = output_string.Replace("&#8217;", "’");
+
 
             // replace escaped html / xml characters
 

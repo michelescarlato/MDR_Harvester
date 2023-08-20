@@ -32,7 +32,6 @@ public class StudyController
         int k = 0;
 
         // total_amount = 1; // for testing
-        amount_to_fetch = 3000; // for testing
         
         for (int m = 0; m < amount_to_fetch; m += chunk)    //  CHANGE *********
         {

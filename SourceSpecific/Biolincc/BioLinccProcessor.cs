@@ -1,11 +1,19 @@
 ﻿using MDR_Harvester.Extensions;
 using System.Text.Json;
-
-
 namespace MDR_Harvester.Biolincc;
+
 
 public class BioLinccProcessor : IStudyProcessor
 {
+    private readonly IStorageDataLayer _storageDataLayer;
+    private readonly string _biolincc_db_conn;
+    
+    public BioLinccProcessor(IStorageDataLayer storageDataLayer, string biolincc_db_conn)
+    {
+        _storageDataLayer = storageDataLayer;
+        _biolincc_db_conn = biolincc_db_conn;
+    }
+
     public Study? ProcessData(string json_string, DateTime? download_datetime, ILoggingHelper _logging_helper)
     {
         ///////////////////////////////////////////////////////////////////////////////////////
@@ -172,10 +180,24 @@ public class BioLinccProcessor : IStudyProcessor
             sponsor_id = null;  // 0 inserted by json serialisation as default value
         }
         string? sponsor_name = r.sponsor_name;
+        bool sponsor_is_individual = false; // default
         if (sponsor_name is not null)
         {
-            sponsor_name = sponsor_name.TidyOrgName(sid).StandardisePharmaName();
-            organisations.Add(new StudyOrganisation(sid, 54, "Trial sponsor", sponsor_id, sponsor_name));
+            // There are a few instances where an individual is identified as a sponsor 
+            // presumed here to be a sponsor-investigator... Number small enough to be identified manually
+
+            
+            if (sponsor_name is "Deborah Ascheim" or "Korey Kennelty" 
+                or "Roberta Ballard" or "Adrian Hernandez")
+            {
+                organisations.Add(new StudyOrganisation(sid, 70, "Sponsor-investigator", sponsor_id, sponsor_name));
+                sponsor_is_individual = true;
+            }
+            else
+            {
+                sponsor_name = sponsor_name.TidyOrgName(sid).StandardisePharmaName();
+                organisations.Add(new StudyOrganisation(sid, 54, "Trial sponsor", sponsor_id, sponsor_name));
+            }
         }
 
         
@@ -316,15 +338,16 @@ public class BioLinccProcessor : IStudyProcessor
         string? study_website = r.study_website;
         if (!string.IsNullOrEmpty(study_website))
         {
+            string? sp_name = sponsor_is_individual ? null : sponsor_name;
             object_title = "Study web site";
             object_display_title = name_base + " :: " + "Study web site";
             sd_oid = sid + " :: 134 :: " + object_title;
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", 134, "Website",
-                                sponsor_id, sponsor_name, 12, download_datetime));
+                                sponsor_id, sp_name, 12, download_datetime));
             object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
                                 "Study short name :: object type", true));
-            object_instances.Add(new ObjectInstance(sd_oid, sponsor_id, sponsor_name,
+            object_instances.Add(new ObjectInstance(sd_oid, sponsor_id, sp_name,
                                 study_website, true, 35, "Web text"));
         }
 
@@ -422,6 +445,20 @@ public class BioLinccProcessor : IStudyProcessor
                 string? doc_type = res.doc_type;
                 string? size = res.size;
                 string? size_units = res.size_units;
+
+                if (res.object_type_id == 0 && !string.IsNullOrEmpty(doc_name))
+                {
+                    // object type not coded during the download process. Lookup table may have been updated
+                    // since - if so, running a full harvest should be able to insert the missing object type
+                    // This code inserted here to support that scenario...
+                    
+                    ObjectTypeDetails? object_type_details = _storageDataLayer.FetchDocTypeDetails(_biolincc_db_conn, doc_name);
+                    if (object_type_details?.type_id > 0)
+                    {
+                        object_type_id = (int)object_type_details.type_id!;
+                        object_type = object_type_details.type_name ?? "";
+                    }
+                }
 
                 // for parity and test expectations
                 if (size == "") size = null;

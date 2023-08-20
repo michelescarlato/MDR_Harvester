@@ -264,89 +264,64 @@ public class YodaProcessor : IStudyProcessor
         {
             foreach (var sd in sds)
             {
-                // Get object_type.
+                // Get object parameters
                 
-                string? doc_name = sd.doc_name;
+                int? object_type_id = sd.doc_type_id;                
+                string? object_type = sd.doc_type;
                 string? comment = sd.comment;
                 string? url = sd.url;
-                if (doc_name is not null)
+                int object_class_id = object_type_id is 80 or 69 ? 14 : 23;
+                string object_class = object_class_id == 14 ? "Datasets" : "Text";
+                
+                if (object_type_id is not null)
                 {
-                    int object_class_id; string object_class;
-                    if (doc_name.Contains("Datasets"))
+                    object_display_title = name_base + " :: " + object_type;
+                    sd_oid = sid + " :: " + object_type_id + " :: " + object_type;
+
+                    if (comment == "Available now")
                     {
-                        object_class_id = 14; object_class = "Datasets";
+                        data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
+                                        101901, "Yoda", 11, downloadDatetime));
+                        object_titles.Add(new ObjectTitle(sd_oid ,object_display_title, 22, "Study short name :: object type", true));
+
+                        // create instance as resource exists
+                        // get file type from link if possible
+                        int resource_type_id = 0; string resource_type = "Not yet known";
+                        if (url is not null)
+                        {
+                            if (url.ToLower().EndsWith(".pdf"))
+                            {
+                                resource_type_id = 11;
+                                resource_type = "PDF";
+                            }
+                            else if (url.ToLower().EndsWith(".xls") || url.ToLower().EndsWith(".xlsx"))
+                            {
+                                resource_type_id = 18;
+                                resource_type = "Excel Spreadsheet(s)";
+                            }
+                        }
+                        object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda", url, true, resource_type_id, resource_type));
                     }
                     else
                     {
-                        object_class_id = 23; object_class = "Text";
+                        string access_details = "The YODA Project will require that requesters provide basic information about the Principal Investigator, Key Personnel, and the ";
+                        access_details += "project Research Proposal, including a scientific abstract and research methods.The YODA Project will review proposals to ensure that: ";
+                        access_details += "1) the scientific purpose is clearly described; 2) the data requested will be used to enhance scientific and/or medical knowledge; and ";
+                        access_details += "3) the proposed research can be reasonably addressed using the requested data.";
+
+                        data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
+                                        101901, "Yoda", 17, "Case by case download", access_details,
+                                        "https://yoda.yale.edu/how-request-data", null, downloadDatetime));
+                        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
                     }
 
-                    Tuple<int, string>? objectType = doc_name switch
+                    // for datasets also add dataset properties - even if they are largely unknown
+                    if (object_type_id == 80)
                     {
-                        "Collected Datasets" => new Tuple<int, string>(80, "Individual participant data"),
-                        "Analysis Datasets" => new Tuple<int, string>(51, "IPD final analysis datasets"),
-                        "Data Definition Specification" => new Tuple<int, string>(31, "Data dictionary"),
-                        "CSR Summary" => new Tuple<int, string>(79, "CSR summary"),
-                        "Annotated Case Report Form" => new Tuple<int, string>(30, "Annotated data collection forms"),
-                        "Protocol with Amendments" => new Tuple<int, string>(11, "Study protocol"),
-                        "Clinical Study Report" => new Tuple<int, string>(26, "Clinical study report"),
-                        "Statistical Analysis Plan" => new Tuple<int, string>(22, "Statistical analysis plan"),
-                        _ => null
-                    };
-
-                    if (objectType is not null)
-                    {
-                        int object_type_id = objectType.Item1;
-                        string object_type = objectType.Item2;
-
-                        object_display_title = name_base + " :: " + object_type;
-                        sd_oid = sid + " :: " + object_type_id + " :: " + object_type;
-
-                        if (comment == "Available now")
-                        {
-                            data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
-                                            101901, "Yoda", 11, downloadDatetime));
-                            object_titles.Add(new ObjectTitle(sd_oid ,object_display_title, 22, "Study short name :: object type", true));
-
-                            // create instance as resource exists
-                            // get file type from link if possible
-                            int resource_type_id = 0; string resource_type = "Not yet known";
-                            if (url is not null)
-                            {
-                                if (url.ToLower().EndsWith(".pdf"))
-                                {
-                                    resource_type_id = 11;
-                                    resource_type = "PDF";
-                                }
-                                else if (url.ToLower().EndsWith(".xls") || url.ToLower().EndsWith(".xlsx"))
-                                {
-                                    resource_type_id = 18;
-                                    resource_type = "Excel Spreadsheet(s)";
-                                }
-                            }
-                            object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda", url, true, resource_type_id, resource_type));
-                        }
-                        else
-                        {
-                            string access_details = "The YODA Project will require that requesters provide basic information about the Principal Investigator, Key Personnel, and the ";
-                            access_details += "project Research Proposal, including a scientific abstract and research methods.The YODA Project will review proposals to ensure that: ";
-                            access_details += "1) the scientific purpose is clearly described; 2) the data requested will be used to enhance scientific and/or medical knowledge; and ";
-                            access_details += "3) the proposed research can be reasonably addressed using the requested data.";
-
-                            data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
-                                            101901, "Yoda", 17, "Case by case download", access_details,
-                                            "https://yoda.yale.edu/how-request-data", null, downloadDatetime));
-                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
-                        }
-
-                        // for datasets also add dataset properties - even if they are largely unknown
-                        if (object_type_id == 80)
-                        {
-                            object_datasets.Add(new ObjectDataset(sd_oid, 0, "Not known", null,
-                                                        2, "De-identification applied",
-                                                        "Yoda states that “...researchers will be granted access to participant-level study data that are devoid of personally identifiable information; current best guidelines for de-identification of data will be used.”",
-                                                        0, "Not known", null));
-                        }
+                        object_datasets.Add(new ObjectDataset(sd_oid, 0, "Not known", null,
+                                                    2, "De-identification applied",
+                                                    "Yoda states that “...researchers will be granted access to participant-level study data that are devoid of personally identifiable information; current best guidelines for de-identification of data will be used.”",
+                                                    0, "Not known", null));
                     }
                 }
             }

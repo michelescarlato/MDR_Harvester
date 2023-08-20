@@ -1,5 +1,4 @@
-﻿
-namespace MDR_Harvester.Biolincc;
+﻿namespace MDR_Harvester.Biolincc;
 
 public class BioLincc_Record
 {
@@ -56,12 +55,13 @@ public class DataRestrictDetails
     public string? org_name { get; set; }
 }
 
+/*
 public class ObjectTypeDetails
 {
     public int? type_id { get; set; }
     public string? type_name { get; set; }
 }
-
+*/
 
 public class RegistryId
 {

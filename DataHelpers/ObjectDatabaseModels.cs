@@ -798,4 +798,10 @@ public class JournalDetails
     }
 }
 
+public class ObjectTypeDetails
+{
+    public int? type_id { get; set; }
+    public string? type_name { get; set; }
+}
+
 

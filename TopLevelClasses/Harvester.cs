@@ -109,9 +109,11 @@ class Harvester
             }
             else
             {
+                // N.B. Biolincc processor unusual in that it requires DB access during the harvest process
+                
                 if (source.id is 101900)
                 {
-                    study_processor = new BioLinccProcessor();
+                    study_processor = new BioLinccProcessor(_storageDataLayer, source.db_conn!);
                 }
                 else if (source.id is 101901)
                 {

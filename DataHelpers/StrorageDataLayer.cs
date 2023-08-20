@@ -1,4 +1,5 @@
-﻿using Dapper.Contrib.Extensions;
+﻿using Dapper;
+using Dapper.Contrib.Extensions;
 using Npgsql;
 using PostgreSQLCopyHelper;
 
@@ -299,5 +300,13 @@ public class StorageDataLayer : IStorageDataLayer
         }
         
         conn.Close();  
+    }
+    
+    public ObjectTypeDetails? FetchDocTypeDetails(string biolincc_db_conn, string docName)
+    {
+        using NpgsqlConnection conn = new(biolincc_db_conn);
+        string sql_string = $@"Select type_id, type_name from mn.document_types 
+                               where resource_name = '{docName}';";
+        return conn.QueryFirstOrDefault<ObjectTypeDetails>(sql_string);
     }
 }
