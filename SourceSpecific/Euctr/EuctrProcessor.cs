@@ -638,6 +638,7 @@ public class EUCTRProcessor : IStudyProcessor
             entered_in_db = r.date_registration.GetDatePartsFromEuropeanString();
         }
 
+
         int? registry_pub_year = (entered_in_db is not null) ? entered_in_db.year : s.study_start_year;
         string sd_oid = sid + " :: 13 :: " + object_title;
 

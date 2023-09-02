@@ -247,6 +247,40 @@ public static class TypeHelpers
             _ => null,
         };
     }
+    
+    
+    public static int? GetCTTypeId(this string ct_type)
+    {
+        if (string.IsNullOrEmpty(ct_type))
+        {
+            return null;
+        }
+        return ct_type.ToLower() switch
+        {
+            "authors" => 11,
+            "icd 10" => 12,
+        	"icd 11" => 13,
+        	"mesh" => 14,
+        	"snomed ct" => 15,
+        	"meddra" => 16,
+        	"nci thesaurus" => 17,
+        	"cochrane pico terminology" => 18,
+        	"cdisc controlled terminology" => 19,
+        	"loinc" => 20,
+        	"atc drug classification" => 21,
+        	"who Drug" => 22,
+        	"iupac chemical names" => 23,
+        	"inchi chemical identifier" => 24,
+        	"enzyme commission numbers / names" => 25,
+            "hgnc human genome codes / names" => 26	,
+        	"taxonomic names" => 27,
+        	"none" => 28,
+        	"cas" => 29,
+        	"mesh tree" => 30,
+            "not yet known" => 0,
+            _ => null,
+        };
+    }
 
     public static string? GetTimeUnits(this string? time_units)
     {

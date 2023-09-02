@@ -796,7 +796,8 @@ public static class StringHelpers
             result = false;
         }
         else if (in_name.StartsWith("dr")
-                 && org_name[2].ToString() == in_name[2].ToString().ToUpper())
+                 && (org_name.Length == 2 
+                    || org_name[2].ToString() == in_name[2].ToString().ToUpper()))
         {
             result = false;
         }

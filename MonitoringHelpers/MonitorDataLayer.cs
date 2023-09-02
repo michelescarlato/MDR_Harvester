@@ -147,7 +147,7 @@ public class MonDataLayer : IMonDataLayer
         else if (harvest_type_id == 4)
         {
             // use records not harvested recently (rather than download / import dates) - use for harvest repair
-            where_clause = @$" local_path is not null
+            where_clause = @$" where local_path is not null
                                and (last_harvested::date < now()::date - {days_ago} or last_harvested is null) ";
         }
         return where_clause;

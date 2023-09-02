@@ -650,6 +650,13 @@ public class PubmedProcessor : IObjectProcessor
                 }
             }   
         }
+        
+        // Remove non-useful topics
+        
+        if (topics.Any())
+        {
+            topics = topics.RemoveNonInformativeObjectTopics();
+        }
 
 
         // Article Elocations - can provide doi and publishers id.
@@ -1012,7 +1019,30 @@ public class PubmedProcessor : IObjectProcessor
                                 else
                                 {
                                     // look at affiliation string
-                                    affil_organisation = affiliation.ExtractOrganisation(sdoid);
+                                    
+                                    if (affiliation.ToLower().Contains("electronic"))
+                                    {
+                                        int e_pos = affiliation.ToLower().IndexOf("electronic", StringComparison.Ordinal);
+                                        affiliation = affiliation[..e_pos].Trim();
+                                    }
+                                    if (affiliation.ToLower().Contains("email"))
+                                    {
+                                        int e_pos = affiliation.ToLower().IndexOf("email", StringComparison.Ordinal);
+                                        affiliation = affiliation[..e_pos].Trim();
+                                    }
+
+                                    if (affiliation.Contains('@'))
+                                    {
+                                        int e_pos = affiliation.IndexOf('@');
+                                        int w_pos = affiliation.LastIndexOf(' ', e_pos);
+                                        if (w_pos == -1)
+                                        {
+                                            w_pos = e_pos;
+                                        }
+                                        affiliation = affiliation[..w_pos].Trim();
+                                    }
+                                    affiliation = affiliation.TidyOrgName(sdoid).StandardisePharmaName();
+                                    affil_organisation = affiliation?.ExtractOrganisation(sdoid);
                                 }
                             }
                         }

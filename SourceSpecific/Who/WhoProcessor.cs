@@ -637,37 +637,50 @@ public class WHOProcessor : IStudyProcessor
                                     
             foreach (WhoCondition cn in cList)
             {
-                string? con = cn.condition;
-                if (!string.IsNullOrEmpty(con))
+                string? cond = cn.condition;
+                string? cond_code = cn.code;
+                string? code_system_type = cn.code_system;
+                int? code_system_type_id = null;
+
+                if (!string.IsNullOrEmpty(cond))
                 {
                     char[] chars_to_trim = { ' ', '?', ':', '*', '/', '-', '_', '+', '=', '>', '<', '&' };
-                    string con_trim = con.Trim(chars_to_trim);
-                    if (!string.IsNullOrEmpty(con_trim) 
-                        && con_trim.ToLower() != "not applicable" && con_trim.ToLower() != "&quot")
+                    string? cond_trim = cond.Trim(chars_to_trim);
+
+                    if (cond_trim.ToLower() != "not applicable" && cond_trim.ToLower() != "&quot")
                     {
-                        if (con_trim.IsNotInConditionsAlready(conditions))
+                        if (!string.IsNullOrEmpty(cond_trim))
                         {
-                            string? code = cn.code;
-                            string? code_system = cn.code_system;
-      
-                            if (code is null)
+                            // Assume the condition name is an ICD10 code if it fits the pattern
+                            // and there is no code given. Otherwise add the data as provided.
+
+                            if (string.IsNullOrEmpty(cond_code)
+                                && (Regex.Match(cond_trim, @"^[A-Z]\d{2}(.\d)?").Success
+                                    || Regex.Match(cond_trim, @"^[A-Z]\d{3}").Success))
                             {
-                                // ************ TEMPORARY UNTIL ICD CONDITION DL SORTED ***********************
-                                if (Regex.Match(con_trim, @"^[A-Z]\d{2}(.\d)?").Success 
-                                    || Regex.Match(con_trim, @"^[A-Z]\d{3}").Success)
-                                {
-                                    conditions.Add(new StudyCondition(sid, con_trim, 12, "ICD 10", con_trim));
-                                }
-                                else
-                                {
-                                    conditions.Add(new StudyCondition(sid, con_trim));
-                                }
+
+                                cond_code = cond_trim;
+                                cond_trim = null;
+                                code_system_type = "ICD 10";
                             }
-                            else
+                            if (code_system_type != null)
                             {
-                                conditions.Add(code_system == "ICD 10"
-                                    ? new StudyCondition(sid, con_trim, 12, "ICD 10", cn.code)
-                                    : new StudyCondition(sid, con_trim, null, code_system, cn.code));
+                                code_system_type_id = code_system_type.GetCTTypeId();
+                            }
+                            conditions.Add(new StudyCondition(sid, cond_trim, code_system_type_id, code_system_type, cond_code));
+                        }
+                        else
+                        {
+                            // May be just a code present
+
+                            if (!string.IsNullOrEmpty(cond_code))
+                            {
+                                cond_trim = null;
+                                if (code_system_type != null)
+                                {
+                                    code_system_type_id = code_system_type.GetCTTypeId();
+                                }
+                                conditions.Add(new StudyCondition(sid, cond_trim, code_system_type_id, code_system_type, cond_code));
                             }
                         }
                     }

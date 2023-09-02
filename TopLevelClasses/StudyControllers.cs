@@ -33,7 +33,7 @@ public class StudyController
 
         // total_amount = 1; // for testing
         
-        for (int m = 0; m < amount_to_fetch; m += chunk)    //  CHANGE *********
+        for (int m = 0; m < amount_to_fetch; m += chunk)    
         {
             //if (k >= 40000) break; // for testing...
 
@@ -63,9 +63,17 @@ public class StudyController
                             _monDataLayer.UpdateFileRecLastHarvested(rec.id, _source.source_type!, harvestId);
                         }
                     }
+                    else
+                    {
+                        _loggingHelper.LogLine($"WTF - no deserialised object returned from {filePath} ");
+                    }
+                }
+                else
+                {
+                    _loggingHelper.LogLine($"WTF - the file at {filePath} does not seem to exist");
                 }
                 if (k % 100 == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
-                //if (k % chunk == 0) _loggingHelper.LogLine("Records harvested: " + k.ToString());
+               
             }
         }
 

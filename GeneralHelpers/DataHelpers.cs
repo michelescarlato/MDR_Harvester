@@ -260,18 +260,13 @@ public static class DataHelpers
 
     public static bool IsUsefulTopic(this string? topic)
     {
-        if (string.IsNullOrEmpty(topic))
+        topic = topic?.Trim();
+        if (string.IsNullOrEmpty(topic) || topic.Length < 2)
         {
             return false;
         }
-        topic = topic.Trim();
-        if (topic == "-")
-        {
-            return false;
-        }
-
-        string t_lower = topic.ToLower().Trim();
-        bool is_useful = true;
+        bool is_useful = true;        
+        string t_lower = topic.ToLower();
         char FL = topic.ToUpper()[0];
         switch (FL)
         {
@@ -445,7 +440,6 @@ public static class DataHelpers
                 break;
             }
         }
-
         return is_useful;
     }
 
@@ -493,10 +487,31 @@ public static class DataHelpers
     {
         return topics.Where(t => t.original_value.IsUsefulTopic()).ToList();
     }
+    
+    public static List<ObjectTopic> RemoveNonInformativeObjectTopics(this List<ObjectTopic> topics)
+    {
+        return topics.Where(t => t.original_value.IsUsefulTopic()).ToList();
+    }
+    
 
     public static List<StudyCondition> RemoveNonInformativeConditions(this List<StudyCondition> conditions)
     {
-        return conditions.Where(c => c.original_value.IsUsefulTopic()).ToList();
+        List<StudyCondition> c2 = new();
+        foreach (StudyCondition sc in conditions)
+        {
+            if (string.IsNullOrEmpty(sc.original_value) && 
+                !string.IsNullOrEmpty(sc.original_ct_code))
+            {
+                // conditions without names but with codes would otherwise be removed
+                
+                c2.Add(sc);
+            }
+            else if (sc.original_value.IsUsefulTopic())
+            {
+                c2.Add(sc);
+            }
+        }
+        return c2;
     }
 
 }
