@@ -135,26 +135,25 @@ public class TestHelper
 
         delete_object_test_recs("sd", "data_objects");
         delete_object_test_recs("sd", "object_titles");
-        delete_object_test_recs("sd", "object_instances");
 
         // these are database dependent		
-
+        
+        if (_source.has_object_instances is true) delete_object_test_recs("sd", "object_instances");
         if (_source.has_object_datasets is true) delete_object_test_recs("sd", "object_datasets");
         if (_source.has_object_dates is true) delete_object_test_recs("sd", "object_dates");
+
+        if (_source.has_object_people is true) delete_object_test_recs("sd", "object_people");
+        if (_source.has_object_organisations is true) delete_object_test_recs("sd", "object_organisations");
+        if (_source.has_object_topics is true) delete_object_test_recs("sd", "object_topics");
+        if (_source.has_object_comments is true) delete_object_test_recs("sd", "object_comments");
+        if (_source.has_object_descriptions is true) delete_object_test_recs("sd", "object_descriptions");
+        if (_source.has_object_identifiers is true) delete_object_test_recs("sd", "object_identifiers");
+        if (_source.has_object_db_links is true) delete_object_test_recs("sd", "object_db_links");
+        if (_source.has_object_publication_types is true) delete_object_test_recs("sd", "object_publication_types");
+        if (_source.has_journal_details is true) delete_object_test_recs("sd", "journal_details");
         if (_source.has_object_relationships is true) delete_object_test_recs("sd", "object_relationships");
         if (_source.has_object_rights is true) delete_object_test_recs("sd", "object_rights");
-        if (_source.has_object_pubmed_set is true)
-        {
-            delete_object_test_recs("sd", "object_people");
-            delete_object_test_recs("sd", "object_organisations");
-            delete_object_test_recs("sd", "object_topics");
-            delete_object_test_recs("sd", "object_comments");
-            delete_object_test_recs("sd", "object_descriptions");
-            delete_object_test_recs("sd", "object_identifiers");
-            delete_object_test_recs("sd", "object_db_links");
-            delete_object_test_recs("sd", "object_publication_types");
-            delete_object_test_recs("sd", "journal_details");
-        }
+        
         _loggingHelper.LogLine("Object test data deleted");
     }
 

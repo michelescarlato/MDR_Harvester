@@ -251,55 +251,50 @@ public class StorageDataLayer : IStorageDataLayer
             _och.objectRightsHelper.SaveAll(conn, r.object_rights);
         }
 
-        if (source.has_object_pubmed_set is true)
+        if (r.object_organisations?.Count > 0)
         {
-            if (r.object_organisations?.Count > 0)
-            {
-                _och.objectOrganisationsHelper.SaveAll(conn, r.object_organisations);
-            }
-            
-            if (r.object_people?.Count > 0)
-            {
-                _och.objectPeopleHelper.SaveAll(conn, r.object_people);
-            }
-
-            if (r.object_topics?.Any() is true)
-            {
-                _och.objectTopicsHelper.SaveAll(conn, r.object_topics);
-            }
-
-            if (r.object_comments?.Any() is true)
-            {
-                _och.objectCommentsHelper.SaveAll(conn, r.object_comments);
-            }
-
-            if (r.object_descriptions?.Any() is true)
-            {
-                _och.objectDescriptionsHelper.SaveAll(conn, r.object_descriptions);
-            }
-
-            if (r.object_identifiers?.Any() is true)
-            {
-                _och.objectIdentifiersHelper.SaveAll(conn, r.object_identifiers);
-            }
-
-            if (r.object_db_ids?.Any() is true)
-            {
-                _och.objectDbLinksHelper.SaveAll(conn, r.object_db_ids);
-            }
-
-            if (r.object_pubtypes?.Any() is true)
-            {
-                _och.objectPubTypesHelper.SaveAll(conn, r.object_pubtypes);
-            }
-
-            if (r.journal_details != null)
-            {
-                conn.Insert(r.journal_details);
-            }
+            _och.objectOrganisationsHelper.SaveAll(conn, r.object_organisations);
         }
         
-        conn.Close();  
+        if (r.object_people?.Count > 0)
+        {
+            _och.objectPeopleHelper.SaveAll(conn, r.object_people);
+        }
+
+        if (r.object_topics?.Any() is true)
+        {
+            _och.objectTopicsHelper.SaveAll(conn, r.object_topics);
+        }
+
+        if (r.object_comments?.Any() is true)
+        {
+            _och.objectCommentsHelper.SaveAll(conn, r.object_comments);
+        }
+
+        if (r.object_descriptions?.Any() is true)
+        {
+            _och.objectDescriptionsHelper.SaveAll(conn, r.object_descriptions);
+        }
+
+        if (r.object_identifiers?.Any() is true)
+        {
+            _och.objectIdentifiersHelper.SaveAll(conn, r.object_identifiers);
+        }
+
+        if (r.object_db_ids?.Any() is true)
+        {
+            _och.objectDbLinksHelper.SaveAll(conn, r.object_db_ids);
+        }
+
+        if (r.object_pubtypes?.Any() is true)
+        {
+            _och.objectPubTypesHelper.SaveAll(conn, r.object_pubtypes);
+        }
+
+        if (r.journal_details != null)
+        {
+            conn.Insert(r.journal_details);
+        }
     }
     
     public ObjectTypeDetails? FetchDocTypeDetails(string biolincc_db_conn, string docName)

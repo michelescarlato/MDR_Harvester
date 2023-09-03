@@ -59,27 +59,25 @@ public class SchemaBuilder
         // object tables - these common to all databases
 
         object_table_builder.create_table_data_objects("sd");
-        object_table_builder.create_table_object_instances("sd");
         object_table_builder.create_table_object_titles("sd");
 
         // these are database dependent		
 
         if (_source.has_object_datasets is true) object_table_builder.create_table_object_datasets("sd");
         if (_source.has_object_dates is true) object_table_builder.create_table_object_dates("sd");
+        if (_source.has_object_instances is true) object_table_builder.create_table_object_instances("sd");
+        if (_source.has_object_people is true) object_table_builder.create_table_object_people("sd");
+        if (_source.has_object_organisations is true) object_table_builder.create_table_object_organisations("sd");
+        if (_source.has_object_topics is true) object_table_builder.create_table_object_topics("sd");
+        if (_source.has_object_comments is true) object_table_builder.create_table_object_comments("sd");
+        if (_source.has_object_descriptions is true) object_table_builder.create_table_object_descriptions("sd");
+        if (_source.has_object_identifiers is true) object_table_builder.create_table_object_identifiers("sd");
+        if (_source.has_object_db_links is true) object_table_builder.create_table_object_db_links("sd");
+        if (_source.has_object_publication_types is true) object_table_builder.create_table_object_publication_types("sd");
+        if (_source.has_journal_details is true) object_table_builder.create_table_journal_details("sd");
         if (_source.has_object_relationships is true) object_table_builder.create_table_object_relationships("sd");
         if (_source.has_object_rights is true) object_table_builder.create_table_object_rights("sd");
-        if (_source.has_object_pubmed_set is true)
-        {
-            object_table_builder.create_table_journal_details("sd");
-            object_table_builder.create_table_object_people("sd");
-            object_table_builder.create_table_object_organisations("sd");
-            object_table_builder.create_table_object_topics("sd");
-            object_table_builder.create_table_object_comments("sd");
-            object_table_builder.create_table_object_descriptions("sd");
-            object_table_builder.create_table_object_identifiers("sd");
-            object_table_builder.create_table_object_db_links("sd");
-            object_table_builder.create_table_object_publication_types("sd");
-        }
+        
         _loggingHelper.LogLine("Object tables recreated");
     }
 

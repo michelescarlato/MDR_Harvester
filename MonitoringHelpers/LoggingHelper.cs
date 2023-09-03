@@ -200,28 +200,27 @@ public class LoggingHelper : ILoggingHelper
         LogLine("");
         // these common to all databases
         LogLine(ObjectTableSummary(db_conn, schema, "data_objects", false));
-        LogLine(ObjectTableSummary(db_conn, schema, "object_instances"));
         LogLine(ObjectTableSummary(db_conn, schema, "object_titles"));
 
         // these are database dependent		
 
+        if (s.has_object_instances is true) LogLine(ObjectTableSummary(db_conn, schema, "object_instances"));
         if (s.has_object_datasets is true) LogLine(ObjectTableSummary(db_conn, schema, "object_datasets"));
         if (s.has_object_dates is true) LogLine(ObjectTableSummary(db_conn, schema, "object_dates"));
         if (s.has_object_relationships is true) LogLine(ObjectTableSummary(db_conn, schema, "object_relationships"));
         if (s.has_object_rights is true) LogLine(ObjectTableSummary(db_conn, schema, "object_rights"));
-        if (s.has_object_pubmed_set is true)
-        {
-            LogLine(ObjectTableSummary(db_conn, schema, "journal_details"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_organisations"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_people"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_topics"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_comments"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_descriptions"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_identifiers"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_db_links"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_publication_types"));
-            LogLine(ObjectTableSummary(db_conn, schema, "object_descriptions"));
-        }
+
+        if (s.has_journal_details is true) LogLine(ObjectTableSummary(db_conn, schema, "journal_details"));
+        if (s.has_object_organisations is true) LogLine(ObjectTableSummary(db_conn, schema, "object_organisations"));
+        if (s.has_object_people is true) LogLine(ObjectTableSummary(db_conn, schema, "object_people"));
+        if (s.has_object_topics is true) LogLine(ObjectTableSummary(db_conn, schema, "object_topics"));
+        if (s.has_object_comments is true) LogLine(ObjectTableSummary(db_conn, schema, "object_comments"));
+        if (s.has_object_descriptions is true) LogLine(ObjectTableSummary(db_conn, schema, "object_descriptions"));
+        if (s.has_object_identifiers is true) LogLine(ObjectTableSummary(db_conn, schema, "object_identifiers"));
+        if (s.has_object_db_links is true) LogLine(ObjectTableSummary(db_conn, schema, "object_db_links"));
+        if (s.has_object_publication_types is true) LogLine(ObjectTableSummary(db_conn, schema, "object_publication_types"));
+        if (s.has_object_descriptions is true) LogLine(ObjectTableSummary(db_conn, schema, "object_descriptions"));
+
     }
 
     
