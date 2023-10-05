@@ -57,7 +57,7 @@ public class Who_Record
     public List<string>? country_list { get; set; }
     public List<Secondary_Id>? secondary_ids { get; set; }
     public List<WhoStudyFeature>? study_features { get; set; }
-    public List<WhoCondition>? condition_list { get; set; }
+    public List<string>? condition_list { get; set; }
 }
 
 public class Secondary_Id

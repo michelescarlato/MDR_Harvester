@@ -646,11 +646,6 @@ public class EUCTRProcessor : IStudyProcessor
             23, "Text", 13, "Trial Registry entry", 100123, "EU Clinical Trials Register",
             12, download_datetime));
 
-        // Data object title is the single display title.
-        
-        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, 
-                              "Study short name :: object type", true));
-
         // Date of registry entry.
         
         if (entered_in_db != null)
@@ -698,11 +693,6 @@ public class EUCTRProcessor : IStudyProcessor
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_pub_year,
                             23, "Text", 28, "Trial registry results summary", 100123,
                            "EU Clinical Trials Register", 12, download_datetime));
-
-            // Data object title is the single display title.
-            
-            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                            22, "Study short name :: object type", true));
 
             // Instance url 
             
@@ -753,18 +743,16 @@ public class EUCTRProcessor : IStudyProcessor
                     {
                         add_record = false;
                     }
-
-                    object_title = results_summary_name;
-                    object_display_title = s.display_title + " :: " + results_summary_name;
-                    title_type_id = 21;
-                    title_type = "Study short name :: object name";
+                    else
+                    {
+                        object_title = results_summary_name;
+                        object_display_title = s.display_title + " :: " + results_summary_name;
+                    }
                 }
                 else
                 {
                     object_title = "CSR summary";
                     object_display_title = s.display_title + " :: CSR summary";
-                    title_type_id = 22;
-                    title_type = "Study short name :: object type";
                 }
 
                 if (add_record)
@@ -774,10 +762,15 @@ public class EUCTRProcessor : IStudyProcessor
                     data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_date?.year,
                               23, "Text", 79, "CSR summary", null, sponsor_name, 11, download_datetime));
 
-                    // Data object title is the single display title.
-                    
-                    object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                              title_type_id, title_type, true));
+                    // Only store data object title if it seems a gewnuine title rather than type
+
+                    if (object_title != "CSR summary")
+                    {
+                        title_type_id = 21;
+                        title_type = "Object title as provided in source";
+                        object_titles.Add(new ObjectTitle(sd_oid, results_summary_name,
+                                  title_type_id, title_type, true));
+                    }
 
                     // instance url 
                     object_instances.Add(new ObjectInstance(sd_oid, 100123, "EU Clinical Trials Register",
@@ -793,18 +786,13 @@ public class EUCTRProcessor : IStudyProcessor
             {
                 object_title = "CSR summary - PDF DL";
                 object_display_title = s.display_title + " :: CSR summary";
-                int title_type_id = 22;
-                string title_type = "Study short name :: object type";
 
                 sd_oid = sid + " :: 79 :: " + object_title;
 
                 data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_date?.year,
                     23, "Text", 79, "CSR summary", null, sponsor_name, 11, download_datetime));
 
-                // Data object title is the single display title.
-                
-                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                    title_type_id, title_type, true));
+                // No name for the object appears to be present, just a URL internal to EU CTR which references the study id
 
                 // Instance url
                 

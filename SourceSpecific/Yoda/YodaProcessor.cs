@@ -248,8 +248,6 @@ public class YodaProcessor : IStudyProcessor
 
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", 38, "Study Overview",
                             101901, "Yoda", 12, downloadDatetime));
-        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
-                        "Study short name :: object type", true));
         object_instances.Add(new ObjectInstance(sd_oid, 101901, "Yoda",
                             remote_url, true, 35, "Web text"));
         
@@ -282,7 +280,6 @@ public class YodaProcessor : IStudyProcessor
                     {
                         data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
                                         101901, "Yoda", 11, downloadDatetime));
-                        object_titles.Add(new ObjectTitle(sd_oid ,object_display_title, 22, "Study short name :: object type", true));
 
                         // create instance as resource exists
                         // get file type from link if possible
@@ -304,15 +301,10 @@ public class YodaProcessor : IStudyProcessor
                     }
                     else
                     {
-                        string access_details = "The YODA Project will require that requesters provide basic information about the Principal Investigator, Key Personnel, and the ";
-                        access_details += "project Research Proposal, including a scientific abstract and research methods.The YODA Project will review proposals to ensure that: ";
-                        access_details += "1) the scientific purpose is clearly described; 2) the data requested will be used to enhance scientific and/or medical knowledge; and ";
-                        access_details += "3) the proposed research can be reasonably addressed using the requested data.";
-
+                        string access_details = "Material provided under managed access. Please follow the link to the yoda site for details of the application process.";
                         data_objects.Add(new DataObject(sd_oid, sid, object_type, object_display_title, null, object_class_id, object_class, object_type_id, object_type,
                                         101901, "Yoda", 17, "Case by case download", access_details,
                                         "https://yoda.yale.edu/how-request-data", null, downloadDatetime));
-                        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
                     }
 
                     // for datasets also add dataset properties - even if they are largely unknown

@@ -311,9 +311,6 @@ public class BioLinccProcessor : IStudyProcessor
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, pub_year, 23, "Text", 38, "Study Overview",
             100167, "National Heart, Lung, and Blood Institute (US)", 12, download_datetime));
 
-        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
-                            "Study short name :: object type", true));
-
         object_instances.Add(new ObjectInstance(sd_oid, 101900, "BioLINCC",
                             remote_url, true, 35, "Web text"));
 
@@ -345,8 +342,7 @@ public class BioLinccProcessor : IStudyProcessor
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", 134, "Website",
                                 sponsor_id, sp_name, 12, download_datetime));
-            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
-                                "Study short name :: object type", true));
+
             object_instances.Add(new ObjectInstance(sd_oid, sponsor_id, sp_name,
                                 study_website, true, 35, "Web text"));
         }
@@ -356,9 +352,7 @@ public class BioLinccProcessor : IStudyProcessor
         // Possible IPD Dataset data object
         ///////////////////////////////////////////////////////////////////////////////////////
 
-        string access_details = "Investigators wishing to request materials from studies ... must register (free) on the BioLINCC website. ";
-        access_details += "Registered investigators may then request detailed searches and submit an application for data sets ";
-        access_details += "and/or biospecimens. (from the BioLINCC website)";
+        string access_details = "Material provided under managed access. Please follow the link to the BioLINCC handbook for details of the application process.";
 
         string de_identification = "All BioLINCC data and biospecimens are de-identified. Obvious subject identifiers ";
         de_identification += "and data collected solely for administrative purposes are redacted from datasets, ";
@@ -383,8 +377,6 @@ public class BioLinccProcessor : IStudyProcessor
                     17, "Case by case download", access_details,
                     "https://biolincc.nhlbi.nih.gov/media/guidelines/handbook.pdf?link_time=2019-12-13_11:33:44.807479#page=15",
                     date_access_url_checked, download_datetime));
-
-            object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22, "Study short name :: object type", true));
 
             if (last_revised_date is not null)
             {
@@ -472,7 +464,7 @@ public class BioLinccProcessor : IStudyProcessor
 
                 data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null, 23, "Text", object_type_id, object_type,
                                 100167, "National Heart, Lung, and Blood Institute (US)", access_type_id, download_datetime));
-                object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 21, "Study short name :: object name", true));
+                object_titles.Add(new ObjectTitle(sd_oid, object_title, 21, "Object title as provided in source", true));
                 object_instances.Add(new ObjectInstance(sd_oid, 101900, "BioLINCC", url, true, doc_type_id, doc_type, size, size_units));
             }
         }

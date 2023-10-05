@@ -951,11 +951,7 @@ public class IsrctnProcessor : IStudyProcessor
         };
 
         data_objects.Add(dobj);
-
-        // Data object title is the display title...
-
-        object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                                    22, "Study short name :: object type", true));
+                
         if (last_edit is not null)
         {
             object_dates.Add(new ObjectDate(sd_oid, 18, "Updated",
@@ -1012,8 +1008,6 @@ public class IsrctnProcessor : IStudyProcessor
 
                     data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, s.study_start_year,
                        23, "Text", 19, "Patient information sheets", null, sponsor_name, 12, download_datetime));
-                    object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                                        22, "Study short name :: object type", true));
                     object_instances.Add(new ObjectInstance(sd_oid, null, "", href, true, res_type_id, res_type));
                 }
             }
@@ -1033,9 +1027,6 @@ public class IsrctnProcessor : IStudyProcessor
 
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, s.study_start_year,
                     23, "Text", 134, "Website", null, sponsor_name, 12, download_datetime));
-            
-            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                                    22, "Study short name :: object type", true));
             
             object_instances.Add(new ObjectInstance(sd_oid, null, sponsor_name, trial_website, true, 35, "Web text"));
         }
@@ -1088,6 +1079,7 @@ public class IsrctnProcessor : IStudyProcessor
                         _ => new Tuple<int, string, int, string>(0, "Text", 0, output_lower),
                     };
 
+                    bool likely_object_title = false;
                     if (object_details.Item1 == 0)
                     {
                         // may be a full title in the type field rather than a type name
@@ -1096,14 +1088,17 @@ public class IsrctnProcessor : IStudyProcessor
                                                              || output_lower.Contains("data analysis"))
                         {
                             object_details = new Tuple<int, string, int, string>(23, "Text", 79, "Results or CSR summary");
+                            likely_object_title = true;
                         }
                         else if (output_lower.Contains("preprint"))
                         {
                             object_details = new Tuple<int, string, int, string>(23, "Text", 210, "Preprint article");
+                            likely_object_title = true;
                         }
                         else if (output_lower.Contains("diagram"))
                         {
                             object_details = new Tuple<int, string, int, string>(23, "Text",  37, "Other text based object");
+                            likely_object_title = true;
                         }
                     }
 
@@ -1251,8 +1246,15 @@ public class IsrctnProcessor : IStudyProcessor
           
                                 data_objects.Add(d_obj);
 
-                                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                    22, "Study short name :: object type", true));
+                                if (likely_object_title)
+                                {
+                                    // Add an object title only if 'title' did not correspond to a 'type'
+                                    int title_type_id = 23;
+                                    string title_type = "Object name provided as type";
+
+                                    object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
+                                        title_type_id, title_type, true));
+                                }
 
                                 Tuple<int, string> system_details = external_url switch
                                 { 
@@ -1339,8 +1341,6 @@ public class IsrctnProcessor : IStudyProcessor
 
                             object_display_title = s.display_title + " :: " + local_file_name;
                             sd_oid = sid + " :: " + object_type_id + " :: " + local_file_name;
-                            int title_type_id = 21;
-                            string title_type = "Study short name :: object name";
 
                             int next_num = checkOID(sd_oid, data_objects);
                             if (next_num > 0)
@@ -1368,7 +1368,11 @@ public class IsrctnProcessor : IStudyProcessor
                                 };
                             data_objects.Add(d_obj);
 
-                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
+                            // Use the file name as the title, but without the extension
+
+                            int title_type_id = 22;
+                            string title_type = "Object file name (without extension)";
+                            object_titles.Add(new ObjectTitle(sd_oid, local_file_name,
                                     title_type_id, title_type, true));
 
                             object_instances.Add(new ObjectInstance(sd_oid, 100126, "ISRCTN",

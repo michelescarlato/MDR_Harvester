@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Collections.Generic;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using MDR_Harvester.Extensions;
@@ -1175,6 +1176,7 @@ public class CTGProcessor : IStudyProcessor
 
         string title_base;
 
+        /*
         // this used for specific additional objects from GSK
         string gsk_access_details = "Following receipt of a signed Data Sharing Agreement (DSA), ";
         gsk_access_details +=
@@ -1192,8 +1194,15 @@ public class CTGProcessor : IStudyProcessor
         servier_access_details +=
             "proposal to Servier after registering on the site. If the request is approved and before the transfer of data, ";
         servier_access_details += "a so-called Data Sharing Agreement will have to be signed with Servier";
+        */
 
-        
+        // this used for specific additional objects from GSK
+        string csdr_access_details = "Material provided under managed access. Please follow the link to the CSDR web site for details of the application process.";
+       
+        // this used for specific additional objects from Servier
+        string servier_access_details = "Material provided under managed access. Please follow the link to the Servier web site for details of the application process.";
+       
+
         ///////////////////////////////////////////////////////////////////////////////////////
         // Initial Registry Entry
         ///////////////////////////////////////////////////////////////////////////////////////
@@ -1201,20 +1210,14 @@ public class CTGProcessor : IStudyProcessor
         if (brief_title is not null)
         {
             title_base = brief_title;
-            title_type_id = 22;
-            title_type = "Study short name :: object type";
         }
         else if (official_title is not null)
         {
             title_base = official_title;
-            title_type_id = 24;
-            title_type = "Study scientific name :: object type";
         }
         else
         {
             title_base = sid;
-            title_type_id = 26;
-            title_type = "Study registry ID :: object type";
         }
 
 
@@ -1232,8 +1235,6 @@ public class CTGProcessor : IStudyProcessor
         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, first_post_date?.year,
             23, "Text", 13, "Trial Registry entry", 100120,
             "ClinicalTrials.gov", 12, download_datetime));
-
-        object_titles.Add(new ObjectTitle(sd_oid, object_display_title, title_type_id, title_type, true));
 
         if (first_post_date is not null)
         {
@@ -1265,9 +1266,6 @@ public class CTGProcessor : IStudyProcessor
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_post_date?.year,
                 23, "Text", 28, "Trial registry results summary", 100120,
                 "ClinicalTrials.gov", 12, download_datetime));
-
-            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                title_type_id, title_type, true));
 
             if (results_post_date is not null)
             {
@@ -1304,10 +1302,9 @@ public class CTGProcessor : IStudyProcessor
                     string? upload_date = largedoc.uploadDate;
                     string? file_name = largedoc.filename;
 
-                    // Create a new data object,
-                    // decompose the doc date (as the creation date)
+                    // Create a new data object, decompose the doc date (as the creation date)
                     // and the upload date (also used for the publication year).
-                    // get the object type and type id from the type_abbrev.
+                    // Get the object type and type id from the type_abbrev.
 
                     SplitDate? docdate = null;
                     if (doc_date is not null)
@@ -1336,41 +1333,55 @@ public class CTGProcessor : IStudyProcessor
                         object_type_id = doctype.Item1;
                         object_type = doctype.Item2;
 
-                        // Title type depends on whether label is present.
+                        // Title type depends on whether file name is present.
 
-                        if (!string.IsNullOrEmpty(doc_label))
+                        title_type_id = 0;
+                        title_type = "";
+                        if (!string.IsNullOrEmpty(file_name))
                         {
-                            object_display_title = title_base + " :: " + doc_label;
-                            title_type_id = 21;
-                            title_type = "Study short name :: object name";
+                            int last_dot = file_name.LastIndexOf('.');
+                            object_title = file_name[..last_dot];
+                            title_type_id = 22;
+                            title_type = "Object file name (without extension)";
                         }
                         else
-                        {
-                            object_display_title = title_base + " :: " + object_type;
-                            title_type_id = 22;
-                            title_type = "Study short name :: object type";
+                        { 
+                            if (!string.IsNullOrEmpty(doc_label))
+                            {
+                                object_title = doc_label;
+                                title_type_id = 21;
+                                title_type = "Object title as provided in source";
+                            }
+                            else   // else use type
+                            {
+                                object_title = object_type;
+                            }
                         }
 
-                        // Check here not a previous data object of the same type.
-                        // It may have the same url. If so ignore it (to be implemented).
-                        // If it appears to be different, add a suffix to the data object name
+                        sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                        object_display_title = title_base + " :: " + object_title;
 
-                        int next_num = CheckObjectName(object_titles, object_display_title);
+                        // Check here not a previous data object of the same type.
+
+                        int next_num = checkOID(sd_oid, data_objects);
                         if (next_num > 0)
                         {
+                            object_title += "_" + next_num.ToString();
+                            sd_oid += "_" + next_num.ToString();
                             object_display_title += "_" + next_num.ToString();
                         }
 
-                        object_title = object_display_title.Substring(title_base.Length + 4);
-                        sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                        // Add stat object and instance, plus title if a genuine title found
 
                         data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title,
                             uploaddate?.year,
                             23, "Text", object_type_id, object_type, 100120, "ClinicalTrials.gov", 11,
                             download_datetime));
 
-                        object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                            title_type_id, title_type, true));
+                        if (title_type_id > 0)
+                        {   
+                            object_titles.Add(new ObjectTitle(sd_oid, object_title, title_type_id, title_type, true));
+                        }
 
                         if (docdate != null)
                         {
@@ -1400,10 +1411,6 @@ public class CTGProcessor : IStudyProcessor
 
         if (ReferencesModule != null)
         {
-            // references cannot become data objects until
-            // their dates are checked against the study date
-            // this is therefore generating a list for the future.
-
             var refs = ReferencesModule.references;
             if (refs?.Any() is true)
             {
@@ -1438,8 +1445,7 @@ public class CTGProcessor : IStudyProcessor
             // Available IPD
             ///////////////////////////////////////////////////////////////////////////////////////
             
-            // some of the available ipd may be transformable into data objects available, either
-            // directly or after review of requests
+            // Some of the available ipd records may be transformable into data objects available
             // Others will need to be stored as records for future processing
 
             var avail_ipd_items = ReferencesModule.availIpds;
@@ -1455,8 +1461,10 @@ public class CTGProcessor : IStudyProcessor
 
                     int object_class_id;
                     string object_class;
+                    title_type_id = 0;
+                    title_type = "";
 
-                    // Often a GSK store
+                    // Often a GSK store - process only these for now
 
                     if (ipd_url.Contains("clinicalstudydatarequest.com"))
                     {
@@ -1498,62 +1506,75 @@ public class CTGProcessor : IStudyProcessor
                                     t_base = sponsor_name + "-";
                                 }
 
-                                if (ipd_id == null)
+                                if (!string.IsNullOrEmpty(ipd_id))
                                 {
-                                    t_base = title_base;
-                                    title_type_id = 22;
-                                    title_type = "Study short name :: object type";
+                                    // Often ipd_id common to all linked documents (because it is an internal trial id) 
+                                    // therefore still need to add object type. Not a true object title
+
+                                    object_title = t_base + ipd_id + " " + object_type;
                                 }
                                 else
                                 {
-                                    t_base += ipd_id;
-                                    title_type_id = 20;
-                                    title_type = "Unique data object title";
+                                    object_title = object_type;
+                                    title_type_id = 0;
                                 }
+                                
+                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                                object_display_title = title_base + " :: " + object_title;
 
-                                object_display_title = t_base + " :: " + object_type;
+                                // Check oid is not a duplicate before adding
 
-                                // check name
-                                int next_num = CheckObjectName(object_titles, object_display_title);
+                                int next_num = checkOID(sd_oid, data_objects);
                                 if (next_num > 0)
                                 {
+                                    object_title += "_" + next_num.ToString();
+                                    sd_oid += "_" + next_num.ToString();
                                     object_display_title += "_" + next_num.ToString();
                                 }
 
-                                object_title = object_display_title.Substring(t_base.Length + 4);
+                                // Add data object, title if one exists, and instance
 
-                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
-
-                                // add data object
-                                data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title,
-                                    null,
-                                    object_class_id, object_class, object_type_id, object_type, sponsor_id,
-                                    sponsor_name,
-                                    17, "Case by case download", gsk_access_details,
+                                if (sponsor_name is "GlaxoSmithKline" or "GSK")
+                                {
+                                    data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title,
+                                    null, object_class_id, object_class, object_type_id, object_type, sponsor_id,
+                                    sponsor_name, 17, "Case by case download", csdr_access_details,
                                     "https://clinicalstudydatarequest.com/Help/Help-How-to-Request-Data.aspx",
                                     null, download_datetime));
 
-                                // add in title
-                                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                    title_type_id, title_type, true));
-
-                                // for datasets also add dataset properties - even if they are largely unknown
-                                if (object_type_id == 80)
-                                {
-                                    if (sponsor_name is "GlaxoSmithKline" or "GSK")
+                                    // for datasets also add dataset properties - even if they are largely unknown
+                                    if (object_type_id == 80)
                                     {
+
                                         object_datasets.Add(new ObjectDataset(sd_oid,
                                             3, "Anonymised",
                                             "GSK states that... 'researchers are provided access to anonymized patient-level data '",
                                             2, "De-identification applied", null,
                                             0, "Not known", null));
+
                                     }
-                                    else
+                                }
+                                else
+                                {
+                                     data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title,
+                                    null, object_class_id, object_class, object_type_id, object_type, sponsor_id,
+                                    sponsor_name, 17, "Case by case download", csdr_access_details,
+                                    "https://clinicalstudydatarequest.com/Help/Help-How-to-Request-Data.aspx",
+                                    null, download_datetime));
+
+                                    if (title_type_id == 20)
+                                    {
+                                        object_titles.Add(new ObjectTitle(sd_oid, object_title,
+                                            title_type_id, title_type, true));
+                                    }
+
+                                    if (object_type_id == 80)
                                     {
                                         object_datasets.Add(new ObjectDataset(sd_oid,
                                             0, "Not known", null,
                                             0, "Not known", null,
                                             0, "Not known", null));
+
                                     }
                                 }
                             }
@@ -1602,18 +1623,32 @@ public class CTGProcessor : IStudyProcessor
                                 object_class_id = object_type_id is 80 or 69 ? 14 : 23;
                                 object_class = object_type_id is 80 or 69 ? "Dataset" : "Text";
 
-                                object_display_title = title_base + " :: " + object_type;
+                                if (!string.IsNullOrEmpty(ipd_id))
+                                {
+                                    object_title = sponsor_name + "-" + ipd_id;
+                                    title_type_id = 20;
+                                    title_type = "Unique title, from sponsor name and doc ID";
+                                }
+                                else
+                                {
+                                    object_title = object_type;
+                                    title_type_id = 0;
+                                }
 
-                                // check name
-                                int next_num = CheckObjectName(object_titles, object_display_title);
+                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                                object_display_title = title_base + " :: " + object_title;
+
+                                // Check oid is not a duplicate before adding
+
+                                int next_num = checkOID(sd_oid, data_objects);
                                 if (next_num > 0)
                                 {
+                                    object_title += "_" + next_num.ToString();
+                                    sd_oid += "_" + next_num.ToString();
                                     object_display_title += "_" + next_num.ToString();
                                 }
 
-                                object_title = object_display_title.Substring(title_base.Length + 4);
-
-                                sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                                // Add data object reference, title if there is one, but no instance here
 
                                 data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title,
                                     null,
@@ -1622,11 +1657,11 @@ public class CTGProcessor : IStudyProcessor
                                     "https://clinicaltrials.servier.com/data-request-portal/", null,
                                     download_datetime));
 
-                                // add in title
-                                title_type_id = 22;
-                                title_type = "Study short name :: object type";
-                                object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                    title_type_id, title_type, true));
+                                if (title_type_id == 20)
+                                {
+                                    object_titles.Add(new ObjectTitle(sd_oid, object_title,
+                                        title_type_id, title_type, true));
+                                }
 
                                 if (object_type_id == 80)
                                 {
@@ -1648,10 +1683,8 @@ public class CTGProcessor : IStudyProcessor
 
                     else if (ipd_url.Contains("merck.com"))
                     {
-                        // Some of the merck records are direct access to a page
-                        // with a further link to a pdf, plus other study components.
-                        // The others are indications that the object exists but is not directly available.
-                        // create a new data object.
+                        // At the moment these all seem to be CSR summaries 
+                        // with a direct access URL
 
                         if (ipd_url.Contains("&tab=access"))
                         {
@@ -1660,31 +1693,43 @@ public class CTGProcessor : IStudyProcessor
                             object_class_id = 23;
                             object_class = "Text";
 
-                            object_display_title = title_base + " :: " + object_type;
-
-                            // Check name before adding object and object attributes.
-
-                            int next_num = CheckObjectName(object_titles, object_display_title);
-                            if (next_num > 0)
+                            if (!string.IsNullOrEmpty(ipd_id))
                             {
-                                object_display_title += "_" + next_num.ToString();
+                                object_title = sponsor_name + "-" + ipd_id;
+                                title_type_id = 20;
+                                title_type = "Unique title, from sponsor name and doc ID";
+                            }
+                            else
+                            {
+                                object_title = object_type;
+                                title_type_id = 0;
                             }
 
-                            object_title = object_display_title.Substring(title_base.Length + 4);
-
                             sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                            object_display_title = title_base + " :: " + object_type;
+
+                            // Check oid is not a duplicate before adding
+
+                            int next_num = checkOID(sd_oid, data_objects);
+                            if (next_num > 0)
+                            {
+                                object_title += "_" + next_num.ToString();
+                                sd_oid += "_" + next_num.ToString();
+                                object_display_title += "_" + next_num.ToString();
+                            }
 
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null,
                                 object_class_id, object_class, object_type_id, object_type,
                                 100165, "Merck Sharp & Dohme", 11, download_datetime));
 
-                            title_type_id = 22;
-                            title_type = "Study short name :: object type";
-                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                title_type_id, title_type, true));
+                            if (title_type_id == 20)
+                            {
+                                object_titles.Add(new ObjectTitle(sd_oid, object_title,
+                                    title_type_id, title_type, true));
+                            }
 
                             object_instances.Add(new ObjectInstance(sd_oid, 100165,
-                                "Merck Sharp & Dohme Corp.", ipd_url, true, 11, "PDF", null, null));
+                                "Merck Sharp & Dohme", ipd_url, true, 11, "PDF", null, null));
                         }
                         else
                         {
@@ -1700,13 +1745,10 @@ public class CTGProcessor : IStudyProcessor
                     }
 
                     else if (ipd_url.Contains("immport") || ipd_url.Contains("itntrialshare")
-                                                         || ipd_url.Contains("drive.google") ||
-                                                         ipd_url.Contains("zenodo")
-                                                         || ipd_url.Contains("dataverse") ||
-                                                         ipd_url.Contains("datadryad")
-                                                         || ipd_url.Contains("github") || ipd_url.Contains("osf.io")
-                                                         || ipd_url.Contains("scribd") ||
-                                                         ipd_url.Contains("researchgate"))
+                         || ipd_url.Contains("drive.google") ||
+                         ipd_url.Contains("zenodo")  || ipd_url.Contains("dataverse") ||
+                         ipd_url.Contains("datadryad") || ipd_url.Contains("github") || ipd_url.Contains("osf.io")
+                         || ipd_url.Contains("scribd") || ipd_url.Contains("researchgate"))
                     {
                         // these sites seem to have available data objects with specific URLs
 
@@ -1763,37 +1805,41 @@ public class CTGProcessor : IStudyProcessor
 
                             if (string.IsNullOrEmpty(ipd_id))
                             {
-                                object_display_title = title_base + " :: " + object_type;
-                                title_type_id = 22;
-                                title_type = "Study short name :: object type";
+                                object_title = object_type;
+                                title_type_id = 0;
                             }
                             else
                             {
-                                string object_name = ipd_type + " (" + ipd_id + ")";
-                                object_display_title = title_base + " :: " + object_name;
-                                title_type_id = 21;
-                                title_type = "Study short name :: object name";
+                                object_title = ipd_type + " (" + ipd_id + ")";
+                                title_type_id = 23;
+                                title_type = "Object name provided as type";
                             }
 
-                            // check name
-                            int next_num = CheckObjectName(object_titles, object_display_title);
+                            sd_oid = sid + " :: " + object_type_id + " :: " + object_title;
+                            object_display_title = title_base + " :: " + object_title;
+
+                            // Check oid is not a duplicate before adding
+
+                            int next_num = checkOID(sd_oid, data_objects);
                             if (next_num > 0)
                             {
-                                object_display_title += "_" + next_num;
+                                object_title += "_" + next_num.ToString();
+                                sd_oid += "_" + next_num.ToString();
+                                object_display_title += "_" + next_num.ToString();
                             }
-
-                            object_title = object_display_title.Substring(title_base.Length + 4);
-                            sd_oid = sid + " :: " + object_type_id + " :: " + object_title;
 
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null,
                                 object_class_id, object_class, object_type_id, object_type, null, sponsor_name,
                                 11, download_datetime));
 
-                            // add in title
-                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                title_type_id, title_type, true));
+                            if (title_type_id > 0)
+                            {
+                                object_titles.Add(new ObjectTitle(sd_oid, object_title,
+                                    title_type_id, title_type, true));
+                            }
 
                             // for datasets also add dataset properties - even if they are largely unknown
+
                             if (object_type_id == 80)
                             {
                                 object_datasets.Add(new ObjectDataset(sd_oid,
@@ -1838,7 +1884,11 @@ public class CTGProcessor : IStudyProcessor
             }
 
 
-            // at the moment these records are mainly for storage and future processing.
+            ///////////////////////////////////////////////////////////////////////////////////////
+            // Study Links
+            ///////////////////////////////////////////////////////////////////////////////////////
+           
+            // At the moment these records are mainly for storage and future processing.
             // Tidy up urls, remove a small proportion of obvious non-useful links
 
             var see_also_refs = ReferencesModule.seeAlsoLinks;
@@ -1866,40 +1916,35 @@ public class CTGProcessor : IStudyProcessor
 
                     if (!string.IsNullOrEmpty(link_url))
                     {
-                        bool add_to_links_table = true;
+                        bool add_to_links_table = true;  // the default if none of the actions below aer relevant
+
                         if (link_label == "NIH Clinical Center Detailed Web Page" && link_url.EndsWith(".html"))
                         {
-                            // add new data object
-                            // disregard the other entries - as they lead nowhere.
+                            // Add new data object as a 'study overview'
 
                             object_type_id = 38;
                             object_type = "Study Overview";
+                            object_title = object_type;
                             int object_class_id = 23;
                             string object_class = "Text";
 
-                            object_display_title = title_base + " :: " + object_type;
+                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
+                            object_display_title = title_base + " :: " + object_title;
 
-                            // check name
-                            int next_num = CheckObjectName(object_titles, object_display_title);
+                            // Check oid is not a duplicate before adding
+
+                            int next_num = checkOID(sd_oid, data_objects);
                             if (next_num > 0)
                             {
+                                object_title += "_" + next_num.ToString();
+                                sd_oid += "_" + next_num.ToString();
                                 object_display_title += "_" + next_num.ToString();
                             }
-
-                            object_title = object_display_title.Substring(title_base.Length + 4);
-                            sd_oid = sid + " :: " + object_type_id.ToString() + " :: " + object_title;
 
                             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, null,
                                 object_class_id, object_class, object_type_id, object_type, 100360,
                                 "National Institutes of Health Clinical Center", 11, download_datetime));
-
-                            // add in title
-                            title_type_id = 22;
-                            title_type = "Study short name :: object type";
-                            object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                title_type_id, title_type, true));
-
-                            // add in instance
+                           
                             object_instances.Add(new ObjectInstance(sd_oid, 100360,
                                 "National Institutes of Health Clinical Center",
                                 link_url, true, 35, "Web text"));
@@ -1972,42 +2017,34 @@ public class CTGProcessor : IStudyProcessor
                                 object_type = "Conference Poster";
                             }
 
-
                             if (object_type_id > 0 && sponsor_name != null)
                             {
-                                // Probably need to add a new data object. By default....
-
-                                object_display_title = title_base + " :: " + object_type;
-
-                                // check here not a previous data object of the same type
-                                // It may have the same url. If so ignore it.
-                                // If it appears to be different, add a suffix to the data object name.
-
+                                // Probably need to add as a new data object.                               
+                                // But check here not a previous data object with the same URL
+                                // If so ignore it.
+                                
                                 if (!CheckDuplicateUrl(object_instances, link_url))
                                 {
-                                    int next_num = CheckObjectName(object_titles, object_display_title);
+                                    object_title = object_type;
+                                    sd_oid = sid + " :: " + object_type_id + " :: " + object_title;
+                                    object_display_title = title_base + " :: " + object_title;
+
+                                    int next_num = checkOID(sd_oid, data_objects);  // check for type duplication
                                     if (next_num > 0)
                                     {
+                                        object_title += "_" + next_num.ToString();
+                                        sd_oid += "_" + next_num.ToString();
                                         object_display_title += "_" + next_num.ToString();
                                     }
 
-                                    object_title = object_display_title.Substring(title_base.Length + 4);
-
-                                    sd_oid = sid + " :: " + object_type_id + " :: " + object_title;
+                                    // Add data object and instance (no title available)
 
                                     DataObject doc_object = new DataObject(sd_oid, sid, object_title,
                                         object_display_title, null,
                                         23, "Text", object_type_id, object_type, null, sponsor_name, 11,
                                         download_datetime);
 
-                                    // add data object
                                     data_objects.Add(doc_object);
-
-                                    // add in title
-                                    title_type_id = 22;
-                                    title_type = "Study short name :: object type";
-                                    object_titles.Add(new ObjectTitle(sd_oid, object_display_title,
-                                        title_type_id, title_type, true));
 
                                     // add in instance
                                     object_instances.Add(new ObjectInstance(sd_oid, 101419, "TrialScope Disclose",
@@ -2173,6 +2210,7 @@ public class CTGProcessor : IStudyProcessor
 
   
     // check name...
+    /*
     private int CheckObjectName(List<ObjectTitle> titles, string object_display_title)
     {
         int num_of_this_type = 0;
@@ -2192,6 +2230,26 @@ public class CTGProcessor : IStudyProcessor
         }
         return num_of_this_type;
     }
+    */
+
+    // check for previous OID being the same
+
+    private int checkOID(string sd_oid, List<DataObject> data_objects)
+    {
+        int next_num = 0;
+        if (data_objects.Any())
+        {
+            foreach (DataObject d_o in data_objects)
+            {
+                if (d_o.sd_oid!.StartsWith(sd_oid))
+                {
+                    next_num++;
+                }
+            }
+        }
+        return next_num;
+    }
+
 
     // Check URL not a duplicate
     private bool CheckDuplicateUrl(List<ObjectInstance> instances, string url)

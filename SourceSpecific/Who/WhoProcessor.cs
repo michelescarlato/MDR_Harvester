@@ -1,5 +1,7 @@
-﻿using System.Text.Json;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using MDR_Harvester.Extensions;
 
 namespace MDR_Harvester.Who;
@@ -19,7 +21,16 @@ public class WHOProcessor : IStudyProcessor
             AllowTrailingCommas = true
         };
 
-        Who_Record? r = JsonSerializer.Deserialize<Who_Record?>(json_string, json_options);
+        Who_Record? r = null;
+        try
+        {
+           r = JsonSerializer.Deserialize<Who_Record?>(json_string, json_options);
+        }
+        catch (Exception ex)
+        {
+            string e = ex.Message;
+        }
+
         if (r is null)
         {
             _logging_helper.LogError($"Unable to deserialise json file to Who_Record\n{json_string[..1000]}... (first 1000 characters)");
@@ -620,78 +631,441 @@ public class WHOProcessor : IStudyProcessor
                 }
             }
         }
-        
-        
+
+
         ///////////////////////////////////////////////////////////////////////////////////////
         // Study conditions
         ///////////////////////////////////////////////////////////////////////////////////////
-
-        var condList = r.condition_list;
+       
+        List<string>? condList = r.condition_list;
         if (condList?.Any() is true)
         {
-            // Populate the conditions table rather than the topics table
             // If Indian CTR (source = 100121) multiple conditions and codes may be
             // in one string and therefore need splitting
 
-            List<WhoCondition> cList = source_id == 100121 ? condList.CTRIConditions() : condList;
-                                    
-            foreach (WhoCondition cn in cList)
+            List<string> cList = source_id == 100121 ? condList.CTRIConditions() : condList;
+
+            // Do any of the condition strings contain commas? If this is the case it might be multiple conditions
+            // but could also just be a condition name with a qualifier
+            // In the former case, if they are multiple codes, each part is usually the same length.
+            // other multiples will need to be picked up by coding them as separate conditions
+
+            List<string> cList2 = new();
+            foreach (string cn in cList)
             {
-                string? cond = cn.condition;
-                string? cond_code = cn.code;
-                string? code_system_type = cn.code_system;
-                int? code_system_type_id = null;
+                bool no_splitting_occured = true;
+                string c2 = cn;
 
-                if (!string.IsNullOrEmpty(cond))
+                if (c2.StartsWith("br />"))
                 {
-                    char[] chars_to_trim = { ' ', '?', ':', '*', '/', '-', '_', '+', '=', '>', '<', '&' };
-                    string? cond_trim = cond.Trim(chars_to_trim);
+                    c2 = c2[5..].Trim(); // remove residual break lines (esp. common in Dutch entries)
+                }
 
-                    if (cond_trim.ToLower() != "not applicable" && cond_trim.ToLower() != "&quot")
+                if (c2.Contains("br />"))
+                {
+                    // Dutch entries often split the line into English and Dutch using this
+
+                    string[] poss_list = c2.Split("br />", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    if (poss_list.Length > 1)
                     {
-                        if (!string.IsNullOrEmpty(cond_trim))
+                        for (int i = 0; i < poss_list.Length; i++)
                         {
-                            // Assume the condition name is an ICD10 code if it fits the pattern
-                            // and there is no code given. Otherwise add the data as provided.
-
-                            if (string.IsNullOrEmpty(cond_code)
-                                && (Regex.Match(cond_trim, @"^[A-Z]\d{2}(.\d)?").Success
-                                    || Regex.Match(cond_trim, @"^[A-Z]\d{3}").Success))
-                            {
-
-                                cond_code = cond_trim;
-                                cond_trim = null;
-                                code_system_type = "ICD 10";
-                            }
-                            if (code_system_type != null)
-                            {
-                                code_system_type_id = code_system_type.GetCTTypeId();
-                            }
-                            conditions.Add(new StudyCondition(sid, cond_trim, code_system_type_id, code_system_type, cond_code));
+                            cList2.Add(poss_list[i]);
                         }
+                        no_splitting_occured = false;
+                    }
+                }
+
+                else if (c2.Contains(','))
+                {
+                    string[] poss_list = c2.Split(',', StringSplitOptions.TrimEntries);
+                    bool add_to_list = true;
+                    int test_length = poss_list[0].Length;
+                    if (test_length <= 20)
+                    {
+                        for (int i = 1; i < poss_list.Length; i++)
+                        {
+                            if (poss_list[i].Length != test_length)
+                            {
+                                add_to_list = false;
+                                break;
+                            }
+                        }
+                        if (add_to_list)
+                        {
+                            for (int i = 0; i < poss_list.Length; i++)
+                            {
+                                cList2.Add(poss_list[i]);
+                            }
+                            no_splitting_occured = false;
+                        }
+                    }
+                }
+
+                if (no_splitting_occured)
+                {
+                    cList2.Add(c2);
+                }
+            }
+
+
+            // second loop, after any further splits above
+
+            string? code = null, code_system = null;  
+            string? condition_term = null;
+
+            foreach (string cn in cList2)
+            {
+                if (!string.IsNullOrEmpty(cn))
+                {
+                    char[] chars_to_trim = { ' ', '?', ':', '*', '/', '-', '_', '+', '=', '>', '<', '&', ',' };
+                    string? cn_trimmed = cn.Trim(chars_to_trim);
+
+                    if (!string.IsNullOrEmpty(cn_trimmed) &&
+                        cn_trimmed.ToLower() != "not applicable" && cn_trimmed.ToLower() != "&quot" && cn_trimmed.ToLower() != "unspecified")
+                    {
+                        cn_trimmed = cn_trimmed.Replace(" - ", "-");  // close up around hyphens
+
+                        if (Regex.Match(cn_trimmed, @"^\d\.").Success)  // remove digit-dot at beginning, used in some lists (esp.Dutch)
+                        {
+                            cn_trimmed = cn_trimmed[2..].Trim();
+                        }
+                                                
+                        if(cn_trimmed.StartsWith('(') && cn_trimmed.EndsWith(')')) // Remove paired opening and closing brackets
+                        {
+                            cn_trimmed.Trim('(', ')');
+                        }
+                        
+                        if (!Regex.Match(cn_trimmed[1..], @"[A-Za-z]").Success) // if all numbers bar first character close up any spaces
+                        {
+                            cn_trimmed = cn_trimmed[0] + cn_trimmed[1..].Replace(" ", "");
+                        }
+
+                        code = null; code_system = null; condition_term = null;  // re-initialise
+
+                        if (cn_trimmed.Contains("***"))
+                        {
+                            // This initial test because conditions from the Indian trial registry may
+                            // have already been split using *** as a separator between code and term
+
+                            int star_pos = cn_trimmed.IndexOf("***");
+                            code = cn_trimmed[..star_pos];
+                            code_system = "ICD 10";
+                            if (cn_trimmed.Length > star_pos + 3)
+                            { 
+                                 condition_term = cn_trimmed[(star_pos + 3)..];
+                            }
+                        }
+
+                        else if (cn_trimmed.Length <= 10)
+                        {
+                            // Is the condition represented only by a code?
+                            // Some common situations below (first ensure first letter is upper case)
+
+                            cn_trimmed = cn_trimmed[0].ToString().ToUpper() + cn_trimmed[1..];
+
+                            if (cn_trimmed.Length == 3)
+                            {
+                                if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}$").Success)
+                                {
+                                    code = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}$").Value;  // a single ID 10 code, like C01
+                                    code_system = "ICD 10";
+                                }
+                            }
+
+                            else if (cn_trimmed.Length == 4)
+                            {
+                                if (Regex.Match(cn_trimmed, @"^[A-Z]\d{3}$").Success)  // nornmally an ICD10 code without the digit
+                                {
+                                    code = cn_trimmed[..3] + "." + cn_trimmed[^1];
+                                    code_system = "ICD 10";
+                                }
+                                else if (Regex.Match(cn_trimmed, @"^[A-Z0-9][A-Z][0-9][A-Z0-9]$").Success)  // might be an ID 11 code, like A0A1, EM0Z
+                                {
+                                    code = Regex.Match(cn_trimmed, @"^[A-Z0-9][A-Z][0-9][A-Z0-9]$").Value;  
+                                    code_system = "ICD 11";
+                                }
+                            }
+
+                            else if (cn_trimmed.Length == 5)
+                            {
+                                // might be an ICD sub-code, like A03.2  
+
+                                if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d$").Success)
+                                {
+                                    code = cn_trimmed;  // a single ID 10 code, like C01
+                                    code_system = "ICD 10";
+                                }
+                            }
+
+                            else if (cn_trimmed.Length == 6)
+                            {
+                                // might be an ICD sub-code, like A03.23
+
+                                if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{2}$").Success)
+                                {
+                                    code = cn_trimmed;
+                                    code_system = "ICD 10";
+                                }
+
+                                // or may be a 'double' ICD range, e.g. 'A00B99'
+
+                                if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}[A-Z]\d{2}$").Success)
+                                {
+                                    code = cn_trimmed[..3] + "-" + cn_trimmed[3..];
+                                    code_system = "ICD 10";
+                                }
+                            }
+
+                            else if (cn_trimmed.Length == 7)
+                            {
+                                // might be an 'C' or 'D' mesh code
+                                if (Regex.Match(cn_trimmed, @"^C\d{6}$").Success || Regex.Match(cn_trimmed, @"^D\d{6}$").Success)
+                                {
+                                    code = cn_trimmed;
+                                    code_system = "MeSH";
+                                }
+                                else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{3}$").Success)
+                                {
+                                    code = cn_trimmed;
+                                    code_system = "MeSH Tree";
+                                }
+                                if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}-[A-Z]\d{2}$").Success)
+                                {
+                                    code = cn_trimmed;
+                                    code_system = "ICD 10";
+                                }
+                            }
+
+                            else if (cn_trimmed.Length == 10)
+                            {
+                                // might be an 'C' or 'D' mesh code
+                                if (Regex.Match(cn_trimmed, @"^C\d{9}$").Success || Regex.Match(cn_trimmed, @"^D\d{9}$").Success)
+                                {
+                                    code = cn_trimmed;
+                                    code_system = "MeSH";
+                                }
+                            }
+
+                            if (code_system is null)
+                            {
+                                condition_term = cn_trimmed; // no code found, just add as a condition
+                            }
+
+                        }
+
+                        else if (cn_trimmed.Contains("generalization"))
+                        {
+                            string code_string = "";
+
+                            // Use regex to get the second, more general code
+
+                            if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{2}-\[generalization [A-Z]\d{2}.\d:").Success)
+                            {
+                                code_string = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{2}-\[generalization [A-Z]\d{2}\.\d:").Value.Trim();
+                                code = Regex.Match(code_string, @"[A-Z]\d{2}\.\d:").Value.Trim(':');
+                            }
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{2}-\[generalization [A-Z]\d{2}:").Success)
+                            {
+                                code_string = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{2}-\[generalization [A-Z]\d{2}:").Value.Trim();
+                                code = Regex.Match(code_string, @"[A-Z]\d{2}:").Value.Trim(':');
+                            }
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d-\[generalization [A-Z]\d{2}").Success)
+                            {
+                                code_string = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d-\[generalization [A-Z]\d{2}:").Value.Trim();
+                                code = Regex.Match(code_string, @"[A-Z]\d{2}:").Value.Trim(':');
+                            }
+
+                            if (code is not null)
+                            {
+                                code_system = "ICD 10";
+                                condition_term = cn_trimmed.Substring(code_string.Length).Trim(']').Trim();
+                            }
+                            else
+                            {
+                                condition_term = cn_trimmed;
+                            }
+                        }
+
+                        else if (cn_trimmed.ToLower().StartsWith("meddra"))
+                        {
+                            code_system = "MedDRA";
+                            if (cn_trimmed.Contains(':'))
+                            {
+                                if (cn_trimmed.ToLower().StartsWith("meddra-llt"))
+                                {
+                                    cn_trimmed = cn_trimmed[10..];
+                                }
+                                else if (cn_trimmed.ToLower().StartsWith("meddra-"))
+                                {
+                                    cn_trimmed = cn_trimmed[7..];
+                                }
+
+                                string[] components = cn_trimmed.Split(':', StringSplitOptions.TrimEntries);
+
+                                if (components.Length == 2)
+                                {
+                                    if (!Regex.Match(components[0], @"[A-Za-z]").Success)
+                                    {
+                                        code = components[0];
+                                        condition_term = components[1];
+                                    }
+                                    else if (!Regex.Match(components[1], @"[A-Za-z]").Success)
+                                    {
+                                        code = components[1];
+                                        condition_term = components[0];
+                                    }
+                                }
+                            }
+
+                            if (code is null)
+                            {
+                                condition_term = cn_trimmed; // no code found (or meddra code above need expanding), just add as a condition
+                            }
+                        }
+
                         else
                         {
-                            // May be just a code present
+                            // string may contain codes (usually ICD for WHO data) but these will normally be followed
+                            // by text or - more commonly - the condition will just be expressed as text
 
-                            if (!string.IsNullOrEmpty(cond_code))
+                            if (Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}$").Success ||
+                                Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}\.\d{3}$").Success ||
+                                Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}\.\d{3}\.\d{3}$").Success ||
+                                Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}\.\d{3}\.\d{3}\.\d{3}$").Success)
                             {
-                                cond_trim = null;
-                                if (code_system_type != null)
+                                code = cn_trimmed;
+                                code_system = "MeSH Tree";
+                            }
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}\.\d{3}\.\d{3}").Success)
+                            {
+                                code = Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}\.\d{3}\.\d{3}").Value.Trim();
+                                code_system = "MeSH Tree";
+                                condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
+                            }
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}\.\d{3}").Success)
+                            {
+                                code = Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}\.\d{3}").Value.Trim();
+                                code_system = "MeSH Tree";
+                                condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
+                            }
+                                                        
+                            else if (Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}").Success)
+                            {
+                                code = Regex.Match(cn_trimmed, @"^[A-Za-z]\d{2}\.\d{3}\.\d{3}").Value.Trim();
+                                code_system = "MeSH Tree";
+                                condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
+                            }
+                     
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{2}$").Success)
+                            {
+                                code = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{2}$").Value.Trim();
+                                code_system = "ICD 10";
+                                condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
+                            }
+
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d-[A-Z]\d{2}\.\d?").Success)
+                            {
+                                code = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d-[A-Z]\d{2}\.\d?").Value.Trim();
+                                code_system = "ICD 10";
+                                condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
+                            }
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}(\.\d)?\s?").Success)
+                            {
+                                // rarely, this is an abnormal MESH tree code that has 'slipped through'
+                                // or a letter followed by a large string of numbers
+
+                                if (!Regex.Match(cn_trimmed, @"^[A-Z]\d{2}\.\d{3}").Success &&
+                                    !Regex.Match(cn_trimmed, @"^[A-Z]\d{4}").Success)
                                 {
-                                    code_system_type_id = code_system_type.GetCTTypeId();
+                                    code = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}(\.\d)?\s?").Value.Trim();
+                                    code_system = "ICD 10";
+                                    condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
                                 }
-                                conditions.Add(new StudyCondition(sid, cond_trim, code_system_type_id, code_system_type, cond_code));
+                            }
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{2}-[A-Z]\d{2}\s?").Success)
+                            {
+                                code = Regex.Match(cn_trimmed, @"^[A-Z]\d{2}-[A-Z]\d{2}\s?").Value.Trim();
+                                code_system = "ICD 10";
+                                condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
+                            }
+
+                            else if (Regex.Match(cn_trimmed, @"^[A-Z]\d{3}\s?").Success)
+                            {
+                                code = Regex.Match(cn_trimmed, @"^[A-Z]\d{3}\s?").Value.Trim();
+                                code_system = "ICD 10";
+                                condition_term = cn_trimmed.Substring(code.Length).Trim(chars_to_trim);
+                                code = code[..3] + "." + code[^1..];
+                            }
+
+                            if (code_system is null)
+                            {
+                                condition_term = cn_trimmed; // no code found, just add as a condition
                             }
                         }
                     }
                 }
+
+                // Check not duplicated before adding.
+
+                bool add_condition = true;
+                if (conditions.Count > 0)
+                {
+                    foreach (StudyCondition sc in conditions)
+                    {
+                        if (condition_term is not null)
+                        { 
+                            if (condition_term.ToLower() == sc.original_value?.ToLower())
+                            {
+                                add_condition = false;
+                                break;
+                            }
+                        }
+
+                        if (add_condition && code is not null)
+                        {
+                            if (code.ToLower() == sc.original_ct_code?.ToLower())
+                            {
+                                add_condition = false;
+                                break;
+                            }
+                        }
+
+                    }
+                }
+
+                if (add_condition)
+                {
+                    if (code is null)
+                    {
+                        conditions.Add(new StudyCondition(sid, condition_term));
+                    }
+                    else
+                    {
+                        if (code_system is not null)
+                        {
+                            int? code_system_type_id = code_system.GetCTTypeId();
+                            conditions.Add(new StudyCondition(sid, condition_term, code_system_type_id, code_system, code));
+                        }
+                    }
+                }
+
             }
         }
-
+            
+        
         if (conditions.Any())
         {
             conditions = conditions.RemoveNonInformativeConditions();
-        }
+        }                    
 
         
         ///////////////////////////////////////////////////////////////////////////////////////
@@ -759,9 +1133,6 @@ public class WHOProcessor : IStudyProcessor
             data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, pub_year, 23, "Text", 13, "Trial Registry entry",
                 source_id, source_name, 12, download_datetime));
 
-            data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
-                                "Study short name :: object type", true));
-
             remote_url = r.remote_url;
             if (remote_url is not null)
             {
@@ -806,33 +1177,39 @@ public class WHOProcessor : IStudyProcessor
                 && !results_link.Contains("clinicaltrials.gov")  // Exclude those on CTG - should be picked up there
                 && !results_link.Contains("sharing-accessing-data/contributing-data"))   // generic WWWarn data page)
             {
-                string object_title = "Results summary";
-                string object_display_title = name_base + " :: " + "Results summary";
-                string sd_oid = sid + " :: 28 :: " + object_title;
 
-                int? results_pub_year = results_posted_date?.year;
-
-                // (in practice may not be in the registry)
-                data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_pub_year,
-                                    23, "Text", 28, "Trial registry results summary",
-                                    source_id, source_name, 12, download_datetime));
-
-                data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
-                                    "Study short name :: object type", true));
-
-                string url_link = Regex.Match(results_url_link, @"(http|https)://[\w-]+(\.[\w-]+)+([\w\.,@\?\^=%&:/~\+#-]*[\w@\?\^=%&/~\+#-])?").Value;
-                data_object_instances.Add(new ObjectInstance(sd_oid, source_id, source_name,
-                                    url_link, true, 35, "Web text"));
-
-                if (results_posted_date != null)
+                if (source_id == 100124 && r.results_date_posted is null)
                 {
-                    data_object_dates.Add(new ObjectDate(sd_oid, 12, "Available", results_posted_date.year,
-                                results_posted_date.month, results_posted_date.day, results_posted_date.date_string));
+                    // a place-holder - ignore
                 }
-                if (results_completed_date != null)
+                else
                 {
-                    data_object_dates.Add(new ObjectDate(sd_oid, 15, "Created", results_completed_date.year,
-                                results_completed_date.month, results_completed_date.day, results_completed_date.date_string));
+                    string object_title = "Results summary";
+                    string object_display_title = name_base + " :: " + "Results summary";
+                    string sd_oid = sid + " :: 28 :: " + object_title;
+
+                    int? results_pub_year = results_posted_date?.year;
+
+                    // In practice may not be in the registry
+
+                    data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_pub_year,
+                                        23, "Text", 28, "Trial registry results summary",
+                                        source_id, source_name, 12, download_datetime));
+
+                    string url_link = Regex.Match(results_url_link, @"(http|https)://[\w-]+(\.[\w-]+)+([\w\.,@\?\^=%&:/~\+#-]*[\w@\?\^=%&/~\+#-])?").Value;
+                    data_object_instances.Add(new ObjectInstance(sd_oid, source_id, source_name,
+                                        url_link, true, 35, "Web text"));
+
+                    if (results_posted_date != null)
+                    {
+                        data_object_dates.Add(new ObjectDate(sd_oid, 12, "Available", results_posted_date.year,
+                                    results_posted_date.month, results_posted_date.day, results_posted_date.date_string));
+                    }
+                    if (results_completed_date != null)
+                    {
+                        data_object_dates.Add(new ObjectDate(sd_oid, 15, "Created", results_completed_date.year,
+                                    results_completed_date.month, results_completed_date.day, results_completed_date.date_string));
+                    }
                 }
             }
         }
@@ -840,7 +1217,8 @@ public class WHOProcessor : IStudyProcessor
         if (!string.IsNullOrEmpty(results_url_protocol))
         {
             string prot_url = results_url_protocol.ToLower();
-            if (prot_url.Contains("http") 
+            if (prot_url.Contains("http")
+                && source_id != 100124          // ignore the DRKS urls, which all seem to be place-holders at the moment (on the registry web page)
                 && results_url_protocol != remote_url          // avoid duplicate references
                 && results_url_protocol != results_url_link
                 && !prot_url.Contains("clinicaltrials.gov")   // CTG links should be picked up elsewhere
@@ -886,7 +1264,7 @@ public class WHOProcessor : IStudyProcessor
 
 
                 int object_type_id; string object_type;
-                if (prot_url.Contains("study protocol"))
+                if (prot_url.ToLower().Contains("prot"))
                 {
                     object_type_id = 11;
                     object_type = "Study protocol";
@@ -908,9 +1286,6 @@ public class WHOProcessor : IStudyProcessor
                 data_objects.Add(new DataObject(sd_oid, sid, object_title, object_display_title, results_pub_year, 
                     23, "Text", object_type_id, object_type,
                     null, null, 11, download_datetime));
-
-                data_object_titles.Add(new ObjectTitle(sd_oid, object_display_title, 22,
-                                    "Study short name :: object type", true));
 
                 data_object_instances.Add(new ObjectInstance(sd_oid, null, null,
                                     url_link, true, resource_type_id, resource_type));

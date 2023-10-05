@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.Eventing.Reader;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace MDR_Harvester.Who;
@@ -719,45 +720,54 @@ internal static class WhoHelpers
         return funder_names;
     }
     
-    internal static List<WhoCondition> CTRIConditions(this List<WhoCondition> condList)
+    internal static List<string> CTRIConditions(this List<string> condList)
     {
-        List<WhoCondition> cList = new();
-        foreach (WhoCondition cn in condList)
+        // Splits an Indian compound condition listing
+
+        List<string> cList = new();
+        foreach (string cn in condList)
         {
-            string? con = cn.condition;
-            if (!string.IsNullOrEmpty(con))
+            if (!string.IsNullOrEmpty(cn))
             {
-                if (!con.ToLower().Contains("health condition"))
+                if (!cn.ToLower().Contains("health condition"))
                 {
-                    cList.Add(cn);   // just add as is - but only a small minority
+                    cList.Add(cn);   // just add as is - but only a minority
                 }
                 else
                 {
+                    string cn_string = cn;
                     int n = 1;
                     bool end_of_string = false;
+
                     while (!end_of_string)
                     {
                         string start_con = "health condition " + n;
                         string end_con = "health condition " + (n + 1);
-                        if (con.ToLower().Contains(end_con))
+                        if (cn_string.ToLower().Contains(end_con))
                         {
-                            int endcon_pos = con.IndexOf(end_con, StringComparison.OrdinalIgnoreCase);
-                            string con_string = con[..endcon_pos];
-                            con_string = con_string.Replace(start_con, "", StringComparison.OrdinalIgnoreCase);
-                            con_string = con_string.Trim(' ', ':');
-                            if (!string.IsNullOrEmpty(con_string))
+                            int endcon_pos = cn_string.IndexOf(end_con, StringComparison.OrdinalIgnoreCase);
+                            string current_con_string = cn_string[..endcon_pos];
+
+                            // Remove the "health condition" 'header' part of the string
+
+                            current_con_string = current_con_string.Replace(start_con, "", StringComparison.OrdinalIgnoreCase);
+                            current_con_string = current_con_string.Trim(' ', ':', '-');
+                            if (!string.IsNullOrEmpty(current_con_string))
                             {
-                                cList.Add(split_condition_details(con_string));
+                                cList.Add(current_con_string);
                             }
-                            con = con[endcon_pos..];
+                            cn_string = cn_string[endcon_pos..];  // consider remaining part of the string in next loop
                         }
                         else
                         {
-                            string con_string = con.Replace(start_con, "", StringComparison.OrdinalIgnoreCase);
-                            con_string = con_string.Trim(' ', ':');
-                            if (!string.IsNullOrEmpty(con_string))
+                            // No following number - last part of the string 
+                            // Remove the "health condition" 'header' part of the string
+
+                            string current_con_string = cn_string.Replace(start_con, "", StringComparison.OrdinalIgnoreCase);
+                            current_con_string = current_con_string.Trim(' ', ':', '-');
+                            if (!string.IsNullOrEmpty(current_con_string))
                             {
-                                cList.Add(split_condition_details(con_string));
+                                cList.Add(current_con_string);
                             }
                             end_of_string = true;
                         }
@@ -766,7 +776,55 @@ internal static class WhoHelpers
                 }
             }
         }
-        return cList;
+
+        // re-process in a second loop to remove common prefixes and identify ICD codes
+        // (which may be 1m, 2, 3, or 4 characters)
+
+        List<string> cList2 = new();
+        foreach (string cn2 in cList)
+        {
+            string icn = cn2;
+            if (icn.ToLower().StartsWith("null-"))
+            {
+                icn = icn[5..].Trim();
+            }
+
+            if (icn.Contains('-'))
+            {
+                if (Regex.Match(icn, @"^\d{1}\-").Success)
+                {
+                    icn = icn[2..].Trim();
+                }
+                else
+                {
+                    if (Regex.Match(icn, @"^[a-zA-Z]\d{0,4}-").Success)
+                    {
+                        // usually one ICD type code but can be two, separated by a hyphen...
+
+                        if (Regex.Match(icn, @"^[a-zA-Z]\d{0,4}-[a-zA-Z]\d{0,4}-").Success)
+                        {
+                            string code = Regex.Match(icn, @"^[a-zA-Z]\d{0,4}-[a-zA-Z]\d{0,4}-").Value;
+                            code = code.Trim('-', ' ');
+                            icn = code + "***" + icn.Substring(code.Length).Trim('-', ' ');
+                        }
+                        else
+                        {   
+                            string code = Regex.Match(icn, @"^[a-zA-Z]\d{0,4}-\ ").Value;
+                            code = code.Trim('-', ' ');
+                            if (code.Length > 3)
+                            {
+                                code = code[..3] + "." + code[3..];
+                            }
+                            icn = code + "***" + icn.Substring(code.Length).Trim('-', ' ');
+                        }
+                    }
+                }
+            }
+
+            cList2.Add(icn);
+        }
+        
+        return cList2;
     }
 
     internal static WhoCondition split_condition_details(string con_string)
