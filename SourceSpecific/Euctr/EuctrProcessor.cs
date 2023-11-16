@@ -146,8 +146,12 @@ public class EUCTRProcessor : IStudyProcessor
                         if (org.org_role_id != 54 ||
                            (org.org_role_id == 54 && org_name.IsNotInOrgsAsRoleAlready(54, organisations)))
                         {
-                            organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null,
-                                org_name));
+                            if (org.org_role_id.HasValue 
+                                && org_name.IsNotInOrgsAsRoleAlready((int)org.org_role_id, organisations))
+                            {
+                                organisations.Add(new StudyOrganisation(sid, org.org_role_id, org.org_role, null,
+                                    org_name));
+                            }
                         }
                     }
                 }
@@ -428,9 +432,11 @@ public class EUCTRProcessor : IStudyProcessor
         {
             foreach (var c in r.conditions)
             {
-                if (c.condition_name is not null && c.condition_name.IsNotInConditionsAlready(conditions))
+                string? condition = c.condition_name.LineClean();
+                condition = condition?.Replace("\r", "").Replace("\n", "");
+                if (condition is not null && condition.IsNotInConditionsAlready(conditions))
                 {
-                    conditions.Add(new StudyCondition(sid, c.condition_name, c.condition_ct_id,
+                    conditions.Add(new StudyCondition(sid, condition, c.condition_ct_id,
                         c.condition_ct, c.condition_ct_code));
                 }
             }

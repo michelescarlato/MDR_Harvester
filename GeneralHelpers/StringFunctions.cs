@@ -484,7 +484,6 @@ public static class StringHelpers
         
         name = name.Replace("\n", ", ").Replace(" - ", ", ");
         name = name.Replace("<br>", ", ").Replace("<br/>", ", ");
-        name = name.Replace(" - ", ", ");
         name = name.Replace(" ,", ", ");  // can be created by the line above
         name = name.Replace("  ", " ");   // likewise..., try and correct
         

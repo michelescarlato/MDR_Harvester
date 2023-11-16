@@ -454,8 +454,11 @@ public class IsrctnProcessor : IStudyProcessor
                 {
                     if (iType != "To be determined")
                     {
-                        identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id,
-                                iType, ident.identifier_org_id, ident.identifier_org, null, null));
+                        if (!string.IsNullOrEmpty(ident.identifier_value) && !ident.identifier_value.ToLower().StartsWith("nil"))
+                        {
+                            identifiers.Add(new StudyIdentifier(sid, ident.identifier_value, ident.identifier_type_id,
+                                    iType, ident.identifier_org_id, ident.identifier_org, null, null));
+                        }
                     }
                     else
                     {
