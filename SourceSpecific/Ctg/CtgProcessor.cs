@@ -134,6 +134,7 @@ public class CTGProcessor : IStudyProcessor
             {
                 titles.Add(new StudyTitle(sid, official_title, 16, "Registry scientific title", false,
                     title_source));
+
             }
 
             if (!string.IsNullOrEmpty(acronym) && !string.IsNullOrEmpty(official_title)
@@ -1176,25 +1177,7 @@ public class CTGProcessor : IStudyProcessor
 
         string title_base;
 
-        /*
-        // this used for specific additional objects from GSK
-        string gsk_access_details = "Following receipt of a signed Data Sharing Agreement (DSA), ";
-        gsk_access_details +=
-            "researchers are provided access to anonymized patient-level data and supporting documentation in a ";
-        gsk_access_details +=
-            "secure data access system, known as the SAS Clinical Trial Data Transparency (CTDT) system. ";
-        gsk_access_details +=
-            " GSK may provide data directly to researchers where they are assured that the data will be secure";
-
-        // this used for specific additional objects from Servier
-        string servier_access_details =
-            "Servier will provide anonymized patient-level and study-level clinical trial data in response to ";
-        servier_access_details +=
-            "scientifically valid research proposals. Qualified scientific or medical researchers can submit a research ";
-        servier_access_details +=
-            "proposal to Servier after registering on the site. If the request is approved and before the transfer of data, ";
-        servier_access_details += "a so-called Data Sharing Agreement will have to be signed with Servier";
-        */
+        
 
         // this used for specific additional objects from GSK
         string csdr_access_details = "Material provided under managed access. Please follow the link to the CSDR web site for details of the application process.";
