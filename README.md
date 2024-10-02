@@ -10,7 +10,7 @@ http://ecrin-mdr.online/index.php/Harvesting_Data and linked pages
 
 
 ## Parameters and Usage
-The system can take takes the following parameters:<br/>
+The system can take the following parameters:<br/>
 **-s:** Followed by a comma delimited list of source ids. The data is harvest for each specified host<br/>
 **-t:** followed by an integer. Indicates the type of harvest to be carried out. (1 = full, i.e. all available files, 2 = only files downloaded since last import, 3 = test data only.<br/>
 **-E:** as a flag, establishes expected test data. If present only creates and fills tables for the 'expected' data. for comparison with processed test data.<br/>
