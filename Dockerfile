@@ -8,7 +8,7 @@ COPY . .
 
 # If your solution has multiple projects, set the csproj explicitly:
 # docker build --build-arg PROJECT_PATH=src/MDR_Harvester/MDR_Harvester.csproj .
-ARG PROJECT_PATH=MDR_Harvester/MDR_Harvester.csproj
+ARG PROJECT_PATH=MDR_Harvester.csproj
 
 # Restore + publish
 RUN dotnet restore "${PROJECT_PATH}"
