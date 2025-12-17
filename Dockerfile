@@ -27,10 +27,6 @@ RUN groupadd -g "${PGID}" mdr \
 # App binaries
 COPY --from=build /app/out ./
 
-# Optional: ship default config if you keep it in repo root
-# (remove if you mount it via ConfigMap/volume)
-COPY appsettings.json /app/
-
 # Create data dirs (use volumes for real data)
 RUN mkdir -p /app/MDR_Data /app/MDR_Sources /app/MDR_Logs /app/test \
     /app/biolincc /app/ctg /app/euctr /app/isrctn /app/pubmed /app/who /app/yoda \
